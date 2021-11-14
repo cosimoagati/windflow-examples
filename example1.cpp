@@ -11,6 +11,7 @@
 #include <wf/windflow.hpp>
 
 using namespace std;
+using namespace wf;
 
 class Source_Functor {
     vector<string> dataset;
@@ -18,7 +19,7 @@ class Source_Functor {
 public:
     Source_Functor(const vector<string> &dataset) : dataset {dataset} {}
 
-    void operator()(wf::Source_Shipper<string> &shipper) {
+    void operator()(Source_Shipper<string> &shipper) {
         for (const auto &line : dataset) {
             shipper.push(line);
         }
@@ -27,7 +28,7 @@ public:
 
 class Splitter_Functor {
 public:
-    void operator()(const string &input, wf::Shipper<string> &shipper) {
+    void operator()(const string &input, Shipper<string> &shipper) {
         istringstream line {input};
         string        word;
 
@@ -72,20 +73,20 @@ int main(const int argc, const char *const argv[]) {
     }
 
     Source_Functor source_functor {dataset};
-    auto           source = wf::Source_Builder(source_functor)
+    auto           source = Source_Builder(source_functor)
                       .withParallelism(2)
                       .withName("wc_source")
                       .build();
 
     Splitter_Functor splitter_functor;
-    auto             splitter = wf::FlatMap_Builder(splitter_functor)
+    auto             splitter = FlatMap_Builder(splitter_functor)
                         .withParallelism(2)
                         .withName("wc_splitter")
                         .withOutputBatchSize(10)
                         .build();
 
     Counter_Functor counter_functor;
-    auto            counter = wf::Map_Builder(counter_functor)
+    auto            counter = Map_Builder(counter_functor)
                        .withParallelism(3)
                        .withName("wc_counter")
                        .withKeyBy([](const std::string &word) -> std::string {
@@ -94,13 +95,13 @@ int main(const int argc, const char *const argv[]) {
                        .build();
 
     Sink_Functor sink_functor;
-    auto         sink = wf::Sink_Builder(sink_functor)
+    auto         sink = Sink_Builder(sink_functor)
                     .withParallelism(3)
                     .withName("wc_sink")
                     .build();
 
-    wf::PipeGraph topology {"wc", wf::Execution_Mode_t::DEFAULT,
-                            wf::Time_Policy_t::INGRESS_TIME};
+    PipeGraph topology {"wc", Execution_Mode_t::DEFAULT,
+                        Time_Policy_t::INGRESS_TIME};
     if (chaining) {
         topology.add_source(source).chain(splitter).add(counter).chain_sink(
             sink);
