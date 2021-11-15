@@ -49,17 +49,14 @@ public:
     }
 };
 
-class Sink_Functor {
-public:
-    void operator()(optional<pair<string, int>> &input) {
-        if (input) {
-            cout << "Received word " << (*input).first << " with counter "
-                 << (*input).second << "\n";
-        } else {
-            cout << "End of stream\n" << endl;
-        }
+void do_sink(optional<pair<string, int>> &input) {
+    if (input) {
+        cout << "Received word " << (*input).first << " with counter "
+             << (*input).second << "\n";
+    } else {
+        cout << "End of stream\n" << endl;
     }
-};
+}
 
 int main(const int argc, const char *const argv[]) {
     const auto chaining = false;
@@ -90,11 +87,8 @@ int main(const int argc, const char *const argv[]) {
                        })
                        .build();
 
-    Sink_Functor sink_functor;
-    auto         sink = Sink_Builder(sink_functor)
-                    .withParallelism(3)
-                    .withName("wc_sink")
-                    .build();
+    auto sink =
+        Sink_Builder(do_sink).withParallelism(3).withName("wc_sink").build();
 
     PipeGraph topology {"wc", Execution_Mode_t::DEFAULT,
                         Time_Policy_t::INGRESS_TIME};
