@@ -1,10 +1,10 @@
-EXAMPLES:= example1
+EXAMPLES:= example1 example2
 CXX = g++
 CXXFLAGS = -std=c++17
 INCLUDE_FLAGS = -I$(HOME)/.local/include -I$(HOME)/fastflow	\
 -I$(HOME)/.local/include/wf
 LIBS = -pthread
-SRCS:=$(EXAMPLES).c
+SRCS:=$(EXAMPLES:=.c)
 OBJS:=$(SRCS:.c=.o)
 
 all: $(EXAMPLES)
@@ -15,5 +15,6 @@ clean:
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -o $@ -c $<
 
-$(EXAMPLES): $(OBJS)
+
+$(EXAMPLES): %: $(OBJS)
 	$(CXX) $(LIBS) -o $@ $<
