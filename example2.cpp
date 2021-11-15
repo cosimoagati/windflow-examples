@@ -53,14 +53,25 @@ public:
     }
 };
 
-void do_sink(optional<pair<string, int>> &input) {
-    if (input) {
-        cout << "Received word " << (*input).first << " with counter "
-             << (*input).second << "\n";
-    } else {
-        cout << "End of stream\n" << endl;
+class Sink_Functor {
+    unordered_map<string, int> counters;
+
+public:
+    void operator()(optional<pair<string, int>> &input) {
+        if (input) {
+            counters[input->first] = input->second + 1;
+            cout << "Received word " << input->first << " with counter "
+                 << input->second << "\n";
+        } else {
+            cout << "\nEnd of stream, printing final stats...\n";
+            for (const auto &c : counters) {
+                cout << "Word: " << c.first << ", frequency: " << c.second
+                     << "\n";
+            }
+            cout << endl;
+        }
     }
-}
+};
 
 bool get_chaining_option(const char *const arg) {
     if (string {arg} == "true") {
@@ -115,13 +126,14 @@ int main(const int argc, const char *const argv[]) {
                        })
                        .build();
 
-    auto sink =
-        Sink_Builder(do_sink).withParallelism(3).withName("sink").build();
+    Sink_Functor sink_functor;
+    auto         sink =
+        Sink_Builder(sink_functor).withParallelism(1).withName("sink").build();
 
     PipeGraph topology {"filtered_wc", Execution_Mode_t::DEFAULT,
                         Time_Policy_t::INGRESS_TIME};
     if (use_chaining) {
-        topology.add_source(source).add(filter).add(counter).chain_sink(sink);
+        topology.add_source(source).chain(filter).add(counter).chain_sink(sink);
     } else {
         topology.add_source(source).add(filter).add(counter).add_sink(sink);
     }
