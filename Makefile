@@ -16,5 +16,5 @@ clean:
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -o $@ -c $<
 
 
-$(EXAMPLES): %: $(OBJS)
-	$(CXX) $(LIBS) -o $@ $<
+$(EXAMPLES): %: %.o
+	$(CXX) $(LIBS) -o $@ $^
