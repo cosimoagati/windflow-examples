@@ -111,7 +111,7 @@ int main(const int argc, const char *const argv[]) {
     } else {
         topology.add_source(source).add(splitter).add(counter).add_sink(sink);
     }
-    topology.run(); // synchronous execution of the dataflow
+    topology.run();
 
     return 0;
 }
