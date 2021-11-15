@@ -2,7 +2,7 @@
  * The dataset is formed by the strings passed as input to the program.  Run as
  * ./example1 <string1> <string2> ...
  */
-
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -58,26 +58,34 @@ void do_sink(optional<pair<string, int>> &input) {
     }
 }
 
+bool get_chaining_option(const char *const arg) {
+    if (string {arg} == "true") {
+        return true;
+    } else if (string {arg} == "false") {
+        return false;
+    } else {
+        cerr << "Use as " << arg << " true|false <strings...>\n";
+        exit(EXIT_FAILURE);
+    }
+}
+
+vector<string> get_dataset_vector(const int argc, const char *const argv[]) {
+    vector<string> dataset;
+
+    for (auto i = 2; i < argc; ++i) {
+        dataset.push_back(argv[i]);
+    }
+    return dataset;
+}
+
 int main(const int argc, const char *const argv[]) {
     if (argc < 2) {
         cerr << "Use as " << argv[0] << " true|false <strings...>\n";
         return -1;
     }
 
-    bool use_chaining;
-    if (string {argv[0]} == "true") {
-        use_chaining = true;
-    } else if (string {argv[0]} == "false") {
-        use_chaining = false;
-    } else {
-        cerr << "Use as " << argv[0] << " true|false <strings...>\n";
-        return -1;
-    }
-
-    vector<string> dataset;
-    for (auto i = 2; i < argc; ++i) {
-        dataset.push_back(argv[i]);
-    }
+    const auto           use_chaining = get_chaining_option(argv[1]);
+    const vector<string> dataset      = get_dataset_vector(argc, argv);
 
     Source_Functor source_functor {dataset};
     auto           source = Source_Builder(source_functor)
