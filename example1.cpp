@@ -59,10 +59,23 @@ void do_sink(optional<pair<string, int>> &input) {
 }
 
 int main(const int argc, const char *const argv[]) {
-    const auto chaining = false;
+    if (argc < 2) {
+        cerr << "Use as " << argv[0] << " true|false <strings...>\n";
+        return -1;
+    }
+
+    bool use_chaining;
+    if (string {argv[0]} == "true") {
+        use_chaining = true;
+    } else if (string {argv[0]} == "false") {
+        use_chaining = false;
+    } else {
+        cerr << "Use as " << argv[0] << " true|false <strings...>\n";
+        return -1;
+    }
 
     vector<string> dataset;
-    for (auto i = 1; i < argc; ++i) {
+    for (auto i = 2; i < argc; ++i) {
         dataset.push_back(argv[i]);
     }
 
@@ -92,7 +105,7 @@ int main(const int argc, const char *const argv[]) {
 
     PipeGraph topology {"wc", Execution_Mode_t::DEFAULT,
                         Time_Policy_t::INGRESS_TIME};
-    if (chaining) {
+    if (use_chaining) {
         topology.add_source(source).chain(splitter).add(counter).chain_sink(
             sink);
     } else {
