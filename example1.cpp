@@ -26,17 +26,14 @@ public:
     }
 };
 
-class Splitter_Functor {
-public:
-    void operator()(const string &input, Shipper<string> &shipper) {
-        istringstream line {input};
-        string        word;
+void split(const string &input, Shipper<string> &shipper) {
+    istringstream line {input};
+    string        word;
 
-        while (getline(line, word, ' ')) {
-            shipper.push(std::move(word));
-        }
+    while (getline(line, word, ' ')) {
+        shipper.push(std::move(word));
     }
-};
+}
 
 class Counter_Functor {
     unordered_map<string, int> table;
@@ -78,8 +75,7 @@ int main(const int argc, const char *const argv[]) {
                       .withName("wc_source")
                       .build();
 
-    Splitter_Functor splitter_functor;
-    auto             splitter = FlatMap_Builder(splitter_functor)
+    auto splitter = FlatMap_Builder(split)
                         .withParallelism(2)
                         .withName("wc_splitter")
                         .withOutputBatchSize(10)
