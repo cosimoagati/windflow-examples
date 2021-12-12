@@ -51,8 +51,8 @@ public:
 
 void do_sink(optional<pair<string, int>> &input) {
     if (input) {
-        cout << "Received word " << (*input).first << " with counter "
-             << (*input).second << "\n";
+        cout << "Received word " << input->first << " with counter "
+             << input->second << "\n";
     } else {
         cout << "End of stream\n" << endl;
     }
