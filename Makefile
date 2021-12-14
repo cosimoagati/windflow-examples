@@ -5,6 +5,7 @@ CXXFLAGS = -std=c++17 -g -O0
 INCLUDE_FLAGS = -I$(HOME)/.local/include -I$(HOME)/fastflow	\
 -I$(HOME)/.local/include/wf
 LIBS = -pthread
+GPULIBS = -ltbb
 
 NVXX = /usr/local/cuda/bin/nvcc
 NVXXFLAGS = -std=c++17 -x cu --compiler-options "-Wall -Wextra -Wpedantic"
@@ -40,4 +41,4 @@ $(CPU_EXAMPLES): %: %.o
 	$(CXX) $< $(LIBS) -o $@
 
 $(GPU_EXAMPLES): %: %.o
-	$(NVXX) -lcuda -lcudart -lcublas $< -o $@
+	$(NVXX) $(GPULIBS) $< -o $@
