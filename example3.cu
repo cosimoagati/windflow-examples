@@ -70,8 +70,7 @@ public:
             ++counter;
             cout << "Received word number " << counter << "\n";
         } else {
-            cout << "End of stream!\n";
-            cout << endl;
+            cout << "End of stream!" << endl;
         }
     }
 };
