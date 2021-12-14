@@ -105,5 +105,9 @@ int main() {
     auto         sink =
         Sink_Builder {sink_functor}.withParallelism(3).withName("sink").build();
 
+    PipeGraph graph {"grapoh", Execution_Mode_t::DEFAULT,
+                     Time_Policy_t::INGRESS_TIME};
+    graph.add_source(source).add(filter).add(map).add_sink(sink);
+    graph.run();
     return 0;
 }
