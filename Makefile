@@ -40,4 +40,4 @@ $(CPU_EXAMPLES): %: %.o
 	$(CXX) $(LIBS) -o $@ $^
 
 $(GPU_EXAMPLES): %: %.o
-	$(NVXX) -o $@ $^
+	$(NVXX) -lcuda -lcudart -lcublas $< -o $@
