@@ -30,14 +30,14 @@ clean:
 	rm -f $(CPU_EXAMPLES) $(GPU_EXAMPLES) *.o
 
 $(CPU_OBJS): %.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -o $@ -c $<
+	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $< -o $@
 
 $(GPU_OBJS): %.o: %.cu
 	$(NVXX) $(NVXXFLAGS) $(INCLUDE_FLAGS) $(MACRO) $(NVOPTFLAGS) \
-	$(USER_DEFINES)  -o $@ -c $<
+	$(USER_DEFINES) -c $< -o $@
 
 $(CPU_EXAMPLES): %: %.o
-	$(CXX) $(LIBS) -o $@ $^
+	$(CXX) $< $(LIBS) -o $@
 
 $(GPU_EXAMPLES): %: %.o
 	$(NVXX) -lcuda -lcudart -lcublas $< -o $@
