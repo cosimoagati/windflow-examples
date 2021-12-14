@@ -3,6 +3,7 @@
  * ./example1 <string1> <string2> ...
  */
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -20,6 +21,15 @@ struct record_t {
     int  customer_id;
     char record[MAX_LEN_RECORD];
     bool is_fraud;
+
+    record_t() : customer_id {0}, is_fraud {false} {
+        record[0] = '\0';
+    }
+
+    record_t(int customer_id, const char *record, bool is_fraud)
+        : customer_id {customer_id}, is_fraud {is_fraud} {
+        strncpy(this->record, record, MAX_LEN_RECORD);
+    }
 };
 
 class PredictionModel {
@@ -36,12 +46,12 @@ class Source_Functor {
     vector<record_t> records;
 
 public:
-    Source_Functor(const vector<record_t> &record) : records {records} {}
+    Source_Functor(const vector<record_t> &records) : records {records} {}
 
     void operator()(Source_Shipper<record_t> &shipper) {
         for (auto record : records) {
-            record_t output {record};
-            shipper.push(output);
+            shipper.push(record);
+            cout << "Sent record containing string " << record.record << '\n';
         }
     }
 };
@@ -75,8 +85,26 @@ public:
     }
 };
 
-int main() {
-    vector<record_t> records {};
+vector<record_t> get_record_vector(const int argc, const char **const argv) {
+    vector<record_t> dataset;
+
+    for (auto i = 1; i < argc; ++i) {
+        record_t record {i, argv[i], false};
+        dataset.push_back(record);
+    }
+    return dataset;
+}
+
+int main(const int argc, const char *argv[]) {
+    if (argc < 2) {
+        cerr << "Use as " << argv[0] << "<strings...> \n";
+        return -1;
+    }
+
+    auto records = get_record_vector(argc, argv);
+    for (const auto &record : records) {
+        cout << record.record << endl;
+    }
 
     Source_Functor source_functor {records};
     auto           source = Source_Builder {source_functor}
@@ -105,7 +133,7 @@ int main() {
     auto         sink =
         Sink_Builder {sink_functor}.withParallelism(3).withName("sink").build();
 
-    PipeGraph graph {"grapoh", Execution_Mode_t::DEFAULT,
+    PipeGraph graph {"graph", Execution_Mode_t::DEFAULT,
                      Time_Policy_t::INGRESS_TIME};
     graph.add_source(source).add(filter).add(map).add_sink(sink);
     graph.run();
