@@ -17,15 +17,6 @@ struct record_t {
     int  customer_id;
     char record[MAX_LEN_RECORD];
     bool is_fraud;
-
-    record_t() : customer_id {0}, is_fraud {false} {
-        record[0] = '\0';
-    }
-
-    record_t(int customer_id, const char *record, bool is_fraud)
-        : customer_id {customer_id}, is_fraud {is_fraud} {
-        strncpy(this->record, record, MAX_LEN_RECORD);
-    }
 };
 
 class PredictionModel {
@@ -85,7 +76,10 @@ vector<record_t> get_record_vector(const int argc, const char **const argv) {
     vector<record_t> dataset;
 
     for (auto i = 1; i < argc; ++i) {
-        record_t record {i, argv[i], false};
+        record_t record;
+        record.customer_id = i;
+        record.is_fraud    = false;
+        strncpy(record.record, argv[i], MAX_LEN_RECORD);
         dataset.push_back(record);
     }
     return dataset;
