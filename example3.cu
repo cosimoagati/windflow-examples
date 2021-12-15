@@ -36,7 +36,7 @@ public:
     Source_Functor(const vector<record_t> &records) : records {records} {}
 
     void operator()(Source_Shipper<record_t> &shipper) {
-        for (auto record : records) {
+        for (const auto &record : records) {
             shipper.push(record);
             cout << "Sent record containing string " << record.record << '\n';
         }
