@@ -77,11 +77,10 @@ vector<Record> get_record_vector(const int argc, const char **const argv) {
     vector<Record> dataset;
 
     for (auto i = 1; i < argc; ++i) {
-        Record record;
-        record.customer_id = i;
-        record.is_fraud    = false;
-        strncpy(record.record, argv[i], MAX_LEN_RECORD);
-        dataset.push_back(record);
+        dataset.emplace_back();
+        dataset.back().customer_id = i;
+        dataset.back().is_fraud    = false;
+        strncpy(dataset.back().record, argv[i], MAX_LEN_RECORD);
     }
     return dataset;
 }
