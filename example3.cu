@@ -65,7 +65,8 @@ public:
     void operator()(optional<record_t> &input) {
         if (input) {
             ++counter;
-            cout << "Received word number " << counter << "\n";
+            cout << "Received word number " << counter << " containing "
+                 << input->record << "\n";
         } else {
             cout << "End of stream!" << endl;
         }
