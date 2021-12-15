@@ -91,7 +91,7 @@ int main(const int argc, const char *argv[]) {
         return -1;
     }
 
-    auto records = get_record_vector(argc, argv);
+    const auto records = get_record_vector(argc, argv);
     for (const auto &record : records) {
         cout << record.record << endl;
     }
