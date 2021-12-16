@@ -49,7 +49,7 @@ public:
     }
 };
 
-void do_sink(optional<pair<string, int>> &input) {
+static void do_sink(optional<pair<string, int>> &input) {
     if (input) {
         cout << "Received word " << input->first << " with counter "
              << input->second << "\n";
@@ -58,7 +58,7 @@ void do_sink(optional<pair<string, int>> &input) {
     }
 }
 
-bool get_chaining_option(const char *const arg) {
+static bool get_chaining_option(const char *const arg) {
     if (string {arg} == "true") {
         return true;
     } else if (string {arg} == "false") {
@@ -69,7 +69,8 @@ bool get_chaining_option(const char *const arg) {
     }
 }
 
-vector<string> get_dataset_vector(const int argc, const char *const argv[]) {
+static vector<string> get_dataset_vector(const int         argc,
+                                         const char *const argv[]) {
     vector<string> dataset;
 
     for (auto i = 2; i < argc; ++i) {
