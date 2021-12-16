@@ -1,5 +1,5 @@
 CPU_EXAMPLES:= example1 example2
-GPU_EXAMPLES:= example3
+GPU_EXAMPLES:= example3 example4 example5
 CXX = g++
 CXXFLAGS = -std=c++17 -g -Og
 INCLUDE_FLAGS = -I$(HOME)/.local/include -I$(HOME)/fastflow	\
