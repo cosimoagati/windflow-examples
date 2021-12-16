@@ -114,6 +114,8 @@ int main(const int argc, const char *argv[]) {
                       .withOutputBatchSize(1000)
                       .build();
 
+    // For some reason, it fails to compile if a lambda expression is used
+    // instead of a named functor class.
     auto filter_functor = [] __device__(Record & input) -> bool {
         return !(input.record[0] == '\0');
     };
