@@ -29,11 +29,11 @@ public:
     }
 };
 
-class Source_Functor {
+class SourceFunctor {
     vector<Record> records;
 
 public:
-    Source_Functor(const vector<Record> &records) : records {records} {}
+    SourceFunctor(const vector<Record> &records) : records {records} {}
 
     void operator()(Source_Shipper<Record> &shipper) {
         for (const auto &record : records) {
@@ -43,24 +43,24 @@ public:
     }
 };
 
-struct Filter_Functor {
+struct FilterFunctor {
     __device__ bool operator()(Record &input) {
         return !(input.record[0] == '\0');
     }
 };
 
-struct Map_Functor {
+struct MapFunctor {
     __device__ void operator()(Record &input, PredictionModel &model) {
         model.add_record(input);
         input.is_fraud = model.update_classification();
     }
 };
 
-class Sink_Functor {
+class SinkFunctor {
     unsigned counter;
 
 public:
-    Sink_Functor() : counter {0} {}
+    SinkFunctor() : counter {0} {}
 
     void operator()(optional<Record> &input) {
         if (input) {
@@ -109,21 +109,21 @@ int main(const int argc, const char *argv[]) {
         cout << record.record << endl;
     }
 
-    Source_Functor source_functor {records};
-    auto           source = Source_Builder {source_functor}
+    SourceFunctor source_functor {records};
+    auto          source = Source_Builder {source_functor}
                       .withParallelism(1)
                       .withName("source")
                       .withOutputBatchSize(1000)
                       .build();
 
-    Filter_Functor filter_functor;
-    auto           filter = FilterGPU_Builder {filter_functor}
+    FilterFunctor filter_functor;
+    auto          filter = FilterGPU_Builder {filter_functor}
                       .withParallelism(2)
                       .withName("filter")
                       .build();
 
-    Map_Functor map_functor;
-    auto        map =
+    MapFunctor map_functor;
+    auto       map =
         MapGPU_Builder {map_functor}
             .withParallelism(2)
             .withName("map")
@@ -132,8 +132,8 @@ int main(const int argc, const char *argv[]) {
             })
             .build();
 
-    Sink_Functor sink_functor;
-    auto         sink =
+    SinkFunctor sink_functor;
+    auto        sink =
         Sink_Builder {sink_functor}.withParallelism(3).withName("sink").build();
 
     PipeGraph graph {"graph", Execution_Mode_t::DEFAULT,

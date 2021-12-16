@@ -13,11 +13,11 @@
 using namespace std;
 using namespace wf;
 
-class Source_Functor {
+class SourceFunctor {
     vector<string> dataset;
 
 public:
-    Source_Functor(const vector<string> &dataset) : dataset {dataset} {}
+    SourceFunctor(const vector<string> &dataset) : dataset {dataset} {}
 
     void operator()(Source_Shipper<string> &shipper) {
         for (const auto &line : dataset) {
@@ -39,7 +39,7 @@ static bool do_filter(string &word) {
     return word.length() % 2 == 0;
 }
 
-class Counter_Functor {
+class CounterFunctor {
     unordered_map<string, int> table;
 
 public:
@@ -53,7 +53,7 @@ public:
     }
 };
 
-class Sink_Functor {
+class SinkFunctor {
     unordered_map<string, int> counters;
 
 public:
@@ -103,8 +103,8 @@ int main(const int argc, const char *const argv[]) {
     const auto           use_chaining = get_chaining_option(argv[1]);
     const vector<string> dataset      = get_dataset_vector(argc, argv);
 
-    Source_Functor source_functor {dataset};
-    auto           source = Source_Builder(source_functor)
+    SourceFunctor source_functor {dataset};
+    auto          source = Source_Builder(source_functor)
                       .withParallelism(1)
                       .withName("source")
                       .build();
@@ -118,8 +118,8 @@ int main(const int argc, const char *const argv[]) {
     auto filter =
         Filter_Builder(do_filter).withParallelism(1).withName("filter").build();
 
-    Counter_Functor counter_functor;
-    auto            counter = Map_Builder(counter_functor)
+    CounterFunctor counter_functor;
+    auto           counter = Map_Builder(counter_functor)
                        .withParallelism(1)
                        .withName("counter")
                        .withKeyBy([](const std::string &word) -> std::string {
@@ -127,8 +127,8 @@ int main(const int argc, const char *const argv[]) {
                        })
                        .build();
 
-    Sink_Functor sink_functor;
-    auto         sink =
+    SinkFunctor sink_functor;
+    auto        sink =
         Sink_Builder(sink_functor).withParallelism(1).withName("sink").build();
 
     PipeGraph graph {"filtered_wc", Execution_Mode_t::DEFAULT,
