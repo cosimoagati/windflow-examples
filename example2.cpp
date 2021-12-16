@@ -130,14 +130,14 @@ int main(const int argc, const char *const argv[]) {
     auto         sink =
         Sink_Builder(sink_functor).withParallelism(1).withName("sink").build();
 
-    PipeGraph topology {"filtered_wc", Execution_Mode_t::DEFAULT,
-                        Time_Policy_t::INGRESS_TIME};
+    PipeGraph graph {"filtered_wc", Execution_Mode_t::DEFAULT,
+                     Time_Policy_t::INGRESS_TIME};
     if (use_chaining) {
-        topology.add_source(source).chain(filter).add(counter).chain_sink(sink);
+        graph.add_source(source).chain(filter).add(counter).chain_sink(sink);
     } else {
-        topology.add_source(source).add(filter).add(counter).add_sink(sink);
+        graph.add_source(source).add(filter).add(counter).add_sink(sink);
     }
-    topology.run();
+    graph.run();
 
     return 0;
 }

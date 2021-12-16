@@ -111,15 +111,14 @@ int main(const int argc, const char *const argv[]) {
     auto sink =
         Sink_Builder(do_sink).withParallelism(3).withName("wc_sink").build();
 
-    PipeGraph topology {"wc", Execution_Mode_t::DEFAULT,
-                        Time_Policy_t::INGRESS_TIME};
+    PipeGraph graph {"wc", Execution_Mode_t::DEFAULT,
+                     Time_Policy_t::INGRESS_TIME};
     if (use_chaining) {
-        topology.add_source(source).chain(splitter).add(counter).chain_sink(
-            sink);
+        graph.add_source(source).chain(splitter).add(counter).chain_sink(sink);
     } else {
-        topology.add_source(source).add(splitter).add(counter).add_sink(sink);
+        graph.add_source(source).add(splitter).add(counter).add_sink(sink);
     }
-    topology.run();
+    graph.run();
 
     return 0;
 }
