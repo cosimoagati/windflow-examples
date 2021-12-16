@@ -109,9 +109,6 @@ int main(const int argc, const char *argv[]) {
 
     const auto use_chaining = get_chaining_option(argv[1]);
     const auto records      = get_record_vector(argc, argv);
-    for (const auto &record : records) {
-        cout << record.record << endl;
-    }
 
     SourceFunctor source_functor {records};
     auto          source = Source_Builder {source_functor}
