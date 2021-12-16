@@ -73,7 +73,8 @@ public:
     }
 };
 
-vector<Record> get_record_vector(const int argc, const char **const argv) {
+static vector<Record> get_record_vector(const int          argc,
+                                        const char **const argv) {
     vector<Record> dataset;
 
     for (auto i = 2; i < argc; ++i) {
@@ -95,6 +96,7 @@ static bool get_chaining_option(const char *const arg) {
         exit(EXIT_FAILURE);
     }
 }
+
 int main(const int argc, const char *argv[]) {
     if (argc < 2) {
         cerr << "Use as " << argv[0] << " true|false <strings...>\n";
