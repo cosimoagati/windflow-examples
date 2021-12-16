@@ -76,7 +76,7 @@ public:
 vector<Record> get_record_vector(const int argc, const char **const argv) {
     vector<Record> dataset;
 
-    for (auto i = 1; i < argc; ++i) {
+    for (auto i = 2; i < argc; ++i) {
         dataset.emplace_back();
         dataset.back().customer_id = i;
         dataset.back().is_fraud    = false;
@@ -85,13 +85,24 @@ vector<Record> get_record_vector(const int argc, const char **const argv) {
     return dataset;
 }
 
+static bool get_chaining_option(const char *const arg) {
+    if (string {arg} == "true") {
+        return true;
+    } else if (string {arg} == "false") {
+        return false;
+    } else {
+        cerr << "Use as " << arg << " true|false <strings...>\n";
+        exit(EXIT_FAILURE);
+    }
+}
 int main(const int argc, const char *argv[]) {
     if (argc < 2) {
-        cerr << "Use as " << argv[0] << "<strings...> \n";
+        cerr << "Use as " << argv[0] << " true|false <strings...>\n";
         return -1;
     }
 
-    const auto records = get_record_vector(argc, argv);
+    const auto use_chaining = get_chaining_option(argv[1]);
+    const auto records      = get_record_vector(argc, argv);
     for (const auto &record : records) {
         cout << record.record << endl;
     }
@@ -125,7 +136,12 @@ int main(const int argc, const char *argv[]) {
 
     PipeGraph graph {"graph", Execution_Mode_t::DEFAULT,
                      Time_Policy_t::INGRESS_TIME};
-    graph.add_source(source).add(filter).add(map).add_sink(sink);
+    if (use_chaining) {
+        graph.add_source(source).chain(filter).add(map).chain_sink(sink);
+    } else {
+        graph.add_source(source).add(filter).add(map).add_sink(sink);
+    }
     graph.run();
+
     return 0;
 }
