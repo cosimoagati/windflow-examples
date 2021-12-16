@@ -73,7 +73,7 @@ public:
     }
 };
 
-static bool get_chaining_option(const char *const arg) { //
+static bool get_chaining_option(const char *const arg) {
     if (string {arg} == "true") {
         return true;
     } else if (string {arg} == "false") {
