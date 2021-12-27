@@ -15,6 +15,26 @@ using namespace wf;
 
 enum class Sentiment { Positive, Negative, Neutral };
 
+static inline Sentiment score_to_sentiment(int score) {
+    return score > 0   ? Sentiment::Positive
+           : score < 0 ? Sentiment::Negative
+                       : Sentiment::Neutral;
+}
+
+static inline vector<string> split_tweet_in_words(const string &input) {
+    auto text_without_punctuation =
+        regex_replace(input, regex {"\\p{Punct}|\\n"}, " ");
+    transform(text_without_punctuation.begin(), text_without_punctuation.end(),
+              text_without_punctuation.begin(),
+              [](char c) { return tolower(c); });
+
+    const regex space_regex {" "};
+    return {sregex_token_iterator(text_without_punctuation.begin(),
+                                  text_without_punctuation.end(), space_regex,
+                                  -1),
+            sregex_token_iterator()};
+}
+
 struct SentimentResult {
     Sentiment sentiment;
     int       score;
@@ -45,29 +65,17 @@ public:
     // TODO: Should take a configuration in input as well...
     BasicClassifier() {}
 
-    SentimentResult classify(const string &input_string) {
-        auto text = regex_replace(input_string, regex {"\\p{Punct}|\\n"}, " ");
-        transform(text.begin(), text.end(), text.begin(),
-                  [](char c) { return tolower(c); });
-
-        const regex          space_regex {" "};
-        const vector<string> words {
-            sregex_token_iterator(text.begin(), text.end(), space_regex, -1),
-            sregex_token_iterator()};
-
-        auto current_tweet_sentiment = 0;
+    SentimentResult classify(const string &input) {
+        const auto words                   = split_tweet_in_words(input);
+        auto       current_tweet_sentiment = 0;
 
         for (const auto &word : words) {
             if (sentiment_map.find(word) != sentiment_map.end()) {
                 current_tweet_sentiment += sentiment_map[word];
             }
         }
-
-        const auto sentiment = current_tweet_sentiment > 0 ? Sentiment::Positive
-                               : current_tweet_sentiment < 0
-                                   ? Sentiment::Negative
-                                   : Sentiment::Neutral;
-        return {sentiment, current_tweet_sentiment};
+        return {score_to_sentiment(current_tweet_sentiment),
+                current_tweet_sentiment};
     }
 };
 
