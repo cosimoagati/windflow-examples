@@ -28,6 +28,19 @@ struct SentimentResult {
         : sentiment {sentiment}, score {score} {}
 };
 
+class SourceFunctor {
+    vector<string> dataset;
+
+public:
+    SourceFunctor(const vector<string> &dataset) : dataset {dataset} {}
+
+    void operator()(Source_Shipper<string> &shipper) {
+        for (const auto &line : dataset) {
+            shipper.push(line);
+        }
+    }
+};
+
 class BasicClassifier {
     static constexpr auto default_path = "sentimentanalysis/AFINN-111.txt";
     map<string, int>      sentiment_map;
