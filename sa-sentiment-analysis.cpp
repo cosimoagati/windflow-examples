@@ -76,6 +76,18 @@ public:
     }
 };
 
+template<typename Classifier>
+class MapFunctor {
+    Classifier classifier;
+
+public:
+    void operator()(const string &                          input_string,
+                    Shipper<pair<string, SentimentResult>> &shipper) {
+        const auto result = classifier.classify(input_string);
+        shipper.push(make_pair(input_string, result));
+    }
+};
+
 int main(int argc, char *argv[]) {
     return 0;
 }
