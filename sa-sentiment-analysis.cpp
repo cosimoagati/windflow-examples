@@ -46,6 +46,7 @@ class BasicClassifier {
     map<string, int>      sentiment_map;
 
 public:
+    // TODO: Should take a configuration in input as well...
     BasicClassifier() {}
 
     SentimentResult classify(const string &input_string) {
