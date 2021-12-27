@@ -26,7 +26,9 @@ GPU_SRCS:=$(GPU_EXAMPLES:=.cu)
 CPU_OBJS:=$(CPU_SRCS:.cpp=.o)
 GPU_OBJS:=$(GPU_SRCS:.cu=.o)
 
-all: $(CPU_EXAMPLES) $(GPU_EXAMPLES)
+all: cpu gpu
+cpu: $(CPU_EXAMPLES)
+gpu: $(GPU_EXAMPLES)
 
 clean:
 	rm -f $(CPU_EXAMPLES) $(GPU_EXAMPLES) *.o
