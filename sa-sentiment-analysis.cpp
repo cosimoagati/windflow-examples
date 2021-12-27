@@ -53,7 +53,11 @@ public:
         auto text = regex_replace(input_string, regex {"\\p{Punct}|\\n"}, " ");
         transform(text.begin(), text.end(), text.begin(),
                   [](char c) { return tolower(c); });
-        vector<string> words; // TODO: fill!
+
+        const regex          space_regex {" "};
+        const vector<string> words {
+            sregex_token_iterator(text.begin(), text.end(), space_regex, -1),
+            sregex_token_iterator()};
 
         auto current_tweet_sentiment = 0;
 
