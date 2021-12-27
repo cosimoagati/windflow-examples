@@ -88,6 +88,12 @@ public:
     }
 };
 
+static const char *sentiment_to_string(Sentiment sentiment) {
+    return sentiment == Sentiment::Positive   ? "Positive"
+           : sentiment == Sentiment::Negative ? "Negative"
+                                              : "Neutral";
+}
+
 int main(int argc, char *argv[]) {
     return 0;
 }
