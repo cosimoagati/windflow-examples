@@ -81,10 +81,9 @@ class MapFunctor {
     Classifier classifier;
 
 public:
-    void operator()(const string &                          input_string,
-                    Shipper<pair<string, SentimentResult>> &shipper) {
+    pair<string, SentimentResult> operator()(const string &input_string) {
         const auto result = classifier.classify(input_string);
-        shipper.push(make_pair(input_string, result));
+        return make_pair(input_string, result);
     }
 };
 
