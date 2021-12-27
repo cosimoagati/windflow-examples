@@ -94,6 +94,16 @@ static const char *sentiment_to_string(Sentiment sentiment) {
                                               : "Neutral";
 }
 
+static void do_sink(optional<pair<string, SentimentResult>> &input) {
+    if (input) {
+        cout << "Received word " << input->first << " with score "
+             << input->second.score << " and classification "
+             << sentiment_to_string(input->second.sentiment) << "\n";
+    } else {
+        cout << "End of stream\n" << endl;
+    }
+}
+
 int main(int argc, char *argv[]) {
     cout << "TODO: initalize pipeline...\n";
     return 0;
