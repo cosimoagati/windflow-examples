@@ -17,10 +17,10 @@ enum class Sentiment { Positive, Negative, Neutral };
 
 struct SentimentResult {
     Sentiment sentiment;
-    double    score;
+    int       score;
 
     SentimentResult() {}
-    SentimentResult(Sentiment sentiment, double score)
+    SentimentResult(Sentiment sentiment, int score)
         : sentiment {sentiment}, score {score} {}
 };
 
@@ -63,12 +63,11 @@ public:
             }
         }
 
-        SentimentResult result;
-        result.score     = current_tweet_sentiment;
-        result.sentiment = current_tweet_sentiment > 0   ? Sentiment::Positive
-                           : current_tweet_sentiment < 0 ? Sentiment::Negative
-                                                         : Sentiment::Neutral;
-        return result;
+        const auto sentiment = current_tweet_sentiment > 0 ? Sentiment::Positive
+                               : current_tweet_sentiment < 0
+                                   ? Sentiment::Negative
+                                   : Sentiment::Neutral;
+        return {sentiment, current_tweet_sentiment};
     }
 };
 
