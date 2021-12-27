@@ -104,7 +104,6 @@ static void do_sink(optional<pair<string, SentimentResult>> &input) {
 }
 
 int main(int argc, char *argv[]) {
-    cout << "TODO: initalize pipeline...\n";
     const auto           use_chaining = false;
     const vector<string> dataset;
 
