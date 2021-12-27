@@ -95,5 +95,6 @@ static const char *sentiment_to_string(Sentiment sentiment) {
 }
 
 int main(int argc, char *argv[]) {
+    cout << "TODO: initalize pipeline...\n";
     return 0;
 }
