@@ -1,4 +1,4 @@
-CPU_EXAMPLES:= example1 example2
+CPU_EXAMPLES:= example1 example2 sa-sentiment-analysis
 GPU_EXAMPLES:= example3 example4 example5
 CXX = g++
 CXXFLAGS = -std=c++17 -g -Og
