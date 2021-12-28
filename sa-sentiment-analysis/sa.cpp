@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
     PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DEFAULT,
                      Time_Policy_t::INGRESS_TIME};
     if (use_chaining) {
-        graph.add_source(source).add(classifier_node).chain_sink(sink);
+        graph.add_source(source).chain(classifier_node).chain_sink(sink);
     } else {
         graph.add_source(source).add(classifier_node).add_sink(sink);
     }
