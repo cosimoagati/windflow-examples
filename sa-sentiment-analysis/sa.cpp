@@ -55,10 +55,10 @@ static inline vector<string> split_in_words(const string &input) {
 
 template<typename Map>
 static inline Map get_sentiment_map(const string &path) {
-    ifstream input_file {path};
-    Map      sentiment_map;
-    string   word;
-    int      sentiment;
+    ifstream                  input_file {path};
+    Map                       sentiment_map;
+    typename Map::key_type    word;
+    typename Map::mapped_type sentiment;
 
     while (input_file >> word >> sentiment) {
         sentiment_map[word] = sentiment;
