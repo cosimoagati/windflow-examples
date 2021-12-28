@@ -142,21 +142,21 @@ int main(int argc, char *argv[]) {
     const auto use_chaining = false;
 
     SourceFunctor source_functor;
-    auto          source = Source_Builder(source_functor)
+    auto          source = Source_Builder {source_functor}
                       .withParallelism(1)
                       .withName("source")
                       .build();
 
     MapFunctor<BasicClassifier> map_functor;
     auto                        classifier_node =
-        Map_Builder(map_functor)
+        Map_Builder {map_functor}
             .withParallelism(1)
             .withName("counter")
             .withKeyBy([](const string &word) { return word; })
             .build();
 
     auto sink =
-        Sink_Builder(do_sink).withParallelism(1).withName("sink").build();
+        Sink_Builder {do_sink}.withParallelism(1).withName("sink").build();
 
     PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DEFAULT,
                      Time_Policy_t::INGRESS_TIME};
