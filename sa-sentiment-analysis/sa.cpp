@@ -38,11 +38,12 @@ static inline vector<string> split_in_words(const string &input) {
             sregex_token_iterator {}};
 }
 
-static inline map<string, int> get_sentiment_map(const string &path) {
-    ifstream         input_file {path};
-    map<string, int> sentiment_map;
-    string           word;
-    int              sentiment;
+template<typename Map>
+static inline Map get_sentiment_map(const string &path) {
+    ifstream input_file {path};
+    Map      sentiment_map;
+    string   word;
+    int      sentiment;
 
     while (input_file >> word >> sentiment) {
         sentiment_map[word] = sentiment;
@@ -78,7 +79,7 @@ class BasicClassifier {
 
 public:
     BasicClassifier(const string &path)
-        : sentiment_map {get_sentiment_map(path)} {}
+        : sentiment_map {get_sentiment_map<decltype(sentiment_map)>(path)} {}
     BasicClassifier() : BasicClassifier {default_path} {}
 
     SentimentResult classify(const string &tweet) {
