@@ -55,7 +55,7 @@ struct SentimentResult {
     Sentiment sentiment;
     int       score;
 
-    SentimentResult() {}
+    SentimentResult() = default;
     SentimentResult(Sentiment sentiment, int score)
         : sentiment {sentiment}, score {score} {}
 };
@@ -101,6 +101,9 @@ class MapFunctor {
     Classifier classifier;
 
 public:
+    MapFunctor() = default;
+    MapFunctor(const string &path) : classifier {path} {}
+
     pair<string, SentimentResult> operator()(const string &input_string) {
         const auto result = classifier.classify(input_string);
         return make_pair(input_string, result);
