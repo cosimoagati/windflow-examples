@@ -152,8 +152,7 @@ int main(int argc, char *argv[]) {
         Map_Builder(map_functor)
             .withParallelism(1)
             .withName("counter")
-            .withKeyBy(
-                [](const std::string &word) -> std::string { return word; })
+            .withKeyBy([](const string &word) { return word; })
             .build();
 
     auto sink =
