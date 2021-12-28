@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
     auto sink =
         Sink_Builder(do_sink).withParallelism(1).withName("sink").build();
 
-    PipeGraph graph {"filtered_wc", Execution_Mode_t::DEFAULT,
+    PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DEFAULT,
                      Time_Policy_t::INGRESS_TIME};
     if (use_chaining) {
         graph.add_source(source).add(classifier_node).chain_sink(sink);
