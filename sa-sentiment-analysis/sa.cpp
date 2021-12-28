@@ -26,7 +26,7 @@ static inline vector<string> read_strings_from_file(const string &path) {
     vector<string> strings;
 
     for (string line; getline(input_file, line);) {
-        strings.emplace_back(std::move(line));
+        strings.emplace_back(move(line));
     }
     return strings;
 }
