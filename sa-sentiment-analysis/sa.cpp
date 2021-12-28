@@ -32,7 +32,8 @@ static inline vector<string> read_strings_from_file(const string &path) {
 }
 
 static inline vector<string> split_in_words(const string &input) {
-    auto text = regex_replace(input, regex {"\\p{Punct}|\\n"}, " ");
+    // auto text = regex_replace(input, regex {"\\p{Punct}|\\n"}, " ");
+    auto text = input;
 
     transform(text.begin(), text.end(), text.begin(),
               [](char c) { return tolower(c); });
