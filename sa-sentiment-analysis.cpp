@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <regex>
@@ -37,6 +38,18 @@ static inline vector<string> split_in_words(const string &input) {
             sregex_token_iterator {}};
 }
 
+static inline map<string, int> get_sentiment_map(const string &path) {
+    ifstream         input_file {path};
+    map<string, int> sentiment_map;
+    string           word;
+    int              sentiment;
+
+    while (input_file >> word >> sentiment) {
+        sentiment_map[word] = sentiment;
+    }
+    return sentiment_map;
+}
+
 struct SentimentResult {
     Sentiment sentiment;
     int       score;
@@ -64,7 +77,8 @@ class BasicClassifier {
     map<string, int>      sentiment_map;
 
 public:
-    BasicClassifier(const char *path) {}
+    BasicClassifier(const string &path)
+        : sentiment_map {get_sentiment_map(path)} {}
     BasicClassifier() : BasicClassifier {default_path} {}
 
     SentimentResult classify(const string &tweet) {
