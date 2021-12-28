@@ -71,10 +71,13 @@ struct SentimentResult {
 };
 
 class SourceFunctor {
-    vector<string> dataset;
+    static constexpr auto default_path = "example-dataset.txt";
+    vector<string>        dataset;
 
 public:
-    SourceFunctor(const vector<string> &dataset) : dataset {dataset} {}
+    SourceFunctor(const string &path)
+        : dataset {read_strings_from_file(path)} {}
+    SourceFunctor() : SourceFunctor {default_path} {}
 
     void operator()(Source_Shipper<string> &shipper) {
         for (const auto &line : dataset) {
@@ -137,10 +140,9 @@ static void do_sink(optional<pair<string, SentimentResult>> &input) {
 }
 
 int main(int argc, char *argv[]) {
-    const auto           use_chaining = false;
-    const vector<string> dataset;
+    const auto use_chaining = false;
 
-    SourceFunctor source_functor {dataset};
+    SourceFunctor source_functor;
     auto          source = Source_Builder(source_functor)
                       .withParallelism(1)
                       .withName("source")
