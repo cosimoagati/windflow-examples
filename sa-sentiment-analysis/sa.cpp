@@ -64,10 +64,6 @@ static inline Map get_sentiment_map(const string &path) {
 struct SentimentResult {
     Sentiment sentiment;
     int       score;
-
-    SentimentResult() = default;
-    SentimentResult(Sentiment sentiment, int score)
-        : sentiment {sentiment}, score {score} {}
 };
 
 class SourceFunctor {
