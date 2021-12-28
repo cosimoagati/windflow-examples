@@ -67,8 +67,8 @@ public:
     BasicClassifier(const char *path) {}
     BasicClassifier() : BasicClassifier {default_path} {}
 
-    SentimentResult classify(const string &input) {
-        const auto words                   = split_in_words(input);
+    SentimentResult classify(const string &tweet) {
+        const auto words                   = split_in_words(tweet);
         auto       current_tweet_sentiment = 0;
 
         for (const auto &word : words) {
