@@ -36,7 +36,7 @@ cpu: $(CPU_EXAMPLES)
 gpu: $(GPU_EXAMPLES)
 
 clean:
-	rm -f $(CPU_EXAMPLES) $(GPU_EXAMPLES) *.o
+	rm -f $(CPU_EXAMPLES) $(GPU_EXAMPLES) $(CPU_OBJS) $(GPU_OBJS)
 
 $(CPU_OBJS): %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $< -o $@
