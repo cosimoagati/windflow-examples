@@ -1,11 +1,16 @@
 CPU_EXAMPLES:= example1 example2 sa-sentiment-analysis/sa
 GPU_EXAMPLES:= example3 example4 example5
-CXX = clang++
 CXXFLAGS = -std=c++17 -g -Og
 INCLUDE_FLAGS = -I$(HOME)/.local/include -I$(HOME)/fastflow	\
 -I$(HOME)/.local/include/wf
 LIBS = -pthread
 GPULIBS = -ltbb
+
+ifneq (, $(shell which clang++))
+	CXX = clang++
+else
+	CXX = g++
+endif
 
 NVXX = /usr/local/cuda/bin/nvcc
 NVXXFLAGS = -std=c++17 -x cu --compiler-options \
