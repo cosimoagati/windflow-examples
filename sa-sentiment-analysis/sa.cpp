@@ -15,6 +15,11 @@ using namespace wf;
 
 enum class Sentiment { Positive, Negative, Neutral };
 
+struct SentimentResult {
+    Sentiment sentiment;
+    int       score;
+};
+
 static inline Sentiment score_to_sentiment(int score) {
     return score > 0   ? Sentiment::Positive
            : score < 0 ? Sentiment::Negative
@@ -60,11 +65,6 @@ static inline Map get_sentiment_map(const string &path) {
     }
     return sentiment_map;
 }
-
-struct SentimentResult {
-    Sentiment sentiment;
-    int       score;
-};
 
 class SourceFunctor {
     static constexpr auto default_path = "example-dataset.txt";
