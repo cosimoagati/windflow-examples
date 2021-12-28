@@ -62,8 +62,8 @@ class BasicClassifier {
     map<string, int>      sentiment_map;
 
 public:
-    // TODO: Should take a configuration in input as well...
-    BasicClassifier() {}
+    BasicClassifier(const char *path) {}
+    BasicClassifier() : BasicClassifier {default_path} {}
 
     SentimentResult classify(const string &input) {
         const auto words                   = split_tweet_in_words(input);
