@@ -2,3 +2,4 @@
 *.o
 /example2
 /sa-sentiment-analysis/sa
+.cache/
