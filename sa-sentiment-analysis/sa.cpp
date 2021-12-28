@@ -74,7 +74,7 @@ public:
 };
 
 class BasicClassifier {
-    static constexpr auto default_path = "sentimentanalysis/AFINN-111.txt";
+    static constexpr auto default_path = "AFINN-111.txt";
     map<string, int>      sentiment_map;
 
 public:
