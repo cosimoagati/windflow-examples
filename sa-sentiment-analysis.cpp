@@ -22,17 +22,19 @@ static inline Sentiment score_to_sentiment(int score) {
 }
 
 static inline vector<string> split_tweet_in_words(const string &input) {
-    auto text_without_punctuation =
-        regex_replace(input, regex {"\\p{Punct}|\\n"}, " ");
-    transform(text_without_punctuation.begin(), text_without_punctuation.end(),
-              text_without_punctuation.begin(),
+    auto text = regex_replace(input, regex {"\\p{Punct}|\\n"}, " ");
+
+    transform(text.begin(), text.end(), text.begin(),
               [](char c) { return tolower(c); });
 
+    const auto is_not_space = [](char c) { return !isspace(c); };
+    text.erase(text.begin(), find_if(text.begin(), text.end(), is_not_space));
+    text.erase(find_if(text.rbegin(), text.rend(), is_not_space).base(),
+               text.end());
+
     const regex space_regex {" "};
-    return {sregex_token_iterator(text_without_punctuation.begin(),
-                                  text_without_punctuation.end(), space_regex,
-                                  -1),
-            sregex_token_iterator()};
+    return {sregex_token_iterator {text.begin(), text.end(), space_regex, -1},
+            sregex_token_iterator {}};
 }
 
 struct SentimentResult {
