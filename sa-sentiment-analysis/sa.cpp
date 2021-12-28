@@ -134,7 +134,7 @@ static void do_sink(optional<pair<string, SentimentResult>> &input) {
              << input->second.score << " and classification "
              << sentiment_to_string(input->second.sentiment) << "\n";
     } else {
-        cout << "End of stream\n" << endl;
+        cout << "End of stream\n\n";
     }
 }
 
