@@ -1,0 +1,56 @@
+[
+  {
+    "arguments": [
+      "/usr/lib/llvm-11/bin/clang",
+      "-std=c++17",
+      "-g",
+      "-Og",
+      "-I/home/cosimone/.local/include",
+      "-I/home/cosimone/fastflow",
+      "-I/home/cosimone/.local/include/wf",
+      "-c",
+      "example1.cpp",
+      "-o",
+      "example1.o"
+    ],
+    "directory": "/home/cosimone/workspaces/windflow-examples",
+    "file": "/home/cosimone/workspaces/windflow-examples/example1.cpp",
+    "output": "/home/cosimone/workspaces/windflow-examples/example1.o"
+  },
+  {
+    "arguments": [
+      "/usr/lib/llvm-11/bin/clang",
+      "-std=c++17",
+      "-g",
+      "-Og",
+      "-I/home/cosimone/.local/include",
+      "-I/home/cosimone/fastflow",
+      "-I/home/cosimone/.local/include/wf",
+      "-c",
+      "example2.cpp",
+      "-o",
+      "example2.o"
+    ],
+    "directory": "/home/cosimone/workspaces/windflow-examples",
+    "file": "/home/cosimone/workspaces/windflow-examples/example2.cpp",
+    "output": "/home/cosimone/workspaces/windflow-examples/example2.o"
+  },
+  {
+    "arguments": [
+      "/usr/lib/llvm-11/bin/clang",
+      "-std=c++17",
+      "-g",
+      "-Og",
+      "-I/home/cosimone/.local/include",
+      "-I/home/cosimone/fastflow",
+      "-I/home/cosimone/.local/include/wf",
+      "-c",
+      "sa-sentiment-analysis/sa.cpp",
+      "-o",
+      "sa-sentiment-analysis/sa.o"
+    ],
+    "directory": "/home/cosimone/workspaces/windflow-examples",
+    "file": "/home/cosimone/workspaces/windflow-examples/sa-sentiment-analysis/sa.cpp",
+    "output": "/home/cosimone/workspaces/windflow-examples/sa-sentiment-analysis/sa.o"
+  }
+]
