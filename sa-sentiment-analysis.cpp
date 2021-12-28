@@ -21,8 +21,8 @@ static inline Sentiment score_to_sentiment(int score) {
                        : Sentiment::Neutral;
 }
 
-static inline vector<string> split_tweet_in_words(const string &input) {
-    auto text = regex_replace(input, regex {"\\p{Punct}|\\n"}, " ");
+static inline vector<string> split_in_words(const string &tweet) {
+    auto text = regex_replace(tweet, regex {"\\p{Punct}|\\n"}, " ");
 
     transform(text.begin(), text.end(), text.begin(),
               [](char c) { return tolower(c); });
@@ -68,7 +68,7 @@ public:
     BasicClassifier() : BasicClassifier {default_path} {}
 
     SentimentResult classify(const string &input) {
-        const auto words                   = split_tweet_in_words(input);
+        const auto words                   = split_in_words(input);
         auto       current_tweet_sentiment = 0;
 
         for (const auto &word : words) {
