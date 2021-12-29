@@ -161,24 +161,18 @@ static void do_sink(optional<pair<string, SentimentResult>> &input) {
     }
 }
 
-template<typename TimeUnit>
 static inline void parse_and_validate_args(int argc, char **argv,
-                                           TimeUnit &duration) {
+                                           long &total_tuples) {
     int option;
-    while ((option = getopt(argc, argv, "d:")) != -1) {
+    while ((option = getopt(argc, argv, "t:")) != -1) {
         switch (option) {
-        case 'd':
-            duration = TimeUnit {atoi(optarg)};
+        case 't':
+            total_tuples = atol(optarg);
             break;
         default:
             cerr << "Error: invalid option\n";
             exit(EXIT_FAILURE);
         }
-    }
-
-    if (duration <= TimeUnit {0}) {
-        cerr << "Error: duration not provided or not positive\n";
-        exit(EXIT_FAILURE);
     }
 }
 
