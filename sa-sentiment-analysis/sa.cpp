@@ -210,11 +210,15 @@ int main(int argc, char *argv[]) {
     graph.run();
 
     const auto elapsed_time =
-        duration_cast<decltype(duration)>(steady_clock::now() - start_time);
-    cout << elapsed_time.count() << '\n';
-    const auto throughput = g_sent_tuples / elapsed_time.count();
+        duration_cast<seconds>(steady_clock::now() - start_time);
 
-    cout << "Sent " << throughput << " tuples per "
-         << timeunit_to_string<decltype(duration)>;
+    const auto throughput = elapsed_time.count() > 0
+                                ? g_sent_tuples.load() / elapsed_time.count()
+                                : g_sent_tuples.load();
+
+    cout << "Elapsed time: " << elapsed_time.count()
+         << timeunit_to_string<decltype(elapsed_time.count())> << "s\n";
+    cout << "Processed " << throughput << " tuples per "
+         << timeunit_to_string<decltype(elapsed_time.count())> << '\n';
     return 0;
 }
