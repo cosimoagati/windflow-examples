@@ -224,7 +224,6 @@ int main(int argc, char *argv[]) {
         Map_Builder {map_functor}
             .withParallelism(map_parallelism)
             .withName("counter")
-            .withKeyBy([](const string &word) { return word; })
             .build();
 
     auto sink =
