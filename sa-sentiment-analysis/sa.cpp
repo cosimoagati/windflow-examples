@@ -144,6 +144,26 @@ static void do_sink(optional<pair<string, SentimentResult>> &input) {
     }
 }
 
+template<typename TimeUnit>
+static inline void parse_and_validate_args(int argc, char **argv,
+                                           TimeUnit &duration) {
+    int option;
+    while ((option = getopt(argc, argv, "d:")) != -1) {
+        switch (option) {
+        case 'd':
+            duration = TimeUnit {atoi(optarg)};
+            break;
+        default:
+            cerr << "Error: invalid option\n";
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if (duration <= TimeUnit {0}) {
+        cerr << "Error: duration not provided or not positive\n";
+        exit(EXIT_FAILURE);
+    }
+}
 int main(int argc, char *argv[]) {
     const auto use_chaining = false;
 
