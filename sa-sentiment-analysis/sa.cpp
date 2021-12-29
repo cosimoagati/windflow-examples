@@ -153,7 +153,7 @@ public:
 
     MapOutputTuple<TimeUnit> operator()(const SourceTuple &tuple) {
         const auto result = classifier.classify(tuple.tweet);
-        return {move(tuple.tweet), result,
+        return {tuple.tweet, result,
                 duration_cast<TimeUnit>(steady_clock::now() - tuple.timestamp)};
     }
 };
