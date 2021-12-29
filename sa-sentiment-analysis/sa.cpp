@@ -205,10 +205,10 @@ static inline void parse_and_validate_args(int argc, char **argv,
 }
 
 int main(int argc, char *argv[]) {
-    const auto    start_time      = steady_clock::now();
-    const auto    use_chaining    = false;
-    unsigned int  map_parallelism = 0;
-    unsigned long total_tuples    = 0;
+    const auto start_time      = steady_clock::now();
+    auto       use_chaining    = false;
+    auto       map_parallelism = 0u;
+    auto       total_tuples    = 0ul;
 
     parse_and_validate_args(argc, argv, total_tuples, map_parallelism,
                             use_chaining);
