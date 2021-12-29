@@ -19,7 +19,7 @@ using namespace std::chrono;
 using namespace wf;
 
 atomic_ulong g_sent_tuples;
-atomic_ulong g_average;
+atomic_ulong g_average_latency;
 
 template<typename TimeUnit>
 constexpr auto timeunit_to_string = "time unit";
@@ -168,20 +168,20 @@ static inline const char *sentiment_to_string(Sentiment sentiment) {
 template<typename TimeUnit>
 class SinkFunctor {
     unsigned long          tuples_received {0};
-    typename TimeUnit::rep total {0};
+    typename TimeUnit::rep total_average {0};
 
 public:
     void operator()(optional<MapOutputTuple<TimeUnit>> &input) {
         if (input) {
             ++tuples_received;
-            total += input->latency.count();
+            total_average += input->latency.count();
 
             // cout << "Received tweet \"" << input->first << "\" with score "
             //      << input->second.second << " and classification "
             //      << sentiment_to_string(input->second.first) << "\n";
         } else {
             cout << "End of stream\n\n";
-            g_average.store(total / tuples_received);
+            g_average_latency.store(total_average / tuples_received);
         }
     }
 };
@@ -275,7 +275,7 @@ int main(int argc, char *argv[]) {
          << timeunit_to_string<TimeUnit> << "s\n";
     cout << "Processed about " << throughput << " tuples per "
          << timeunit_to_string<TimeUnit> << '\n';
-    cout << "Average latency is " << g_average << ' '
+    cout << "Average latency is " << g_average_latency << ' '
          << timeunit_to_string<TimeUnit> << "s\n";
     return 0;
 }
