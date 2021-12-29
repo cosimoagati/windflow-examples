@@ -215,7 +215,8 @@ static inline void parse_and_validate_args(int argc, char **argv,
             break;
         }
         default:
-            cerr << "Error: invalid option\n";
+            cerr << "Use as " << argv[0]
+                 << " [-c true|false] -t <tuples> -m <parallelism>\n";
             exit(EXIT_FAILURE);
         }
     }
