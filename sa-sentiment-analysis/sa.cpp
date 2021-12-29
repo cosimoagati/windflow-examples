@@ -116,7 +116,7 @@ public:
             ++sent_tuples;
             index = (index + 1) % dataset.size();
         }
-        g_sent_tuples.fetch_add(sent_tuples);
+        g_sent_tuples.store(sent_tuples);
     }
 };
 
