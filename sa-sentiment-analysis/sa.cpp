@@ -17,6 +17,8 @@ using namespace std;
 using namespace std::chrono;
 using namespace wf;
 
+atomic_long g_sent_tuples;
+
 enum class Sentiment { Positive, Negative, Neutral };
 
 struct SentimentResult {
@@ -75,18 +77,30 @@ constexpr auto timeunit_to_string = "unit of time";
 
 template<>
 constexpr auto timeunit_to_string<milliseconds> = "millisecond";
+
+template<typename DurationUnit>
 class SourceFunctor {
     static constexpr auto default_path = "example-dataset.txt";
+    DurationUnit          duration;
     vector<string>        dataset;
 
 public:
-    SourceFunctor(const string &path)
-        : dataset {read_strings_from_file(path)} {}
-    SourceFunctor() : SourceFunctor {default_path} {}
+    SourceFunctor(const string &path, const DurationUnit &dur)
+        : dataset {read_strings_from_file(path)}, duration {dur} {}
+
+    SourceFunctor(const DurationUnit &dur)
+        : SourceFunctor {default_path, dur} {}
+
+    SourceFunctor() : SourceFunctor {default_path, DurationUnit {10}} {}
 
     void operator()(Source_Shipper<string> &shipper) {
-        for (const auto &line : dataset) {
-            shipper.push(line);
+        const auto start = steady_clock::now();
+        for (auto now = start; now < start + duration;
+             now      = steady_clock::now()) {
+            for (const auto &line : dataset) {
+                shipper.push(line);
+                ++g_sent_tuples;
+            }
         }
     }
 };
@@ -136,9 +150,9 @@ static const char *sentiment_to_string(Sentiment sentiment) {
 
 static void do_sink(optional<pair<string, SentimentResult>> &input) {
     if (input) {
-        cout << "Received tweet \"" << input->first << "\" with score "
-             << input->second.score << " and classification "
-             << sentiment_to_string(input->second.sentiment) << "\n";
+        // cout << "Received tweet \"" << input->first << "\" with score "
+        //      << input->second.score << " and classification "
+        //      << sentiment_to_string(input->second.sentiment) << "\n";
     } else {
         cout << "End of stream\n\n";
     }
@@ -164,10 +178,15 @@ static inline void parse_and_validate_args(int argc, char **argv,
         exit(EXIT_FAILURE);
     }
 }
-int main(int argc, char *argv[]) {
-    const auto use_chaining = false;
 
-    SourceFunctor source_functor;
+int main(int argc, char *argv[]) {
+    const auto   start_time   = steady_clock::now();
+    const auto   use_chaining = false;
+    milliseconds duration {0};
+
+    parse_and_validate_args(argc, argv, duration);
+
+    SourceFunctor source_functor {duration};
     auto          source = Source_Builder {source_functor}
                       .withParallelism(1)
                       .withName("source")
@@ -193,5 +212,12 @@ int main(int argc, char *argv[]) {
     }
     graph.run();
 
+    const auto elapsed_time =
+        duration_cast<decltype(duration)>(steady_clock::now() - start_time);
+    cout << elapsed_time.count() << '\n';
+    const auto throughput = g_sent_tuples / elapsed_time.count();
+
+    cout << "Sent " << throughput << " tuples per "
+         << timeunit_to_string<decltype(duration)>;
     return 0;
 }
