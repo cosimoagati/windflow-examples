@@ -167,6 +167,7 @@ static inline const char *sentiment_to_string(Sentiment sentiment) {
 
 template<typename TimeUnit>
 class SinkFunctor {
+    static constexpr auto  verbose_output = false;
     unsigned long          tuples_received {0};
     typename TimeUnit::rep total_average {0};
 
@@ -176,9 +177,11 @@ public:
             ++tuples_received;
             total_average += input->latency.count();
 
-            // cout << "Received tweet \"" << input->tweet << "\" with score "
-            //      << input->result.second << " and classification "
-            //      << sentiment_to_string(input->result.first) << "\n";
+            if constexpr (verbose_output) {
+                cout << "Received tweet \"" << input->tweet << "\" with score "
+                     << input->result.second << " and classification "
+                     << sentiment_to_string(input->result.first) << "\n";
+            }
         } else {
             g_average_latency.store(total_average / tuples_received);
         }
