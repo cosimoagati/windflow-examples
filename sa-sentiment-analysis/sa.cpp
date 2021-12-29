@@ -33,10 +33,7 @@ constexpr auto timeunit_to_string<nanoseconds> = "nanosecond";
 
 enum class Sentiment { Positive, Negative, Neutral };
 
-struct SentimentResult {
-    Sentiment sentiment;
-    int       score;
-};
+using SentimentResult = pair<Sentiment, int>;
 
 static inline Sentiment score_to_sentiment(int score) {
     return score > 0   ? Sentiment::Positive
@@ -157,8 +154,8 @@ static const char *sentiment_to_string(Sentiment sentiment) {
 static void do_sink(optional<pair<string, SentimentResult>> &input) {
     if (input) {
         // cout << "Received tweet \"" << input->first << "\" with score "
-        //      << input->second.score << " and classification "
-        //      << sentiment_to_string(input->second.sentiment) << "\n";
+        //      << input->second.second << " and classification "
+        //      << sentiment_to_string(input->second.first) << "\n";
     } else {
         cout << "End of stream\n\n";
     }
