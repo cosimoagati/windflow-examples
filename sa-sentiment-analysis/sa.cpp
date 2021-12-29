@@ -166,14 +166,24 @@ static inline const char *sentiment_to_string(Sentiment sentiment) {
 
 template<typename TimeUnit>
 class SinkFunctor {
+    unsigned long          tuples_received {0};
+    typename TimeUnit::rep total {0};
+    typename TimeUnit::rep average;
+
 public:
     void operator()(optional<MapOutputTuple<TimeUnit>> &input) {
         if (input) {
+            ++tuples_received;
+            total += input->latency.count() > 0 ? input->latency.count() : 1;
+            average = tuples_received / total;
+
             // cout << "Received tweet \"" << input->first << "\" with score "
             //      << input->second.second << " and classification "
             //      << sentiment_to_string(input->second.first) << "\n";
         } else {
             cout << "End of stream\n\n";
+            cout << "Average latency is " << average << ' '
+                 << timeunit_to_string<TimeUnit> << "s\n";
         }
     }
 };
