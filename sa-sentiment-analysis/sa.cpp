@@ -19,6 +19,7 @@ using namespace std::chrono;
 using namespace wf;
 
 atomic_ulong g_sent_tuples;
+atomic_ulong g_average;
 
 template<typename TimeUnit>
 constexpr auto timeunit_to_string = "time unit";
