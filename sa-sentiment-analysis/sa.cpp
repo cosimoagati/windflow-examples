@@ -169,21 +169,19 @@ template<typename TimeUnit>
 class SinkFunctor {
     unsigned long          tuples_received {0};
     typename TimeUnit::rep total {0};
-    typename TimeUnit::rep average;
 
 public:
     void operator()(optional<MapOutputTuple<TimeUnit>> &input) {
         if (input) {
             ++tuples_received;
             total += input->latency.count();
-            average = total / tuples_received;
 
             // cout << "Received tweet \"" << input->first << "\" with score "
             //      << input->second.second << " and classification "
             //      << sentiment_to_string(input->second.first) << "\n";
         } else {
             cout << "End of stream\n\n";
-            g_average.store(average);
+            g_average.store(total / tuples_received);
         }
     }
 };
