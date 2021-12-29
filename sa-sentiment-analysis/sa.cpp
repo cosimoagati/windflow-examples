@@ -127,7 +127,7 @@ static const char *sentiment_to_string(Sentiment sentiment) {
 
 static void do_sink(optional<pair<string, SentimentResult>> &input) {
     if (input) {
-        cout << "Received word " << input->first << " with score "
+        cout << "Received tweet \"" << input->first << "\" with score "
              << input->second.score << " and classification "
              << sentiment_to_string(input->second.sentiment) << "\n";
     } else {
