@@ -1,16 +1,20 @@
 #include <algorithm>
+#include <atomic>
 #include <cctype>
+#include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <regex>
 #include <string>
+#include <unistd.h>
 #include <utility>
 #include <vector>
 #include <wf/windflow.hpp>
 
 using namespace std;
+using namespace std::chrono;
 using namespace wf;
 
 enum class Sentiment { Positive, Negative, Neutral };
