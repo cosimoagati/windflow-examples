@@ -222,7 +222,7 @@ static inline void parse_and_validate_args(int argc, char **argv,
 }
 
 int main(int argc, char *argv[]) {
-    using TimeUnit = seconds;
+    using TimeUnit = milliseconds;
 
     const auto start_time      = steady_clock::now();
     auto       use_chaining    = false;
