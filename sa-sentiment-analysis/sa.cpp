@@ -84,17 +84,16 @@ static inline Map get_sentiment_map(const string &path) {
 }
 
 class SourceFunctor {
-    using NumTuples                    = decltype(g_sent_tuples.load());
     static constexpr auto default_path = "example-dataset.txt";
 
     vector<string> dataset;
-    NumTuples      total_tuples;
+    unsigned long  total_tuples;
 
 public:
-    SourceFunctor(const string &path, NumTuples t)
+    SourceFunctor(const string &path, unsigned long t)
         : dataset {read_strings_from_file(path)}, total_tuples {t} {}
 
-    SourceFunctor(NumTuples t) : SourceFunctor {default_path, t} {}
+    SourceFunctor(unsigned long t) : SourceFunctor {default_path, t} {}
 
     SourceFunctor() : SourceFunctor {default_path, 1000} {}
 
@@ -161,9 +160,8 @@ static void do_sink(optional<pair<string, SentimentResult>> &input) {
     }
 }
 
-template<typename NumTuples>
 static inline void parse_and_validate_args(int argc, char **argv,
-                                           NumTuples &total_tuples) {
+                                           unsigned long &total_tuples) {
     int option;
     while ((option = getopt(argc, argv, "t:")) != -1) {
         switch (option) {
@@ -178,9 +176,9 @@ static inline void parse_and_validate_args(int argc, char **argv,
 }
 
 int main(int argc, char *argv[]) {
-    const auto                     start_time   = steady_clock::now();
-    const auto                     use_chaining = false;
-    decltype(g_sent_tuples.load()) total_tuples;
+    const auto    start_time   = steady_clock::now();
+    const auto    use_chaining = false;
+    unsigned long total_tuples;
 
     parse_and_validate_args(argc, argv, total_tuples);
 
