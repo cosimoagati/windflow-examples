@@ -17,7 +17,7 @@ using namespace std;
 using namespace std::chrono;
 using namespace wf;
 
-atomic_long g_sent_tuples;
+atomic_ulong g_sent_tuples;
 
 template<typename TimeUnit>
 constexpr auto timeunit_to_string = "time unit";
