@@ -180,7 +180,6 @@ public:
             //      << input->second.second << " and classification "
             //      << sentiment_to_string(input->second.first) << "\n";
         } else {
-            cout << "End of stream\n\n";
             g_average_latency.store(total_average / tuples_received);
         }
     }
