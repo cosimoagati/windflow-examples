@@ -191,8 +191,8 @@ static inline void parse_and_validate_args(int argc, char **argv,
 }
 
 int main(int argc, char *argv[]) {
-    const auto    start_time   = steady_clock::now();
-    const auto    use_chaining = false;
+    const auto    start_time      = steady_clock::now();
+    const auto    use_chaining    = false;
     unsigned int  map_parallelism = 0;
     unsigned long total_tuples    = 0;
 
