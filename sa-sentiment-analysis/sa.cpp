@@ -162,17 +162,31 @@ static void do_sink(optional<pair<string, SentimentResult>> &input) {
 }
 
 static inline void parse_and_validate_args(int argc, char **argv,
-                                           unsigned long &total_tuples) {
+                                           unsigned long &total_tuples,
+                                           unsigned int & map_parallelism) {
     int option;
-    while ((option = getopt(argc, argv, "t:")) != -1) {
+    while ((option = getopt(argc, argv, "t:m:")) != -1) {
         switch (option) {
         case 't':
             total_tuples = atol(optarg);
+            break;
+        case 'm':
+            map_parallelism = atoi(optarg);
             break;
         default:
             cerr << "Error: invalid option\n";
             exit(EXIT_FAILURE);
         }
+    }
+
+    if (total_tuples <= 0) {
+        cerr << "Error: number of tuples is not positive\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (map_parallelism <= 0) {
+        cerr << "Error: Map parallelism degree is not positive\n";
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -180,8 +194,9 @@ int main(int argc, char *argv[]) {
     const auto    start_time   = steady_clock::now();
     const auto    use_chaining = false;
     unsigned long total_tuples;
+    unsigned int  map_parallelism = 0;
 
-    parse_and_validate_args(argc, argv, total_tuples);
+    parse_and_validate_args(argc, argv, total_tuples, map_parallelism);
 
     SourceFunctor source_functor {total_tuples};
     auto          source = Source_Builder {source_functor}
@@ -192,7 +207,7 @@ int main(int argc, char *argv[]) {
     MapFunctor<BasicClassifier> map_functor;
     auto                        classifier_node =
         Map_Builder {map_functor}
-            .withParallelism(1)
+            .withParallelism(map_parallelism)
             .withName("counter")
             .withKeyBy([](const string &word) { return word; })
             .build();
