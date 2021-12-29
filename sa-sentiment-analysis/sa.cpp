@@ -265,7 +265,7 @@ int main(int argc, char *argv[]) {
 
     const auto elapsed_time =
         duration_cast<TimeUnit>(steady_clock::now() - start_time);
-    const double throughput =
+    const auto throughput =
         elapsed_time.count() > 0
             ? g_sent_tuples.load() / (double) elapsed_time.count()
             : g_sent_tuples.load();
