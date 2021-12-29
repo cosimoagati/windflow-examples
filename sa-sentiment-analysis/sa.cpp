@@ -8,6 +8,7 @@
 #include <map>
 #include <regex>
 #include <string>
+#include <type_traits>
 #include <unistd.h>
 #include <utility>
 #include <vector>
@@ -210,14 +211,13 @@ int main(int argc, char *argv[]) {
 
     const auto elapsed_time =
         duration_cast<seconds>(steady_clock::now() - start_time);
-
     const auto throughput = elapsed_time.count() > 0
                                 ? g_sent_tuples.load() / elapsed_time.count()
                                 : g_sent_tuples.load();
 
     cout << "Elapsed time: " << elapsed_time.count() << ' '
-         << timeunit_to_string<decltype(elapsed_time)> << "s\n";
+         << timeunit_to_string<remove_const_t<decltype(elapsed_time)>> << "s\n";
     cout << "Processed " << throughput << " tuples per "
-         << timeunit_to_string<decltype(elapsed_time)> << '\n';
+         << timeunit_to_string<remove_const_t<decltype(elapsed_time)>> << '\n';
     return 0;
 }
