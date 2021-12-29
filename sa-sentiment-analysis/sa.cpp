@@ -19,6 +19,17 @@ using namespace wf;
 
 atomic_long g_sent_tuples;
 
+template<typename TimeUnit>
+constexpr auto timeunit_to_string = "unit of time";
+template<>
+constexpr auto timeunit_to_string<milliseconds> = "millisecond";
+template<>
+constexpr auto timeunit_to_string<seconds> = "second";
+template<>
+constexpr auto timeunit_to_string<microseconds> = "microsecond";
+template<>
+constexpr auto timeunit_to_string<nanoseconds> = "nanosecond";
+
 enum class Sentiment { Positive, Negative, Neutral };
 
 struct SentimentResult {
@@ -71,12 +82,6 @@ static inline Map get_sentiment_map(const string &path) {
     }
     return sentiment_map;
 }
-
-template<typename TimeUnit>
-constexpr auto timeunit_to_string = "unit of time";
-
-template<>
-constexpr auto timeunit_to_string<milliseconds> = "millisecond";
 
 template<typename DurationUnit>
 class SourceFunctor {
