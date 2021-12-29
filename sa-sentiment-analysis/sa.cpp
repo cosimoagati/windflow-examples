@@ -180,9 +180,9 @@ static inline void parse_and_validate_args(int argc, char **argv,
 }
 
 int main(int argc, char *argv[]) {
-    const auto   start_time   = steady_clock::now();
-    const auto   use_chaining = false;
-    milliseconds duration {0};
+    const auto start_time   = steady_clock::now();
+    const auto use_chaining = false;
+    seconds    duration {0};
 
     parse_and_validate_args(argc, argv, duration);
 
