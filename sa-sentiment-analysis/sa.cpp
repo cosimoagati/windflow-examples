@@ -165,15 +165,18 @@ static const char *sentiment_to_string(Sentiment sentiment) {
 }
 
 template<typename TimeUnit>
-static void do_sink(optional<MapOutputTuple<TimeUnit>> &input) {
-    if (input) {
-        // cout << "Received tweet \"" << input->first << "\" with score "
-        //      << input->second.second << " and classification "
-        //      << sentiment_to_string(input->second.first) << "\n";
-    } else {
-        cout << "End of stream\n\n";
+class SinkFunctor {
+public:
+    void operator()(optional<MapOutputTuple<TimeUnit>> &input) {
+        if (input) {
+            // cout << "Received tweet \"" << input->first << "\" with score "
+            //      << input->second.second << " and classification "
+            //      << sentiment_to_string(input->second.first) << "\n";
+        } else {
+            cout << "End of stream\n\n";
+        }
     }
-}
+};
 
 static inline void parse_and_validate_args(int argc, char **argv,
                                            unsigned long &total_tuples,
@@ -240,10 +243,9 @@ int main(int argc, char *argv[]) {
                                .withName("counter")
                                .build();
 
-    auto sink = Sink_Builder {do_sink<TimeUnit>}
-                    .withParallelism(1)
-                    .withName("sink")
-                    .build();
+    SinkFunctor<TimeUnit> sink_functor;
+    auto                  sink =
+        Sink_Builder {sink_functor}.withParallelism(1).withName("sink").build();
 
     PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DEFAULT,
                      Time_Policy_t::INGRESS_TIME};
