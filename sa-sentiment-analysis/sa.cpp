@@ -158,7 +158,7 @@ public:
     }
 };
 
-static const char *sentiment_to_string(Sentiment sentiment) {
+static inline const char *sentiment_to_string(Sentiment sentiment) {
     return sentiment == Sentiment::Positive   ? "Positive"
            : sentiment == Sentiment::Negative ? "Negative"
                                               : "Neutral";
