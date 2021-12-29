@@ -183,8 +183,7 @@ public:
             //      << sentiment_to_string(input->second.first) << "\n";
         } else {
             cout << "End of stream\n\n";
-            cout << "Average latency is " << average << ' '
-                 << timeunit_to_string<TimeUnit> << "s\n";
+            g_average.store(average);
         }
     }
 };
@@ -278,5 +277,7 @@ int main(int argc, char *argv[]) {
          << timeunit_to_string<TimeUnit> << "s\n";
     cout << "Processed " << throughput << " tuples per "
          << timeunit_to_string<TimeUnit> << '\n';
+    cout << "Average latency is " << g_average << ' '
+         << timeunit_to_string<TimeUnit> << "s\n";
     return 0;
 }
