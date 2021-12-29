@@ -163,9 +163,10 @@ static void do_sink(optional<pair<string, SentimentResult>> &input) {
 
 static inline void parse_and_validate_args(int argc, char **argv,
                                            unsigned long &total_tuples,
-                                           unsigned int & map_parallelism) {
+                                           unsigned int & map_parallelism,
+                                           bool &         use_chaining) {
     int option;
-    while ((option = getopt(argc, argv, "t:m:")) != -1) {
+    while ((option = getopt(argc, argv, "t:m:c:")) != -1) {
         switch (option) {
         case 't':
             total_tuples = atol(optarg);
@@ -173,6 +174,19 @@ static inline void parse_and_validate_args(int argc, char **argv,
         case 'm':
             map_parallelism = atoi(optarg);
             break;
+        case 'c': {
+            const auto opt_string = string {optarg};
+            if (opt_string == string {"true"}) {
+                use_chaining = true;
+            } else if (opt_string == string {"false"}) {
+                use_chaining = false;
+            } else {
+                cerr << "Error: chaining option must be either \"true\" or "
+                        "\"false\"\n";
+                exit(EXIT_FAILURE);
+            }
+            break;
+        }
         default:
             cerr << "Error: invalid option\n";
             exit(EXIT_FAILURE);
@@ -196,7 +210,8 @@ int main(int argc, char *argv[]) {
     unsigned int  map_parallelism = 0;
     unsigned long total_tuples    = 0;
 
-    parse_and_validate_args(argc, argv, total_tuples, map_parallelism);
+    parse_and_validate_args(argc, argv, total_tuples, map_parallelism,
+                            use_chaining);
 
     SourceFunctor source_functor {total_tuples};
     auto          source = Source_Builder {source_functor}
