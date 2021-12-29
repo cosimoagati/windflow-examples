@@ -35,6 +35,18 @@ enum class Sentiment { Positive, Negative, Neutral };
 
 using SentimentResult = pair<Sentiment, int>;
 
+struct SourceTuple {
+    string                   tweet;
+    time_point<steady_clock> timestamp;
+};
+
+template<typename TimeUnit>
+struct MapOutputTuple {
+    string          tweet;
+    SentimentResult result;
+    TimeUnit        latency;
+};
+
 static inline Sentiment score_to_sentiment(int score) {
     return score > 0   ? Sentiment::Positive
            : score < 0 ? Sentiment::Negative
@@ -95,12 +107,12 @@ public:
 
     SourceFunctor() : SourceFunctor {default_path, 1000} {}
 
-    void operator()(Source_Shipper<string> &shipper) {
+    void operator()(Source_Shipper<SourceTuple> &shipper) {
         size_t        index {0};
         unsigned long sent_tuples {0};
 
         while (sent_tuples < total_tuples) {
-            shipper.push(dataset[index]);
+            shipper.push({dataset[index], steady_clock::now()});
             ++sent_tuples;
             index = (index + 1) % dataset.size();
         }
@@ -131,7 +143,7 @@ public:
     }
 };
 
-template<typename Classifier>
+template<typename Classifier, typename TimeUnit>
 class MapFunctor {
     Classifier classifier;
 
@@ -139,9 +151,10 @@ public:
     MapFunctor() = default;
     MapFunctor(const string &path) : classifier {path} {}
 
-    pair<string, SentimentResult> operator()(const string &input_string) {
-        const auto result = classifier.classify(input_string);
-        return make_pair(input_string, result);
+    MapOutputTuple<TimeUnit> operator()(const SourceTuple &tuple) {
+        const auto result = classifier.classify(tuple.tweet);
+        return {move(tuple.tweet), result,
+                duration_cast<TimeUnit>(steady_clock::now() - tuple.timestamp)};
     }
 };
 
@@ -151,7 +164,8 @@ static const char *sentiment_to_string(Sentiment sentiment) {
                                               : "Neutral";
 }
 
-static void do_sink(optional<pair<string, SentimentResult>> &input) {
+template<typename TimeUnit>
+static void do_sink(optional<MapOutputTuple<TimeUnit>> &input) {
     if (input) {
         // cout << "Received tweet \"" << input->first << "\" with score "
         //      << input->second.second << " and classification "
@@ -205,6 +219,8 @@ static inline void parse_and_validate_args(int argc, char **argv,
 }
 
 int main(int argc, char *argv[]) {
+    using TimeUnit = seconds;
+
     const auto start_time      = steady_clock::now();
     auto       use_chaining    = false;
     auto       map_parallelism = 0u;
@@ -212,21 +228,22 @@ int main(int argc, char *argv[]) {
 
     parse_and_validate_args(argc, argv, total_tuples, map_parallelism,
                             use_chaining);
-
     SourceFunctor source_functor {total_tuples};
     auto          source = Source_Builder {source_functor}
                       .withParallelism(1)
                       .withName("source")
                       .build();
 
-    MapFunctor<BasicClassifier> map_functor;
-    auto                        classifier_node = Map_Builder {map_functor}
+    MapFunctor<BasicClassifier, TimeUnit> map_functor;
+    auto classifier_node = Map_Builder {map_functor}
                                .withParallelism(map_parallelism)
                                .withName("counter")
                                .build();
 
-    auto sink =
-        Sink_Builder {do_sink}.withParallelism(1).withName("sink").build();
+    auto sink = Sink_Builder {do_sink<TimeUnit>}
+                    .withParallelism(1)
+                    .withName("sink")
+                    .build();
 
     PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DEFAULT,
                      Time_Policy_t::INGRESS_TIME};
@@ -238,14 +255,14 @@ int main(int argc, char *argv[]) {
     graph.run();
 
     const auto elapsed_time =
-        duration_cast<seconds>(steady_clock::now() - start_time);
+        duration_cast<TimeUnit>(steady_clock::now() - start_time);
     const auto throughput = elapsed_time.count() > 0
                                 ? g_sent_tuples.load() / elapsed_time.count()
                                 : g_sent_tuples.load();
 
     cout << "Elapsed time: " << elapsed_time.count() << ' '
-         << timeunit_to_string<remove_const_t<decltype(elapsed_time)>> << "s\n";
+         << timeunit_to_string<TimeUnit> << "s\n";
     cout << "Processed " << throughput << " tuples per "
-         << timeunit_to_string<remove_const_t<decltype(elapsed_time)>> << '\n';
+         << timeunit_to_string<TimeUnit> << '\n';
     return 0;
 }
