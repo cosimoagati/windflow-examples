@@ -275,7 +275,7 @@ int main(int argc, char *argv[]) {
 
     cout << "Elapsed time: " << elapsed_time.count() << ' '
          << timeunit_to_string<TimeUnit> << "s\n";
-    cout << "Processed " << throughput << " tuples per "
+    cout << "Processed about" << throughput << " tuples per "
          << timeunit_to_string<TimeUnit> << '\n';
     cout << "Average latency is " << g_average << ' '
          << timeunit_to_string<TimeUnit> << "s\n";
