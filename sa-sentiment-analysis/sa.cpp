@@ -176,9 +176,9 @@ public:
             ++tuples_received;
             total_average += input->latency.count();
 
-            // cout << "Received tweet \"" << input->first << "\" with score "
-            //      << input->second.second << " and classification "
-            //      << sentiment_to_string(input->second.first) << "\n";
+            // cout << "Received tweet \"" << input->tweet << "\" with score "
+            //      << input->result.second << " and classification "
+            //      << sentiment_to_string(input->result.first) << "\n";
         } else {
             g_average_latency.store(total_average / tuples_received);
         }
