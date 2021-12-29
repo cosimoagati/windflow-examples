@@ -83,29 +83,27 @@ static inline Map get_sentiment_map(const string &path) {
     return sentiment_map;
 }
 
-template<typename DurationUnit>
 class SourceFunctor {
+    using NumTuples                    = decltype(g_sent_tuples.load());
     static constexpr auto default_path = "example-dataset.txt";
-    DurationUnit          duration;
-    vector<string>        dataset;
+
+    vector<string> dataset;
+    NumTuples      total_tuples;
 
 public:
-    SourceFunctor(const string &path, const DurationUnit &dur)
-        : dataset {read_strings_from_file(path)}, duration {dur} {}
+    SourceFunctor(const string &path, NumTuples t)
+        : dataset {read_strings_from_file(path)}, total_tuples {t} {}
 
-    SourceFunctor(const DurationUnit &dur)
-        : SourceFunctor {default_path, dur} {}
+    SourceFunctor(NumTuples t) : SourceFunctor {default_path, t} {}
 
-    SourceFunctor() : SourceFunctor {default_path, DurationUnit {10}} {}
+    SourceFunctor() : SourceFunctor {default_path, 1000} {}
 
     void operator()(Source_Shipper<string> &shipper) {
-        const auto start = steady_clock::now();
-        for (auto now = start; now < start + duration;
-             now      = steady_clock::now()) {
-            for (const auto &line : dataset) {
-                shipper.push(line);
-                ++g_sent_tuples;
-            }
+        size_t index {0};
+        while (g_sent_tuples < total_tuples) {
+            shipper.push(dataset[index]);
+            ++g_sent_tuples;
+            index = (index + 1) % dataset.size();
         }
     }
 };
