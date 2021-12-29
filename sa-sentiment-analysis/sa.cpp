@@ -269,11 +269,14 @@ int main(int argc, char *argv[]) {
         elapsed_time.count() > 0
             ? g_sent_tuples.load() / (double) elapsed_time.count()
             : g_sent_tuples.load();
+    const auto service_time = 1 / throughput;
 
     cout << "Elapsed time: " << elapsed_time.count() << ' '
          << timeunit_to_string<TimeUnit> << "s\n";
     cout << "Processed about " << throughput << " tuples per "
          << timeunit_to_string<TimeUnit> << '\n';
+    cout << "Service time: " << service_time << ' '
+         << timeunit_to_string<TimeUnit> << "s\n";
     cout << "Average latency is " << g_average_latency << ' '
          << timeunit_to_string<TimeUnit> << "s\n";
     return 0;
