@@ -161,8 +161,9 @@ static void do_sink(optional<pair<string, SentimentResult>> &input) {
     }
 }
 
+template<typename NumTuples>
 static inline void parse_and_validate_args(int argc, char **argv,
-                                           long &total_tuples) {
+                                           NumTuples &total_tuples) {
     int option;
     while ((option = getopt(argc, argv, "t:")) != -1) {
         switch (option) {
@@ -177,9 +178,9 @@ static inline void parse_and_validate_args(int argc, char **argv,
 }
 
 int main(int argc, char *argv[]) {
-    const auto start_time   = steady_clock::now();
-    const auto use_chaining = false;
-    long       total_tuples;
+    const auto                     start_time   = steady_clock::now();
+    const auto                     use_chaining = false;
+    decltype(g_sent_tuples.load()) total_tuples;
 
     parse_and_validate_args(argc, argv, total_tuples);
 
