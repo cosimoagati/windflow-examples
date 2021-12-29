@@ -220,11 +220,10 @@ int main(int argc, char *argv[]) {
                       .build();
 
     MapFunctor<BasicClassifier> map_functor;
-    auto                        classifier_node =
-        Map_Builder {map_functor}
-            .withParallelism(map_parallelism)
-            .withName("counter")
-            .build();
+    auto                        classifier_node = Map_Builder {map_functor}
+                               .withParallelism(map_parallelism)
+                               .withName("counter")
+                               .build();
 
     auto sink =
         Sink_Builder {do_sink}.withParallelism(1).withName("sink").build();
