@@ -216,8 +216,8 @@ int main(int argc, char *argv[]) {
                                 : g_sent_tuples.load();
 
     cout << "Elapsed time: " << elapsed_time.count() << ' '
-         << timeunit_to_string<decltype(elapsed_time.count())> << "s\n";
+         << timeunit_to_string<decltype(elapsed_time)> << "s\n";
     cout << "Processed " << throughput << " tuples per "
-         << timeunit_to_string<decltype(elapsed_time.count())> << '\n';
+         << timeunit_to_string<decltype(elapsed_time)> << '\n';
     return 0;
 }
