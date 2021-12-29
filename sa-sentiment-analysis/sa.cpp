@@ -174,8 +174,8 @@ public:
     void operator()(optional<MapOutputTuple<TimeUnit>> &input) {
         if (input) {
             ++tuples_received;
-            total += input->latency.count() > 0 ? input->latency.count() : 1;
-            average = tuples_received / total;
+            total += input->latency.count();
+            average = total / tuples_received;
 
             // cout << "Received tweet \"" << input->first << "\" with score "
             //      << input->second.second << " and classification "
