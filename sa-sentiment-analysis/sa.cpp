@@ -20,7 +20,7 @@ using namespace wf;
 atomic_long g_sent_tuples;
 
 template<typename TimeUnit>
-constexpr auto timeunit_to_string = "unit of time";
+constexpr auto timeunit_to_string = "time unit";
 template<>
 constexpr auto timeunit_to_string<milliseconds> = "millisecond";
 template<>
