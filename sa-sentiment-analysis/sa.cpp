@@ -99,12 +99,15 @@ public:
     SourceFunctor() : SourceFunctor {default_path, 1000} {}
 
     void operator()(Source_Shipper<string> &shipper) {
-        size_t index {0};
-        while (g_sent_tuples < total_tuples) {
+        size_t        index {0};
+        unsigned long sent_tuples {0};
+
+        while (sent_tuples < total_tuples) {
             shipper.push(dataset[index]);
-            ++g_sent_tuples;
+            ++sent_tuples;
             index = (index + 1) % dataset.size();
         }
+        g_sent_tuples.fetch_add(sent_tuples);
     }
 };
 
