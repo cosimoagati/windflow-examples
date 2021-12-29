@@ -70,6 +70,11 @@ static inline Map get_sentiment_map(const string &path) {
     return sentiment_map;
 }
 
+template<typename TimeUnit>
+constexpr auto timeunit_to_string = "unit of time";
+
+template<>
+constexpr auto timeunit_to_string<milliseconds> = "millisecond";
 class SourceFunctor {
     static constexpr auto default_path = "example-dataset.txt";
     vector<string>        dataset;
