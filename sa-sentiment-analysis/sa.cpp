@@ -73,6 +73,17 @@ string string_trim(const string &s) {
 }
 
 vector<string> string_split_on_space(const string &s, char delim) {
+static inline string remove_punctuation(const string &s) {
+    string output_string;
+
+    for (const auto &c : s) {
+        if (c != '.' && c != ',' && c != '?' && c != '!') {
+            output_string.push_back(c);
+        }
+    }
+    return output_string;
+}
+
     vector<string> words;
 
     for (size_t i = 0; i < s.size();) {
@@ -100,8 +111,7 @@ static inline string &string_trim_in_place(string &s) {
 }
 
 static inline vector<string> split_in_words(const string &input) {
-    // auto text = regex_replace(input, regex {"\\p{Punct}|\\n"}, " ");
-    auto text = input;
+    auto text = remove_punctuation(input);
 
     for (auto &c : text) {
         c = tolower(c);
