@@ -133,7 +133,7 @@ void wait(unsigned long duration) {
 
 /* Global variables */
 atomic_ulong g_sent_tuples;
-atomic_ulong g_average_latency;
+atomic<double> g_average_latency;
 
 template<typename Map>
 static inline Map get_sentiment_map(const string &path) {
@@ -237,7 +237,7 @@ public:
                      << sentiment_to_string(input->result.first) << "\n";
             }
         } else {
-            g_average_latency.store(total_average / tuples_received);
+            g_average_latency.store(total_average / (double) tuples_received);
         }
     }
 };
