@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <atomic>
 #include <cctype>
-#include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -15,37 +14,24 @@
 #include <wf/windflow.hpp>
 
 using namespace std;
-using namespace std::chrono;
 using namespace wf;
 
 atomic_ulong g_sent_tuples;
 atomic_ulong g_average_latency;
-
-template<typename TimeUnit>
-constexpr auto timeunit_to_string = "time unit";
-template<>
-constexpr auto timeunit_to_string<milliseconds> = "millisecond";
-template<>
-constexpr auto timeunit_to_string<seconds> = "second";
-template<>
-constexpr auto timeunit_to_string<microseconds> = "microsecond";
-template<>
-constexpr auto timeunit_to_string<nanoseconds> = "nanosecond";
 
 enum class Sentiment { Positive, Negative, Neutral };
 
 using SentimentResult = pair<Sentiment, int>;
 
 struct SourceTuple {
-    string                   tweet;
-    time_point<steady_clock> timestamp;
+    string        tweet;
+    unsigned long timestamp;
 };
 
-template<typename TimeUnit>
 struct MapOutputTuple {
     string          tweet;
     SentimentResult result;
-    TimeUnit        latency;
+    unsigned long   latency;
 };
 
 static inline Sentiment score_to_sentiment(int score) {
@@ -121,7 +107,7 @@ public:
         unsigned long sent_tuples {0};
 
         while (sent_tuples < total_tuples) {
-            shipper.push({dataset[index], steady_clock::now()});
+            shipper.push({dataset[index], current_time_usecs()});
             ++sent_tuples;
             index = (index + 1) % dataset.size();
         }
@@ -152,7 +138,7 @@ public:
     }
 };
 
-template<typename Classifier, typename TimeUnit>
+template<typename Classifier>
 class MapFunctor {
     Classifier classifier;
 
@@ -160,10 +146,9 @@ public:
     MapFunctor() = default;
     MapFunctor(const string &path) : classifier {path} {}
 
-    MapOutputTuple<TimeUnit> operator()(const SourceTuple &tuple) {
+    MapOutputTuple operator()(const SourceTuple &tuple) {
         const auto result = classifier.classify(tuple.tweet);
-        return {tuple.tweet, result,
-                duration_cast<TimeUnit>(steady_clock::now() - tuple.timestamp)};
+        return {tuple.tweet, result, current_time_usecs() - tuple.timestamp};
     }
 };
 
@@ -173,17 +158,16 @@ static inline const char *sentiment_to_string(Sentiment sentiment) {
                                               : "Neutral";
 }
 
-template<typename TimeUnit>
 class SinkFunctor {
-    static constexpr auto  verbose_output = false;
-    unsigned long          tuples_received {0};
-    typename TimeUnit::rep total_average {0};
+    static constexpr auto verbose_output = false;
+    unsigned long         tuples_received {0};
+    unsigned long         total_average {0};
 
 public:
-    void operator()(optional<MapOutputTuple<TimeUnit>> &input) {
+    void operator()(optional<MapOutputTuple> &input) {
         if (input) {
             ++tuples_received;
-            total_average += input->latency.count();
+            total_average += input->latency;
 
             if constexpr (verbose_output) {
                 cout << "Received tweet \"" << input->tweet << "\" with score "
@@ -241,8 +225,6 @@ static inline void parse_and_validate_args(int argc, char **argv,
 }
 
 int main(int argc, char *argv[]) {
-    using TimeUnit = microseconds;
-
     auto use_chaining    = false;
     auto map_parallelism = 0u;
     auto total_tuples    = 0ul;
@@ -255,14 +237,14 @@ int main(int argc, char *argv[]) {
                       .withName("source")
                       .build();
 
-    MapFunctor<BasicClassifier, TimeUnit> map_functor;
-    auto classifier_node = Map_Builder {map_functor}
+    MapFunctor<BasicClassifier> map_functor;
+    auto                        classifier_node = Map_Builder {map_functor}
                                .withParallelism(map_parallelism)
                                .withName("counter")
                                .build();
 
-    SinkFunctor<TimeUnit> sink_functor;
-    auto                  sink =
+    SinkFunctor sink_functor;
+    auto        sink =
         Sink_Builder {sink_functor}.withParallelism(1).withName("sink").build();
 
     PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DEFAULT,
@@ -272,24 +254,20 @@ int main(int argc, char *argv[]) {
     } else {
         graph.add_source(source).add(classifier_node).add_sink(sink);
     }
-    const auto start_time = steady_clock::now();
+    const auto start_time = current_time_usecs();
     graph.run();
-    const auto elapsed_time =
-        duration_cast<TimeUnit>(steady_clock::now() - start_time);
+    const auto elapsed_time = current_time_usecs() - start_time;
 
-    const auto throughput =
-        elapsed_time.count() > 0
-            ? g_sent_tuples.load() / (double) elapsed_time.count()
-            : g_sent_tuples.load();
+    const auto throughput   = elapsed_time > 0
+                                  ? g_sent_tuples.load() / (double) elapsed_time
+                                  : g_sent_tuples.load();
     const auto service_time = 1 / throughput;
 
-    cout << "Elapsed time: " << elapsed_time.count() << ' '
-         << timeunit_to_string<TimeUnit> << "s\n";
+    cout << "Elapsed time: " << elapsed_time << ' ' << "microseconds\n";
     cout << "Processed about " << throughput << " tuples per "
-         << timeunit_to_string<TimeUnit> << '\n';
-    cout << "Service time: " << service_time << ' '
-         << timeunit_to_string<TimeUnit> << "s\n";
+         << "microsecond\n";
+    cout << "Service time: " << service_time << ' ' << "microseconds\n";
     cout << "Average latency is " << g_average_latency << ' '
-         << timeunit_to_string<TimeUnit> << "s\n";
+         << "microseconds\n";
     return 0;
 }
