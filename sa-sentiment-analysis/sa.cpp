@@ -280,11 +280,11 @@ int main(int argc, char *argv[]) {
     }
     const auto start_time = current_time();
     graph.run();
-    const auto elapsed_time = current_time() - start_time;
 
-    const auto throughput   = elapsed_time > 0
-                                  ? g_sent_tuples.load() / (double) elapsed_time
-                                  : g_sent_tuples.load();
+    const auto elapsed_time = current_time() - start_time;
+    const auto sent_tuples  = g_sent_tuples.load();
+    const auto throughput =
+        elapsed_time > 0 ? sent_tuples / (double) elapsed_time : sent_tuples;
     const auto service_time = 1 / throughput;
 
     cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string()
