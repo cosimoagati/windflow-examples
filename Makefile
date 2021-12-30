@@ -32,6 +32,10 @@ CPU_OBJS:=$(CPU_SRCS:.cpp=.o)
 GPU_OBJS:=$(GPU_SRCS:.cu=.o)
 
 all: cpu gpu
+
+debug-cpu: CXXFLAGS := $(CXXFLAGS) -fno-lto -Og -g -fno-inline
+debug-cpu: cpu
+
 cpu: $(CPU_EXAMPLES)
 gpu: $(GPU_EXAMPLES)
 
