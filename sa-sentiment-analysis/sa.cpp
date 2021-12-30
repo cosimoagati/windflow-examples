@@ -2,9 +2,9 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include <map>
 #include <string>
 #include <unistd.h>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include <wf/windflow.hpp>
@@ -178,8 +178,8 @@ public:
 };
 
 class BasicClassifier {
-    static constexpr auto default_path = "AFINN-111.txt";
-    map<string, int>      sentiment_map;
+    static constexpr auto      default_path = "AFINN-111.txt";
+    unordered_map<string, int> sentiment_map;
 
 public:
     BasicClassifier(const string &path)
