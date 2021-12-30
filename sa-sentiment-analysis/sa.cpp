@@ -39,6 +39,12 @@ constexpr const char *timeunit_string() {
                                                 : "time unit";
 }
 
+constexpr unsigned long seconds_to_timeunit(unsigned long seconds) {
+    return current_time == current_time_usecs   ? seconds * 1000000
+           : current_time == current_time_nsecs ? seconds * 1000000000
+                                                : seconds;
+}
+
 static inline Sentiment score_to_sentiment(int score) {
     return score > 0   ? Sentiment::Positive
            : score < 0 ? Sentiment::Negative
@@ -119,7 +125,8 @@ class SourceFunctor {
 
 public:
     SourceFunctor(const string &path, unsigned long d)
-        : dataset {read_strings_from_file(path)}, duration {d} {}
+        : dataset {read_strings_from_file(path)}, duration {
+                                                      seconds_to_timeunit(d)} {}
 
     SourceFunctor(unsigned long d) : SourceFunctor {default_path, d} {}
 
