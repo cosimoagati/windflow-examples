@@ -294,7 +294,7 @@ int main(int argc, char *argv[]) {
          << timeunit_string() << '\n';
     cout << "Service time: " << service_time << ' ' << timeunit_string()
          << "s\n";
-    cout << "Average latency is " << g_average_latency.load() << ' '
+    cout << "Average latency: " << g_average_latency.load() << ' '
          << timeunit_string() << "s\n";
     return 0;
 }
