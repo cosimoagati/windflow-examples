@@ -61,6 +61,17 @@ static inline vector<string> read_strings_from_file(const string &path) {
     return strings;
 }
 
+string string_trim(const string &s) {
+    string trimmed_string;
+
+    for (const auto &c : s) {
+        if (c != ' ') {
+            trimmed_string.push_back(c);
+        }
+    }
+    return trimmed_string;
+}
+
 static inline string &string_trim_in_place(string &s) {
     for (size_t i = 0; s[i] != '\0';) {
         if (s[i] == ' ') {
@@ -86,7 +97,7 @@ static inline vector<string> split_in_words(const string &input) {
         sregex_token_iterator {}};
 
     for (auto &word : words) {
-        string_trim_in_place(word);
+        string_trim(word);
     }
 
     return words;
