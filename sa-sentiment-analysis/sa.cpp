@@ -29,30 +29,48 @@ struct MapOutputTuple {
     unsigned long   latency;
 };
 
+/*
+ * Return a string representation of the current time unit.
+ */
 constexpr const char *timeunit_string() {
     return current_time == current_time_usecs   ? "microsecond"
            : current_time == current_time_nsecs ? "nanosecond"
                                                 : "time unit";
 }
 
+/*
+ * Return the amount of chosen time units that the given amount of seconds
+ * equals to.
+ */
 constexpr unsigned long seconds_to_timeunit(unsigned long seconds) {
     return current_time == current_time_usecs   ? seconds * 1000000
            : current_time == current_time_nsecs ? seconds * 1000000000
                                                 : seconds;
 }
 
+/*
+ * Return the amount of seconds that the given amount of chosen time units
+ * equals to.
+ */
 constexpr double timeunit_to_seconds(unsigned long timeunits) {
     return current_time == current_time_usecs   ? timeunits / 1000000.0
            : current_time == current_time_nsecs ? timeunits / 1000000000.0
                                                 : timeunits;
 }
 
+/*
+ * Return an appropriate Sentiment value based on its numerical score.
+ */
 static inline Sentiment score_to_sentiment(int score) {
     return score > 0   ? Sentiment::Positive
            : score < 0 ? Sentiment::Negative
                        : Sentiment::Neutral;
 }
 
+/*
+ * Return a vector of strings each containing a line from the file found in
+ * path.
+ */
 static inline vector<string> read_strings_from_file(const string &path) {
     ifstream       input_file {path};
     vector<string> strings;
@@ -63,6 +81,10 @@ static inline vector<string> read_strings_from_file(const string &path) {
     return strings;
 }
 
+/*
+ * Remove space characters from the given std::string.
+ * A new std::string object is returned, the original string is unmodified.
+ */
 static inline string string_trim(const string &s) {
     string trimmed_string;
 
@@ -74,6 +96,10 @@ static inline string string_trim(const string &s) {
     return trimmed_string;
 }
 
+/*
+ * Remove punctuation from the given std::string.
+ * A new std::string object is returned, the original string is unmodified.
+ */
 static inline string remove_punctuation(const string &s) {
     string output_string;
 
@@ -85,6 +111,11 @@ static inline string remove_punctuation(const string &s) {
     return output_string;
 }
 
+/*
+ * Return a std::vector of std::strings, obtained from splitting the original
+ * string by the delim character.
+ * The original string is unmodifierd.
+ */
 static inline vector<string> string_split(const string &s, char delim) {
     const auto     length = s.size();
     vector<string> words;
@@ -102,6 +133,10 @@ static inline vector<string> string_split(const string &s, char delim) {
     return words;
 }
 
+/*
+ * Removes space characters from a string, in place.
+ * Return a reference to the string itself.
+ */
 static inline string &string_trim_in_place(string &s) {
     for (size_t i = 0; s[i] != '\0';) {
         if (s[i] == ' ') {
@@ -113,6 +148,13 @@ static inline string &string_trim_in_place(string &s) {
     return s;
 }
 
+/*
+ * Return a std::vector of std::strings each representing the "words" in a
+ * tweet.
+ * Every character is converted to lowercase, punctuation and remaining
+ * spaces are removed.
+ * The input string is unmodified.
+ */
 static inline vector<string> split_in_words(const string &input) {
     auto text = remove_punctuation(input);
 
@@ -128,6 +170,9 @@ static inline vector<string> split_in_words(const string &input) {
     return words;
 }
 
+/*
+ * Suspend execution for an amount of time units specified by duration.
+ */
 void wait(unsigned long duration) {
     auto start_time = current_time();
     auto done       = false;
