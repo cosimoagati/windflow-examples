@@ -61,7 +61,7 @@ static inline vector<string> read_strings_from_file(const string &path) {
     return strings;
 }
 
-string string_trim(const string &s) {
+static inline string string_trim(const string &s) {
     string trimmed_string;
 
     for (const auto &c : s) {
@@ -72,7 +72,6 @@ string string_trim(const string &s) {
     return trimmed_string;
 }
 
-vector<string> string_split_on_space(const string &s, char delim) {
 static inline string remove_punctuation(const string &s) {
     string output_string;
 
@@ -84,6 +83,8 @@ static inline string remove_punctuation(const string &s) {
     return output_string;
 }
 
+static inline vector<string> string_split_on_space(const string &s,
+                                                   char          delim) {
     vector<string> words;
 
     for (size_t i = 0; i < s.size();) {
