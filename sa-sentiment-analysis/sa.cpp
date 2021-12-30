@@ -243,10 +243,9 @@ static inline void parse_and_validate_args(int argc, char **argv,
 int main(int argc, char *argv[]) {
     using TimeUnit = microseconds;
 
-    const auto start_time      = steady_clock::now();
-    auto       use_chaining    = false;
-    auto       map_parallelism = 0u;
-    auto       total_tuples    = 0ul;
+    auto use_chaining    = false;
+    auto map_parallelism = 0u;
+    auto total_tuples    = 0ul;
 
     parse_and_validate_args(argc, argv, total_tuples, map_parallelism,
                             use_chaining);
@@ -273,6 +272,7 @@ int main(int argc, char *argv[]) {
     } else {
         graph.add_source(source).add(classifier_node).add_sink(sink);
     }
+    const auto start_time = steady_clock::now();
     graph.run();
 
     const auto elapsed_time =
