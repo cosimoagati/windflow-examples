@@ -81,13 +81,14 @@ static inline string remove_punctuation(const string &s) {
 
 static inline vector<string> string_split_on_space(const string &s,
                                                    char          delim) {
+    const auto     length = s.size();
     vector<string> words;
 
-    for (size_t i = 0; i < s.size();) {
+    for (size_t i = 0; i < length;) {
         string word;
         size_t j = i;
 
-        for (; s[j] != delim && j < s.size(); ++j) {
+        for (; s[j] != delim && j < length; ++j) {
             word.push_back(s[j]);
         }
         words.emplace_back(move(word));
