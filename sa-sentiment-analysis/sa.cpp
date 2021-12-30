@@ -205,14 +205,14 @@ public:
 };
 
 static inline void parse_and_validate_args(int argc, char **argv,
-                                           unsigned long &total_tuples,
+                                           unsigned long &duration,
                                            unsigned int & map_parallelism,
                                            bool &         use_chaining) {
     int option;
     while ((option = getopt(argc, argv, "t:m:c:")) != -1) {
         switch (option) {
         case 't':
-            total_tuples = atol(optarg);
+            duration = atol(optarg);
             break;
         case 'm':
             map_parallelism = atoi(optarg);
@@ -237,8 +237,8 @@ static inline void parse_and_validate_args(int argc, char **argv,
         }
     }
 
-    if (total_tuples <= 0) {
-        cerr << "Error: number of tuples is not positive\n";
+    if (duration <= 0) {
+        cerr << "Error: duration is not positive\n";
         exit(EXIT_FAILURE);
     }
 
@@ -251,11 +251,11 @@ static inline void parse_and_validate_args(int argc, char **argv,
 int main(int argc, char *argv[]) {
     auto use_chaining    = false;
     auto map_parallelism = 0u;
-    auto total_tuples    = 0ul;
+    auto duration        = 0ul;
 
-    parse_and_validate_args(argc, argv, total_tuples, map_parallelism,
+    parse_and_validate_args(argc, argv, duration, map_parallelism,
                             use_chaining);
-    SourceFunctor source_functor {total_tuples};
+    SourceFunctor source_functor {duration};
     auto          source = Source_Builder {source_functor}
                       .withParallelism(1)
                       .withName("source")
