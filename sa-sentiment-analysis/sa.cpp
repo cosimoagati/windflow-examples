@@ -85,8 +85,7 @@ static inline string remove_punctuation(const string &s) {
     return output_string;
 }
 
-static inline vector<string> string_split_on_space(const string &s,
-                                                   char          delim) {
+static inline vector<string> string_split(const string &s, char delim) {
     const auto     length = s.size();
     vector<string> words;
 
@@ -121,7 +120,7 @@ static inline vector<string> split_in_words(const string &input) {
         c = tolower(c);
     }
 
-    auto words = string_split_on_space(text, ' ');
+    auto words = string_split(text, ' ');
     for (auto &word : words) {
         string_trim_in_place(word);
     }
