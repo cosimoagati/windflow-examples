@@ -68,8 +68,9 @@ static inline vector<string> split_in_words(const string &input) {
     // auto text = regex_replace(input, regex {"\\p{Punct}|\\n"}, " ");
     auto text = input;
 
-    transform(text.begin(), text.end(), text.begin(),
-              [](char c) { return tolower(c); });
+    for (auto &c : text) {
+        c = tolower(c);
+    }
 
     const auto is_not_space = [](char c) { return !isspace(c); };
     text.erase(text.begin(), find_if(text.begin(), text.end(), is_not_space));
