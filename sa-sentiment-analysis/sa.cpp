@@ -16,6 +16,7 @@
 using namespace std;
 using namespace wf;
 
+constexpr auto current_time = current_time_nsecs;
 
 enum class Sentiment { Positive, Negative, Neutral };
 
@@ -31,6 +32,12 @@ struct MapOutputTuple {
     SentimentResult result;
     unsigned long   latency;
 };
+
+constexpr const char *timeunit_string() {
+    return current_time == current_time_usecs   ? "microsecond"
+           : current_time == current_time_nsecs ? "nanosecond"
+                                                : "time unit";
+}
 
 static inline Sentiment score_to_sentiment(int score) {
     return score > 0   ? Sentiment::Positive
@@ -109,7 +116,7 @@ public:
         unsigned long sent_tuples {0};
 
         while (sent_tuples < total_tuples) {
-            shipper.push({dataset[index], current_time_usecs()});
+            shipper.push({dataset[index], current_time()});
             ++sent_tuples;
             index = (index + 1) % dataset.size();
         }
@@ -150,7 +157,7 @@ public:
 
     MapOutputTuple operator()(const SourceTuple &tuple) {
         const auto result = classifier.classify(tuple.tweet);
-        return {tuple.tweet, result, current_time_usecs() - tuple.timestamp};
+        return {tuple.tweet, result, current_time() - tuple.timestamp};
     }
 };
 
@@ -256,20 +263,22 @@ int main(int argc, char *argv[]) {
     } else {
         graph.add_source(source).add(classifier_node).add_sink(sink);
     }
-    const auto start_time = current_time_usecs();
+    const auto start_time = current_time();
     graph.run();
-    const auto elapsed_time = current_time_usecs() - start_time;
+    const auto elapsed_time = current_time() - start_time;
 
     const auto throughput   = elapsed_time > 0
                                   ? g_sent_tuples.load() / (double) elapsed_time
                                   : g_sent_tuples.load();
     const auto service_time = 1 / throughput;
 
-    cout << "Elapsed time: " << elapsed_time << ' ' << "microseconds\n";
+    cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string()
+         << "s\n";
     cout << "Processed about " << throughput << " tuples per "
-         << "microsecond\n";
-    cout << "Service time: " << service_time << ' ' << "microseconds\n";
+         << timeunit_string() << '\n';
+    cout << "Service time: " << service_time << ' ' << timeunit_string()
+         << "s\n";
     cout << "Average latency is " << g_average_latency << ' '
-         << "microseconds\n";
+         << timeunit_string() << "s\n";
     return 0;
 }
