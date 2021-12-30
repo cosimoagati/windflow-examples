@@ -132,7 +132,7 @@ void wait(unsigned long duration) {
 }
 
 /* Global variables */
-atomic_ulong g_sent_tuples;
+atomic_ulong   g_sent_tuples;
 atomic<double> g_average_latency;
 
 template<typename Map>
