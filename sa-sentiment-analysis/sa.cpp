@@ -274,9 +274,9 @@ int main(int argc, char *argv[]) {
     }
     const auto start_time = steady_clock::now();
     graph.run();
-
     const auto elapsed_time =
         duration_cast<TimeUnit>(steady_clock::now() - start_time);
+
     const auto throughput =
         elapsed_time.count() > 0
             ? g_sent_tuples.load() / (double) elapsed_time.count()
