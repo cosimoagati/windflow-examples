@@ -115,21 +115,22 @@ class SourceFunctor {
     static constexpr auto default_path = "example-dataset.txt";
 
     vector<string> dataset;
-    unsigned long  total_tuples;
+    unsigned long  duration;
 
 public:
-    SourceFunctor(const string &path, unsigned long t)
-        : dataset {read_strings_from_file(path)}, total_tuples {t} {}
+    SourceFunctor(const string &path, unsigned long d)
+        : dataset {read_strings_from_file(path)}, duration {d} {}
 
-    SourceFunctor(unsigned long t) : SourceFunctor {default_path, t} {}
+    SourceFunctor(unsigned long d) : SourceFunctor {default_path, d} {}
 
-    SourceFunctor() : SourceFunctor {default_path, 1000} {}
+    SourceFunctor() : SourceFunctor {default_path, 60} {}
 
     void operator()(Source_Shipper<SourceTuple> &shipper) {
+        const auto    end_time = current_time() + duration;
         size_t        index {0};
         unsigned long sent_tuples {0};
 
-        while (sent_tuples < total_tuples) {
+        while (current_time() < end_time) {
             shipper.push({dataset[index], current_time()});
             ++sent_tuples;
             index = (index + 1) % dataset.size();
@@ -231,7 +232,7 @@ static inline void parse_and_validate_args(int argc, char **argv,
         }
         default:
             cerr << "Use as " << argv[0]
-                 << " [-c true|false] -t <tuples> -m <parallelism>\n";
+                 << " [-c true|false] -t <duration> -m <parallelism>\n";
             exit(EXIT_FAILURE);
         }
     }
