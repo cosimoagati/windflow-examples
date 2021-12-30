@@ -41,6 +41,12 @@ constexpr unsigned long seconds_to_timeunit(unsigned long seconds) {
                                                 : seconds;
 }
 
+constexpr double timeunit_to_seconds(unsigned long timeunits) {
+    return current_time == current_time_usecs   ? timeunits / 1000000.0
+           : current_time == current_time_nsecs ? timeunits / 1000000000.0
+                                                : timeunits;
+}
+
 static inline Sentiment score_to_sentiment(int score) {
     return score > 0   ? Sentiment::Positive
            : score < 0 ? Sentiment::Negative
@@ -326,7 +332,7 @@ int main(int argc, char *argv[]) {
     const auto service_time = 1 / throughput;
 
     cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string()
-         << "s\n";
+         << "s (" << timeunit_to_seconds(elapsed_time) << " seconds)\n";
     cout << "Total number of tuples sent: " << sent_tuples << " \n";
     cout << "Processed about " << throughput << " tuples per "
          << timeunit_string() << '\n';
