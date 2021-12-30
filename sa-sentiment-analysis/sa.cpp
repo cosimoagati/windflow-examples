@@ -97,7 +97,7 @@ static inline vector<string> split_in_words(const string &input) {
         sregex_token_iterator {}};
 
     for (auto &word : words) {
-        string_trim(word);
+        string_trim_in_place(word);
     }
 
     return words;
