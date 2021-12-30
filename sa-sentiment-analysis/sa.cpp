@@ -72,6 +72,22 @@ string string_trim(const string &s) {
     return trimmed_string;
 }
 
+vector<string> string_split_on_space(const string &s, char delim) {
+    vector<string> words;
+
+    for (size_t i = 0; i < s.size();) {
+        string word;
+        size_t j = i;
+
+        for (; s[j] != delim && j < s.size(); ++j) {
+            word.push_back(s[j]);
+        }
+        words.emplace_back(move(word));
+        i = j + 1;
+    }
+    return words;
+}
+
 static inline string &string_trim_in_place(string &s) {
     for (size_t i = 0; s[i] != '\0';) {
         if (s[i] == ' ') {
@@ -91,11 +107,7 @@ static inline vector<string> split_in_words(const string &input) {
         c = tolower(c);
     }
 
-    const regex    space_regex {" "};
-    vector<string> words {
-        sregex_token_iterator {text.begin(), text.end(), space_regex, -1},
-        sregex_token_iterator {}};
-
+    auto words = string_split_on_space(text, ' ');
     for (auto &word : words) {
         string_trim_in_place(word);
     }
