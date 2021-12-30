@@ -16,8 +16,6 @@
 using namespace std;
 using namespace wf;
 
-atomic_ulong g_sent_tuples;
-atomic_ulong g_average_latency;
 
 enum class Sentiment { Positive, Negative, Neutral };
 
@@ -74,6 +72,10 @@ static inline vector<string> split_in_words(const string &input) {
 
     return words;
 }
+
+/* Global variables */
+atomic_ulong g_sent_tuples;
+atomic_ulong g_average_latency;
 
 template<typename Map>
 static inline Map get_sentiment_map(const string &path) {
