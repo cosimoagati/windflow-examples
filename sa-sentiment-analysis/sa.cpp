@@ -289,6 +289,7 @@ int main(int argc, char *argv[]) {
 
     cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string()
          << "s\n";
+    cout << "Total number of tuples sent: " << sent_tuples << " \n";
     cout << "Processed about " << throughput << " tuples per "
          << timeunit_string() << '\n';
     cout << "Service time: " << service_time << ' ' << timeunit_string()
