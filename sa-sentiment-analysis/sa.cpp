@@ -55,6 +55,17 @@ static inline vector<string> read_strings_from_file(const string &path) {
     return strings;
 }
 
+static inline string &string_trim_in_place(string &s) {
+    for (size_t i = 0; s[i] != '\0';) {
+        if (s[i] == ' ') {
+            s.erase(i, 1);
+        } else {
+            ++i;
+        }
+    }
+    return s;
+}
+
 static inline vector<string> split_in_words(const string &input) {
     // auto text = regex_replace(input, regex {"\\p{Punct}|\\n"}, " ");
     auto text = input;
@@ -68,13 +79,8 @@ static inline vector<string> split_in_words(const string &input) {
         sregex_token_iterator {text.begin(), text.end(), space_regex, -1},
         sregex_token_iterator {}};
 
-    const auto is_not_space = [](char c) { return !isspace(c); };
-
     for (auto &word : words) {
-        text.erase(text.begin(),
-                   find_if(text.begin(), text.end(), is_not_space));
-        text.erase(find_if(text.rbegin(), text.rend(), is_not_space).base(),
-                   text.end());
+        string_trim_in_place(word);
     }
 
     return words;
