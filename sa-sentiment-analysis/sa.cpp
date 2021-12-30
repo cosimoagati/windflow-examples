@@ -86,6 +86,14 @@ static inline vector<string> split_in_words(const string &input) {
     return words;
 }
 
+void wait(unsigned long duration) {
+    auto start_time = current_time();
+    auto done       = false;
+    while (!done) {
+        done = (current_time() - start_time) >= duration;
+    }
+}
+
 /* Global variables */
 atomic_ulong g_sent_tuples;
 atomic_ulong g_average_latency;
