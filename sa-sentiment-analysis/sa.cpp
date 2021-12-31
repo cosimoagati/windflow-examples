@@ -307,6 +307,33 @@ public:
     }
 };
 
+static inline PipeGraph &build_graph(bool use_chaining, unsigned long duration,
+                                     unsigned   map_parallelism,
+                                     PipeGraph &graph) {
+    SourceFunctor source_functor {duration};
+    auto          source = Source_Builder {source_functor}
+                      .withParallelism(1)
+                      .withName("source")
+                      .build();
+
+    MapFunctor<BasicClassifier> map_functor;
+    auto                        classifier_node = Map_Builder {map_functor}
+                               .withParallelism(map_parallelism)
+                               .withName("counter")
+                               .build();
+
+    SinkFunctor sink_functor;
+    auto        sink =
+        Sink_Builder {sink_functor}.withParallelism(1).withName("sink").build();
+
+    if (use_chaining) {
+        graph.add_source(source).chain(classifier_node).chain_sink(sink);
+    } else {
+        graph.add_source(source).add(classifier_node).add_sink(sink);
+    }
+    return graph;
+}
+
 static inline void parse_and_validate_args(int argc, char **argv,
                                            unsigned long &duration,
                                            unsigned int & map_parallelism,
@@ -358,30 +385,10 @@ int main(int argc, char *argv[]) {
 
     parse_and_validate_args(argc, argv, duration, map_parallelism,
                             use_chaining);
-    SourceFunctor source_functor {duration};
-    auto          source = Source_Builder {source_functor}
-                      .withParallelism(1)
-                      .withName("source")
-                      .build();
-
-    MapFunctor<BasicClassifier> map_functor;
-    auto                        classifier_node = Map_Builder {map_functor}
-                               .withParallelism(map_parallelism)
-                               .withName("counter")
-                               .build();
-
-    SinkFunctor sink_functor;
-    auto        sink =
-        Sink_Builder {sink_functor}.withParallelism(1).withName("sink").build();
 
     PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DEFAULT,
                      Time_Policy_t::INGRESS_TIME};
-    if (use_chaining) {
-        graph.add_source(source).chain(classifier_node).chain_sink(sink);
-    } else {
-        graph.add_source(source).add(classifier_node).add_sink(sink);
-    }
-
+    build_graph(use_chaining, duration, map_parallelism, graph);
     const auto start_time = current_time();
     graph.run();
     const auto elapsed_time = current_time() - start_time;
