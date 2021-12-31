@@ -182,7 +182,7 @@ static inline void print_statistics(unsigned long elapsed_time,
     const auto throughput_in_seconds   = throughput * timeunit_scale_factor();
     const auto service_time            = 1 / throughput;
     const auto service_time_in_seconds = service_time / timeunit_scale_factor();
-    const auto latency_in_seconds      = latency / timeunit_scale_factor();
+    const auto latency_in_seconds = latency / (double) timeunit_scale_factor();
 
     cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string()
          << "s (" << elapsed_time_in_seconds << " seconds)\n";
