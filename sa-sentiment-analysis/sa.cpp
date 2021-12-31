@@ -38,10 +38,13 @@ constexpr const char *timeunit_string() {
                                                 : "time unit";
 }
 
-constexpr double timeunit_scale_factor() {
-    return current_time == current_time_usecs   ? 1000000.0
-           : current_time == current_time_nsecs ? 1000000000.0
-                                                : 1.0;
+/*
+ * Return how many of the chosen time units fit in a second.
+ */
+constexpr unsigned long timeunit_scale_factor() {
+    return current_time == current_time_usecs   ? 1000000
+           : current_time == current_time_nsecs ? 1000000000
+                                                : 1;
 }
 
 /*
