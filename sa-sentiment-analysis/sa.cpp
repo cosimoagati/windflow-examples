@@ -325,6 +325,32 @@ static inline void parse_and_validate_args(int argc, char **argv,
     }
 }
 
+static inline void print_statistics(unsigned long elapsed_time,
+                                    unsigned long sent_tuples,
+                                    unsigned long latency) {
+    const auto elapsed_time_in_seconds =
+        elapsed_time / (double) timeunit_scale_factor();
+
+    const auto throughput =
+        elapsed_time > 0 ? sent_tuples / (double) elapsed_time : sent_tuples;
+
+    const auto throughput_in_seconds   = throughput * timeunit_scale_factor();
+    const auto service_time            = 1 / throughput;
+    const auto service_time_in_seconds = service_time / timeunit_scale_factor();
+    const auto latency_in_seconds      = latency / timeunit_scale_factor();
+
+    cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string()
+         << "s (" << elapsed_time_in_seconds << " seconds)\n";
+    cout << "Total number of tuples sent: " << sent_tuples << " \n";
+    cout << "Processed about " << throughput << " tuples per "
+         << timeunit_string() << " (" << throughput_in_seconds
+         << " tuples per second)\n";
+    cout << "Service time: " << service_time << ' ' << timeunit_string()
+         << "s (" << service_time_in_seconds << " seconds)\n";
+    cout << "Average latency: " << latency << ' ' << timeunit_string() << "s ("
+         << latency_in_seconds << " seconds)\n";
+}
+
 int main(int argc, char *argv[]) {
     auto use_chaining    = false;
     auto map_parallelism = 0u;
@@ -355,32 +381,12 @@ int main(int argc, char *argv[]) {
     } else {
         graph.add_source(source).add(classifier_node).add_sink(sink);
     }
+
     const auto start_time = current_time();
     graph.run();
-
     const auto elapsed_time = current_time() - start_time;
-    const auto elapsed_time_in_seconds =
-        elapsed_time / (double) timeunit_scale_factor();
 
-    const auto sent_tuples = g_sent_tuples.load();
-    const auto throughput =
-        elapsed_time > 0 ? sent_tuples / (double) elapsed_time : sent_tuples;
-
-    const auto throughput_in_seconds   = throughput * timeunit_scale_factor();
-    const auto service_time            = 1 / throughput;
-    const auto service_time_in_seconds = service_time / timeunit_scale_factor();
-    const auto latency                 = g_average_latency.load();
-    const auto latency_in_seconds      = latency / timeunit_scale_factor();
-
-    cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string()
-         << "s (" << elapsed_time_in_seconds << " seconds)\n";
-    cout << "Total number of tuples sent: " << sent_tuples << " \n";
-    cout << "Processed about " << throughput << " tuples per "
-         << timeunit_string() << " (" << throughput_in_seconds
-         << " tuples per second)\n";
-    cout << "Service time: " << service_time << ' ' << timeunit_string()
-         << "s (" << service_time_in_seconds << " seconds)\n";
-    cout << "Average latency: " << latency << ' ' << timeunit_string() << "s ("
-         << latency_in_seconds << " seconds)\n";
+    print_statistics(elapsed_time, g_sent_tuples.load(),
+                     g_average_latency.load());
     return 0;
 }
