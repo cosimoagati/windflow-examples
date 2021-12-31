@@ -38,24 +38,10 @@ constexpr const char *timeunit_string() {
                                                 : "time unit";
 }
 
-/*
- * Return the amount of chosen time units that the given amount of seconds
- * equals to.
- */
-constexpr unsigned long seconds_to_timeunit(unsigned long seconds) {
-    return current_time == current_time_usecs   ? seconds * 1000000
-           : current_time == current_time_nsecs ? seconds * 1000000000
-                                                : seconds;
-}
-
-/*
- * Return the amount of seconds that the given amount of chosen time units
- * equals to.
- */
-constexpr double timeunit_to_seconds(unsigned long timeunits) {
-    return current_time == current_time_usecs   ? timeunits / 1000000.0
-           : current_time == current_time_nsecs ? timeunits / 1000000000.0
-                                                : timeunits;
+constexpr double timeunit_scale_factor() {
+    return current_time == current_time_usecs   ? 1000000.0
+           : current_time == current_time_nsecs ? 1000000000.0
+                                                : 1.0;
 }
 
 /*
@@ -206,8 +192,8 @@ class SourceFunctor {
 
 public:
     SourceFunctor(const string &path, unsigned long d)
-        : dataset {read_strings_from_file(path)}, duration {
-                                                      seconds_to_timeunit(d)} {}
+        : dataset {read_strings_from_file(path)},
+          duration {static_cast<unsigned long>(d * timeunit_scale_factor())} {}
 
     SourceFunctor(unsigned long d) : SourceFunctor {default_path, d} {}
 
@@ -373,16 +359,18 @@ int main(int argc, char *argv[]) {
     const auto sent_tuples  = g_sent_tuples.load();
     const auto throughput =
         elapsed_time > 0 ? sent_tuples / (double) elapsed_time : sent_tuples;
-    const auto service_time = 1 / throughput;
+    const auto service_time    = 1 / throughput;
+    const auto average_latency = g_average_latency.load();
 
     cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string()
-         << "s (" << timeunit_to_seconds(elapsed_time) << " seconds)\n";
+         << "s (" << elapsed_time / timeunit_scale_factor() << " seconds)\n";
     cout << "Total number of tuples sent: " << sent_tuples << " \n";
     cout << "Processed about " << throughput << " tuples per "
-         << timeunit_string() << '\n';
+         << timeunit_string() << " (" << throughput * timeunit_scale_factor()
+         << " tuples per second)\n";
     cout << "Service time: " << service_time << ' ' << timeunit_string()
-         << "s\n";
-    cout << "Average latency: " << g_average_latency.load() << ' '
-         << timeunit_string() << "s\n";
+         << "s (" << service_time / timeunit_scale_factor() << " seconds)\n";
+    cout << "Average latency: " << average_latency << ' ' << timeunit_string()
+         << "s (" << average_latency / timeunit_scale_factor() << " seconds)\n";
     return 0;
 }
