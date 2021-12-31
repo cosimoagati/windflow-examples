@@ -1,4 +1,4 @@
-#/bin/sh
+#!/bin/sh
 
 output_file=sa-test-output.txt
 duration=120
