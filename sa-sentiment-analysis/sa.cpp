@@ -319,7 +319,7 @@ static inline PipeGraph &build_graph(bool use_chaining, unsigned long duration,
     MapFunctor<BasicClassifier> map_functor;
     auto                        classifier_node = Map_Builder {map_functor}
                                .withParallelism(map_parallelism)
-                               .withName("counter")
+                               .withName("classifier")
                                .build();
 
     SinkFunctor sink_functor;
