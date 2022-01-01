@@ -235,8 +235,8 @@ public:
         size_t        index {0};
         unsigned long sent_tuples {0};
 
-        while (current_time() < end_time) {
-            shipper.push({dataset[index], current_time()});
+        for (auto t = current_time(); t < end_time; t = current_time()) {
+            shipper.push({dataset[index], t});
             ++sent_tuples;
             index = (index + 1) % dataset.size();
         }
@@ -265,8 +265,8 @@ public:
         const auto    end_time = current_time() + duration;
         unsigned long sent_tuples {0};
 
-        while (current_time() < end_time) {
-            shipper.push({json["text"], current_time()});
+        for (auto t = current_time(); t < end_time; t = current_time()) {
+            shipper.push({json["text"], t});
             ++sent_tuples;
         }
         g_sent_tuples.store(sent_tuples);
