@@ -7,6 +7,8 @@ if [ -f "$output_file" ]; then
     rm "$output_file"
 fi
 
+echo "Test performed on $(date)" >> "$output_file"
+
 for chaining in false true; do
     for i in $(seq 1 28); do
 	echo "Results with -t $duration -m $i -c $chaining" >> "$output_file"
