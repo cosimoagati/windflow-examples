@@ -451,9 +451,9 @@ static inline void parse_and_validate_args(int argc, char **argv,
 
 int main(int argc, char *argv[]) {
     auto use_chaining       = false;
-    auto source_parallelism = 0u;
-    auto map_parallelism    = 0u;
-    auto duration           = 0ul;
+    auto source_parallelism = 1u;
+    auto map_parallelism    = 1u;
+    auto duration           = 60ul;
 
     parse_and_validate_args(argc, argv, duration, source_parallelism,
                             map_parallelism, use_chaining);
