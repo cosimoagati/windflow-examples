@@ -20,14 +20,10 @@ enum class Sentiment { Positive, Negative, Neutral };
 
 using SentimentResult = pair<Sentiment, int>;
 
-struct SourceTuple {
-    string        tweet;
-    unsigned long timestamp;
-};
-
-struct MapOutputTuple {
+struct Tuple {
     string          tweet;
     SentimentResult result;
+    unsigned long   timestamp;
     unsigned long   latency;
 };
 
@@ -141,6 +137,34 @@ static inline string &string_trim_in_place(string &s) {
     return s;
 }
 
+static inline string &remove_punctuation_in_place(string &s) {
+    for (auto &c : s) {
+        if (c == '.' || c == ',' || c == '?' || c == '!') {
+            c = ' ';
+        }
+    }
+    return s;
+}
+
+static inline string &lowercase_in_place(string &s) {
+    for (auto &c : s) {
+        c = tolower(c);
+    }
+    return s;
+}
+
+static inline vector<string> split_in_words_in_place(string &text) {
+    remove_punctuation_in_place(text);
+    lowercase_in_place(text);
+
+    auto words = string_split(text, ' ');
+    for (auto &word : words) {
+        string_trim_in_place(word);
+    }
+
+    return words;
+}
+
 /*
  * Return a std::vector of std::strings each representing the "words" in a
  * tweet.
@@ -232,7 +256,7 @@ public:
 
     SourceFunctor() : SourceFunctor {default_path, 60} {}
 
-    void operator()(Source_Shipper<SourceTuple> &shipper) {
+    void operator()(Source_Shipper<Tuple> &shipper) {
         const auto    end_time = current_time() + duration;
         size_t        index {0};
         unsigned long sent_tuples {0};
@@ -240,7 +264,7 @@ public:
         while (current_time() < end_time) {
             auto       tweet     = dataset[index];
             const auto timestamp = current_time();
-            shipper.push({move(tweet), timestamp});
+            shipper.push({move(tweet), SentimentResult {}, timestamp, 0});
             ++sent_tuples;
             index = (index + 1) % dataset.size();
         }
@@ -265,14 +289,14 @@ public:
 
     JsonSourceFunctor() : JsonSourceFunctor {default_path, 60} {}
 
-    void operator()(Source_Shipper<SourceTuple> &shipper) {
+    void operator()(Source_Shipper<Tuple> &shipper) {
         const auto    end_time = current_time() + duration;
         unsigned long sent_tuples {0};
 
         while (current_time() < end_time) {
             auto       tweet     = json_map["text"];
             const auto timestamp = current_time();
-            shipper.push({move(tweet), timestamp});
+            shipper.push({move(tweet), SentimentResult {}, timestamp, 0});
             ++sent_tuples;
         }
         g_sent_tuples.store(sent_tuples);
@@ -288,8 +312,8 @@ public:
         : sentiment_map {get_sentiment_map<decltype(sentiment_map)>(path)} {}
     BasicClassifier() : BasicClassifier {default_path} {}
 
-    SentimentResult classify(const string &tweet) {
-        const auto words                   = split_in_words(tweet);
+    SentimentResult classify(string &tweet) {
+        const auto words                   = split_in_words_in_place(tweet);
         auto       current_tweet_sentiment = 0;
 
         for (const auto &word : words) {
@@ -310,11 +334,9 @@ public:
     MapFunctor() = default;
     MapFunctor(const string &path) : classifier {path} {}
 
-    MapOutputTuple operator()(const SourceTuple &tuple) {
-        const auto result  = classifier.classify(tuple.tweet);
-        auto       tweet   = move(tuple.tweet);
-        const auto latency = current_time() - tuple.timestamp;
-        return {move(tweet), result, latency};
+    void operator()(Tuple &tuple) {
+        tuple.result  = classifier.classify(tuple.tweet);
+        tuple.latency = current_time() - tuple.timestamp;
     }
 };
 
@@ -330,7 +352,7 @@ class SinkFunctor {
     unsigned long         total_average {0};
 
 public:
-    void operator()(optional<MapOutputTuple> &input) {
+    void operator()(optional<Tuple> &input) {
         if (input) {
             ++tuples_received;
             total_average += input->latency;
