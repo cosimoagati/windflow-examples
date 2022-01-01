@@ -234,9 +234,9 @@ public:
         const auto    end_time = current_time() + duration;
         size_t        index {0};
         unsigned long sent_tuples {0};
-
-        for (auto t = current_time(); t < end_time; t = current_time()) {
-            shipper.push({dataset[index], t});
+        while (current_time() < end_time) {
+            auto tweet = dataset[index];
+            shipper.push({move(tweet), current_time()});
             ++sent_tuples;
             index = (index + 1) % dataset.size();
         }
@@ -247,14 +247,14 @@ public:
 class JsonSourceFunctor {
     static constexpr auto default_path = "twitterexample.json";
 
-    json          json;
+    json          json_map;
     unsigned long duration;
 
 public:
     JsonSourceFunctor(const string &path, unsigned long d)
         : duration {d * timeunit_scale_factor()} {
-        ifstream file {"twitterexample.json"};
-        file >> json;
+        ifstream file {path};
+        file >> json_map;
     }
 
     JsonSourceFunctor(unsigned long d) : JsonSourceFunctor {default_path, d} {}
@@ -265,8 +265,9 @@ public:
         const auto    end_time = current_time() + duration;
         unsigned long sent_tuples {0};
 
-        for (auto t = current_time(); t < end_time; t = current_time()) {
-            shipper.push({json["text"], t});
+        while (current_time() < end_time) {
+            auto tweet = json_map["text"];
+            shipper.push({move(tweet), current_time()});
             ++sent_tuples;
         }
         g_sent_tuples.store(sent_tuples);
