@@ -234,6 +234,7 @@ public:
         const auto    end_time = current_time() + duration;
         size_t        index {0};
         unsigned long sent_tuples {0};
+
         while (current_time() < end_time) {
             auto tweet = dataset[index];
             shipper.push({move(tweet), current_time()});
