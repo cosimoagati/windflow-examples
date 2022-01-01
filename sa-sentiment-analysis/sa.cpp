@@ -236,8 +236,9 @@ public:
         unsigned long sent_tuples {0};
 
         while (current_time() < end_time) {
-            auto tweet = dataset[index];
-            shipper.push({move(tweet), current_time()});
+            auto       tweet     = dataset[index];
+            const auto timestamp = current_time();
+            shipper.push({move(tweet), timestamp});
             ++sent_tuples;
             index = (index + 1) % dataset.size();
         }
@@ -267,8 +268,9 @@ public:
         unsigned long sent_tuples {0};
 
         while (current_time() < end_time) {
-            auto tweet = json_map["text"];
-            shipper.push({move(tweet), current_time()});
+            auto       tweet     = json_map["text"];
+            const auto timestamp = current_time();
+            shipper.push({move(tweet), timestamp});
             ++sent_tuples;
         }
         g_sent_tuples.store(sent_tuples);
