@@ -118,7 +118,9 @@ static inline vector<string> string_split(const string &s, char delim) {
         for (; s[j] != delim && j < length; ++j) {
             word.push_back(s[j]);
         }
-        words.emplace_back(move(word));
+        if (!word.empty()) {
+            words.emplace_back(move(word));
+        }
         i = j + 1;
     }
     return words;
