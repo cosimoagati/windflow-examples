@@ -247,13 +247,15 @@ public:
 class JsonSourceFunctor {
     static constexpr auto default_path = "twitterexample.json";
 
-    vector<string> dataset;
-    unsigned long  duration;
+    json          json;
+    unsigned long duration;
 
 public:
     JsonSourceFunctor(const string &path, unsigned long d)
-        : dataset {read_strings_from_file(path)},
-          duration {d * timeunit_scale_factor()} {}
+        : duration {d * timeunit_scale_factor()} {
+        ifstream file {"twitterexample.json"};
+        file >> json;
+    }
 
     JsonSourceFunctor(unsigned long d) : JsonSourceFunctor {default_path, d} {}
 
@@ -262,10 +264,6 @@ public:
     void operator()(Source_Shipper<SourceTuple> &shipper) {
         const auto    end_time = current_time() + duration;
         unsigned long sent_tuples {0};
-
-        ifstream file {"twitterexample.json"};
-        json     json;
-        file >> json;
 
         while (current_time() < end_time) {
             shipper.push({json["text"], current_time()});
