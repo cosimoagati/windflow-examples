@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <unistd.h>
 #include <unordered_map>
@@ -10,6 +11,7 @@
 #include <wf/windflow.hpp>
 
 using namespace std;
+using namespace nlohmann;
 using namespace wf;
 
 constexpr auto current_time = current_time_usecs;
@@ -237,6 +239,37 @@ public:
             shipper.push({dataset[index], current_time()});
             ++sent_tuples;
             index = (index + 1) % dataset.size();
+        }
+        g_sent_tuples.store(sent_tuples);
+    }
+};
+
+class JsonSourceFunctor {
+    static constexpr auto default_path = "twitterexample.json";
+
+    vector<string> dataset;
+    unsigned long  duration;
+
+public:
+    JsonSourceFunctor(const string &path, unsigned long d)
+        : dataset {read_strings_from_file(path)},
+          duration {d * timeunit_scale_factor()} {}
+
+    JsonSourceFunctor(unsigned long d) : JsonSourceFunctor {default_path, d} {}
+
+    JsonSourceFunctor() : JsonSourceFunctor {default_path, 60} {}
+
+    void operator()(Source_Shipper<SourceTuple> &shipper) {
+        const auto    end_time = current_time() + duration;
+        unsigned long sent_tuples {0};
+
+        ifstream file {"twitterexample.json"};
+        json     json;
+        file >> json;
+
+        while (current_time() < end_time) {
+            shipper.push({json["text"], current_time()});
+            ++sent_tuples;
         }
         g_sent_tuples.store(sent_tuples);
     }
