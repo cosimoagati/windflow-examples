@@ -310,9 +310,9 @@ public:
 
     MapOutputTuple operator()(const SourceTuple &tuple) {
         const auto result  = classifier.classify(tuple.tweet);
-        const auto tweet   = tuple.tweet;
+        auto       tweet   = move(tuple.tweet);
         const auto latency = current_time() - tuple.timestamp;
-        return {tweet, result, latency};
+        return {move(tweet), result, latency};
     }
 };
 
