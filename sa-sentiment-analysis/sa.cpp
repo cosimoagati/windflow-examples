@@ -334,8 +334,8 @@ public:
             total_average += input->latency;
 
             if constexpr (verbose_output) {
-                cout << "Received tweet \"" << input->tweet << "\" with score "
-                     << input->result.second << " and classification "
+                cout << "Received tweet with score " << input->result.second
+                     << " and classification "
                      << sentiment_to_string(input->result.first) << "\n";
             }
         } else {
