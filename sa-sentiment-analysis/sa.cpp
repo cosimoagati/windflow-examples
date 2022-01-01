@@ -369,11 +369,12 @@ public:
 };
 
 static inline PipeGraph &build_graph(bool use_chaining, unsigned long duration,
+                                     unsigned   source_parallelism,
                                      unsigned   map_parallelism,
                                      PipeGraph &graph) {
     SourceFunctor source_functor {duration};
     auto          source = Source_Builder {source_functor}
-                      .withParallelism(1)
+                      .withParallelism(source_parallelism)
                       .withName("source")
                       .build();
 
@@ -397,13 +398,17 @@ static inline PipeGraph &build_graph(bool use_chaining, unsigned long duration,
 
 static inline void parse_and_validate_args(int argc, char **argv,
                                            unsigned long &duration,
+                                           unsigned &     source_parallelism,
                                            unsigned int & map_parallelism,
                                            bool &         use_chaining) {
     int option;
-    while ((option = getopt(argc, argv, "t:m:c:")) != -1) {
+    while ((option = getopt(argc, argv, "t:m:c:s:")) != -1) {
         switch (option) {
         case 't':
             duration = atol(optarg);
+            break;
+        case 's':
+            source_parallelism = atoi(optarg);
             break;
         case 'm':
             map_parallelism = atoi(optarg);
@@ -433,6 +438,11 @@ static inline void parse_and_validate_args(int argc, char **argv,
         exit(EXIT_FAILURE);
     }
 
+    if (source_parallelism <= 0) {
+        cerr << "Error: Source parallelism degree is not positive\n";
+        exit(EXIT_FAILURE);
+    }
+
     if (map_parallelism <= 0) {
         cerr << "Error: Map parallelism degree is not positive\n";
         exit(EXIT_FAILURE);
@@ -440,16 +450,18 @@ static inline void parse_and_validate_args(int argc, char **argv,
 }
 
 int main(int argc, char *argv[]) {
-    auto use_chaining    = false;
-    auto map_parallelism = 0u;
-    auto duration        = 0ul;
+    auto use_chaining       = false;
+    auto source_parallelism = 0u;
+    auto map_parallelism    = 0u;
+    auto duration           = 0ul;
 
-    parse_and_validate_args(argc, argv, duration, map_parallelism,
-                            use_chaining);
+    parse_and_validate_args(argc, argv, duration, source_parallelism,
+                            map_parallelism, use_chaining);
 
     PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DEFAULT,
                      Time_Policy_t::INGRESS_TIME};
-    build_graph(use_chaining, duration, map_parallelism, graph);
+    build_graph(use_chaining, duration, source_parallelism, map_parallelism,
+                graph);
     const auto start_time = current_time();
     graph.run();
     const auto elapsed_time = current_time() - start_time;
