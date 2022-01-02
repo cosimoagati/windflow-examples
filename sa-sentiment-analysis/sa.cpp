@@ -54,6 +54,12 @@ static inline Sentiment score_to_sentiment(int score) {
                        : Sentiment::Neutral;
 }
 
+static inline const char *sentiment_to_string(Sentiment sentiment) {
+    return sentiment == Sentiment::Positive   ? "Positive"
+           : sentiment == Sentiment::Negative ? "Negative"
+                                              : "Neutral";
+}
+
 /*
  * Return a vector of strings each containing a line from the file found in
  * path.
@@ -149,6 +155,72 @@ static inline vector<string> split_in_words_in_place(string &text) {
     return words;
 }
 
+template<typename Map>
+static inline Map get_sentiment_map(const string &path) {
+    ifstream                  input_file {path};
+    Map                       sentiment_map;
+    typename Map::key_type    word;
+    typename Map::mapped_type sentiment;
+
+    while (input_file >> word >> sentiment) {
+        sentiment_map[word] = sentiment;
+    }
+    return sentiment_map;
+}
+
+static inline void parse_and_validate_args(int argc, char **argv,
+                                           unsigned long &duration,
+                                           unsigned &     source_parallelism,
+                                           unsigned int & map_parallelism,
+                                           bool &         use_chaining) {
+    int option;
+    while ((option = getopt(argc, argv, "t:m:c:s:")) != -1) {
+        switch (option) {
+        case 't':
+            duration = atol(optarg);
+            break;
+        case 's':
+            source_parallelism = atoi(optarg);
+            break;
+        case 'm':
+            map_parallelism = atoi(optarg);
+            break;
+        case 'c': {
+            const auto opt_string = string {optarg};
+            if (opt_string == string {"true"}) {
+                use_chaining = true;
+            } else if (opt_string == string {"false"}) {
+                use_chaining = false;
+            } else {
+                cerr << "Error: chaining option must be either \"true\" or "
+                        "\"false\"\n";
+                exit(EXIT_FAILURE);
+            }
+            break;
+        }
+        default:
+            cerr << "Use as " << argv[0]
+                 << " [-c true|false] -t <duration> -m <parallelism>\n";
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if (duration <= 0) {
+        cerr << "Error: duration is not positive\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (source_parallelism <= 0) {
+        cerr << "Error: Source parallelism degree is not positive\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (map_parallelism <= 0) {
+        cerr << "Error: Map parallelism degree is not positive\n";
+        exit(EXIT_FAILURE);
+    }
+}
+
 static inline void print_statistics(unsigned long elapsed_time,
                                     unsigned long sent_tuples,
                                     unsigned long latency) {
@@ -173,19 +245,6 @@ static inline void print_statistics(unsigned long elapsed_time,
          << "s (" << service_time_in_seconds << " seconds)\n";
     cout << "Average latency: " << latency << ' ' << timeunit_string() << "s ("
          << latency_in_seconds << " seconds)\n";
-}
-
-template<typename Map>
-static inline Map get_sentiment_map(const string &path) {
-    ifstream                  input_file {path};
-    Map                       sentiment_map;
-    typename Map::key_type    word;
-    typename Map::mapped_type sentiment;
-
-    while (input_file >> word >> sentiment) {
-        sentiment_map[word] = sentiment;
-    }
-    return sentiment_map;
 }
 
 /* Global variables */
@@ -291,12 +350,6 @@ public:
     }
 };
 
-static inline const char *sentiment_to_string(Sentiment sentiment) {
-    return sentiment == Sentiment::Positive   ? "Positive"
-           : sentiment == Sentiment::Negative ? "Negative"
-                                              : "Neutral";
-}
-
 class SinkFunctor {
     static constexpr auto verbose_output = false;
     unsigned long         tuples_received {0};
@@ -345,59 +398,6 @@ static inline PipeGraph &build_graph(bool use_chaining, unsigned long duration,
         graph.add_source(source).add(classifier_node).add_sink(sink);
     }
     return graph;
-}
-
-static inline void parse_and_validate_args(int argc, char **argv,
-                                           unsigned long &duration,
-                                           unsigned &     source_parallelism,
-                                           unsigned int & map_parallelism,
-                                           bool &         use_chaining) {
-    int option;
-    while ((option = getopt(argc, argv, "t:m:c:s:")) != -1) {
-        switch (option) {
-        case 't':
-            duration = atol(optarg);
-            break;
-        case 's':
-            source_parallelism = atoi(optarg);
-            break;
-        case 'm':
-            map_parallelism = atoi(optarg);
-            break;
-        case 'c': {
-            const auto opt_string = string {optarg};
-            if (opt_string == string {"true"}) {
-                use_chaining = true;
-            } else if (opt_string == string {"false"}) {
-                use_chaining = false;
-            } else {
-                cerr << "Error: chaining option must be either \"true\" or "
-                        "\"false\"\n";
-                exit(EXIT_FAILURE);
-            }
-            break;
-        }
-        default:
-            cerr << "Use as " << argv[0]
-                 << " [-c true|false] -t <duration> -m <parallelism>\n";
-            exit(EXIT_FAILURE);
-        }
-    }
-
-    if (duration <= 0) {
-        cerr << "Error: duration is not positive\n";
-        exit(EXIT_FAILURE);
-    }
-
-    if (source_parallelism <= 0) {
-        cerr << "Error: Source parallelism degree is not positive\n";
-        exit(EXIT_FAILURE);
-    }
-
-    if (map_parallelism <= 0) {
-        cerr << "Error: Map parallelism degree is not positive\n";
-        exit(EXIT_FAILURE);
-    }
 }
 
 int main(int argc, char *argv[]) {
