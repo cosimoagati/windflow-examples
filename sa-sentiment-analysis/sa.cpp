@@ -69,36 +69,6 @@ static inline vector<string> read_strings_from_file(const string &path) {
 }
 
 /*
- * Remove space characters from the given std::string.
- * A new std::string object is returned, the original string is unmodified.
- */
-static inline string string_trim(const string &s) {
-    string trimmed_string;
-
-    for (const auto &c : s) {
-        if (c != ' ') {
-            trimmed_string.push_back(c);
-        }
-    }
-    return trimmed_string;
-}
-
-/*
- * Remove punctuation from the given std::string.
- * A new std::string object is returned, the original string is unmodified.
- */
-static inline string remove_punctuation(const string &s) {
-    string output_string;
-
-    for (const auto &c : s) {
-        if (c != '.' && c != ',' && c != '?' && c != '!' && c != ':') {
-            output_string.push_back(c);
-        }
-    }
-    return output_string;
-}
-
-/*
  * Return a std::vector of std::strings, obtained from splitting the original
  * string by the delim character.
  * The original string is unmodifierd.
@@ -177,37 +147,6 @@ static inline vector<string> split_in_words_in_place(string &text) {
     }
 
     return words;
-}
-
-/*
- * Return a std::vector of std::strings each representing the "words" in a
- * tweet.
- * The input string is unmodified.
- */
-static inline vector<string> split_in_words(const string &input) {
-    auto text = remove_punctuation(input);
-
-    for (auto &c : text) {
-        c = tolower(c);
-    }
-
-    auto words = string_split(text, ' ');
-    for (auto &word : words) {
-        string_trim_in_place(word);
-    }
-
-    return words;
-}
-
-/*
- * Suspend execution for an amount of time units specified by duration.
- */
-void wait(unsigned long duration) {
-    auto start_time = current_time();
-    auto done       = false;
-    while (!done) {
-        done = (current_time() - start_time) >= duration;
-    }
 }
 
 static inline void print_statistics(unsigned long elapsed_time,
