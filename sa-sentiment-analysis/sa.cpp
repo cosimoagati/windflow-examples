@@ -137,6 +137,11 @@ static inline string &string_trim_in_place(string &s) {
     return s;
 }
 
+/*
+ * Remove punctuation characters from string s, in-place.
+ * The input string s itself is modified.
+ * Return a reference to s.
+ */
 static inline string &remove_punctuation_in_place(string &s) {
     for (auto &c : s) {
         if (c == '.' || c == ',' || c == '?' || c == '!') {
@@ -146,6 +151,10 @@ static inline string &remove_punctuation_in_place(string &s) {
     return s;
 }
 
+/*
+ * Convert all characters of string s to lowercase, modifying s in place.
+ * Return a reference to s.
+ */
 static inline string &lowercase_in_place(string &s) {
     for (auto &c : s) {
         c = tolower(c);
@@ -153,6 +162,11 @@ static inline string &lowercase_in_place(string &s) {
     return s;
 }
 
+/*
+ * Return a std::vector of std::strings, each representing the "words" in a
+ * tweet.
+ * The input string may be modified.
+ */
 static inline vector<string> split_in_words_in_place(string &text) {
     remove_punctuation_in_place(text);
     lowercase_in_place(text);
