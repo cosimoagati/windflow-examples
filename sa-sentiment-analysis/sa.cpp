@@ -91,7 +91,7 @@ static inline string remove_punctuation(const string &s) {
     string output_string;
 
     for (const auto &c : s) {
-        if (c != '.' && c != ',' && c != '?' && c != '!') {
+        if (c != '.' && c != ',' && c != '?' && c != '!' && c != ':') {
             output_string.push_back(c);
         }
     }
@@ -144,7 +144,7 @@ static inline string &string_trim_in_place(string &s) {
  */
 static inline string &remove_punctuation_in_place(string &s) {
     for (auto &c : s) {
-        if (c == '.' || c == ',' || c == '?' || c == '!') {
+        if (c == '.' || c == ',' || c == '?' || c == '!' || c == ':') {
             c = ' ';
         }
     }
