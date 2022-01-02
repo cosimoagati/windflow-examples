@@ -54,6 +54,9 @@ static inline Sentiment score_to_sentiment(int score) {
                        : Sentiment::Neutral;
 }
 
+/*
+ * Return a string literal representation of a tweet sentiment.
+ */
 static inline const char *sentiment_to_string(Sentiment sentiment) {
     return sentiment == Sentiment::Positive   ? "Positive"
            : sentiment == Sentiment::Negative ? "Negative"
