@@ -168,8 +168,6 @@ static inline vector<string> split_in_words_in_place(string &text) {
 /*
  * Return a std::vector of std::strings each representing the "words" in a
  * tweet.
- * Every character is converted to lowercase, punctuation and remaining
- * spaces are removed.
  * The input string is unmodified.
  */
 static inline vector<string> split_in_words(const string &input) {
