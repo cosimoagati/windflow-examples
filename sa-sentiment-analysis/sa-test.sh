@@ -7,7 +7,8 @@ if [ -f "$output_file" ]; then
     rm "$output_file"
 fi
 
-echo "Test performed on $(date)" >> "$output_file"
+echo "Test started on $(date)" >> "$output_file"
+echo >> "$output_file"
 
 for chaining in false true; do
     for i in $(seq 1 28); do
@@ -16,3 +17,7 @@ for chaining in false true; do
 	echo >> "$output_file"
     done
 done
+
+echo "Test completed on $(date)" >> "$output_file"
+echo >> "$output_file"
+
