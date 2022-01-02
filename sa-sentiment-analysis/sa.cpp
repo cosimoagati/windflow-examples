@@ -175,10 +175,6 @@ static inline void print_statistics(unsigned long elapsed_time,
          << latency_in_seconds << " seconds)\n";
 }
 
-/* Global variables */
-atomic_ulong   g_sent_tuples;
-atomic<double> g_average_latency;
-
 template<typename Map>
 static inline Map get_sentiment_map(const string &path) {
     ifstream                  input_file {path};
@@ -191,6 +187,10 @@ static inline Map get_sentiment_map(const string &path) {
     }
     return sentiment_map;
 }
+
+/* Global variables */
+atomic_ulong   g_sent_tuples;
+atomic<double> g_average_latency;
 
 class SourceFunctor {
     static constexpr auto default_path = "example-dataset.txt";
