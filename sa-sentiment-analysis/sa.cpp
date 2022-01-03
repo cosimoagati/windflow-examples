@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <atomic>
 #include <cstdlib>
 #include <fstream>
@@ -106,14 +107,12 @@ static inline vector<string> string_split(const string &s, char delim) {
  * Return a reference to the string itself.
  */
 static inline string &string_trim_in_place(string &s) {
-    for (size_t i = 0; s[i] != '\0';) {
-        if (s[i] == ' ') {
-            s.erase(i, 1);
-        } else {
-            ++i;
-        }
-    }
+    s.erase(remove(s.begin(), s.end(), ' '), s.end());
     return s;
+}
+
+static inline bool is_punctuation(char c) {
+    return c == '.' || c == ',' || c == '?' || c == '!' || c == ':';
 }
 
 /*
@@ -122,11 +121,7 @@ static inline string &string_trim_in_place(string &s) {
  * Return a reference to s.
  */
 static inline string &remove_punctuation_in_place(string &s) {
-    for (auto &c : s) {
-        if (c == '.' || c == ',' || c == '?' || c == '!' || c == ':') {
-            c = ' ';
-        }
-    }
+    s.erase(remove_if(s.begin(), s.end(), is_punctuation), s.end());
     return s;
 }
 
