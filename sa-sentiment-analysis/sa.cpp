@@ -98,6 +98,9 @@ static inline vector<string> string_split(const string &s, char delim) {
             word_begin = curr + 1;
         }
     }
+    if (*word_begin != delim) {
+        words.emplace_back(word_begin, s.end());
+    }
     return words;
 }
 
