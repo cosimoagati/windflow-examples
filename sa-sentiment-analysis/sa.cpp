@@ -415,8 +415,8 @@ static inline PipeGraph &build_graph(bool use_chaining, unsigned long duration,
                       .withName("source")
                       .build();
 
-    MapFunctor<CachingClassifier> map_functor;
-    auto                          classifier_node = Map_Builder {map_functor}
+    MapFunctor<BasicClassifier> map_functor;
+    auto                        classifier_node = Map_Builder {map_functor}
                                .withParallelism(map_parallelism)
                                .withName("classifier")
                                .build();
