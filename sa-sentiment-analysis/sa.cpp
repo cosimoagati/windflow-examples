@@ -339,6 +339,36 @@ public:
     }
 };
 
+class CachingClassifier {
+    static constexpr auto                  default_path = "AFINN-111.txt";
+    unordered_map<string, int>             sentiment_map;
+    unordered_map<string, SentimentResult> result_cache;
+
+public:
+    CachingClassifier(const string &path)
+        : sentiment_map {get_sentiment_map<decltype(sentiment_map)>(path)} {}
+    CachingClassifier() : CachingClassifier {default_path} {}
+
+    SentimentResult classify(string &tweet) {
+        const auto cached_result = result_cache.find(tweet);
+        if (cached_result != result_cache.end()) {
+            return cached_result->second;
+        }
+        auto &     result_cache_entry      = result_cache[tweet];
+        const auto words                   = split_in_words_in_place(tweet);
+        auto       current_tweet_sentiment = 0;
+
+        for (const auto &word : words) {
+            if (sentiment_map.find(word) != sentiment_map.end()) {
+                current_tweet_sentiment += sentiment_map[word];
+            }
+        }
+        result_cache_entry = {score_to_sentiment(current_tweet_sentiment),
+                              current_tweet_sentiment};
+        return result_cache_entry;
+    }
+};
+
 template<typename Classifier>
 class MapFunctor {
     Classifier classifier;
@@ -385,8 +415,8 @@ static inline PipeGraph &build_graph(bool use_chaining, unsigned long duration,
                       .withName("source")
                       .build();
 
-    MapFunctor<BasicClassifier> map_functor;
-    auto                        classifier_node = Map_Builder {map_functor}
+    MapFunctor<CachingClassifier> map_functor;
+    auto                          classifier_node = Map_Builder {map_functor}
                                .withParallelism(map_parallelism)
                                .withName("classifier")
                                .build();
