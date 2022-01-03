@@ -106,15 +106,6 @@ static inline vector<string> string_split(const string &s, char delim) {
     return words;
 }
 
-/*
- * Removes space characters from a string, in place.
- * Return a reference to the string itself.
- */
-static inline string &string_trim_in_place(string &s) {
-    s.erase(remove(s.begin(), s.end(), ' '), s.end());
-    return s;
-}
-
 static inline bool is_punctuation(char c) {
     return c == '.' || c == ',' || c == '?' || c == '!' || c == ':';
 }
@@ -149,12 +140,7 @@ static inline vector<string> split_in_words_in_place(string &text) {
     remove_punctuation_in_place(text);
     lowercase_in_place(text);
 
-    auto words = string_split(text, ' ');
-    for (auto &word : words) {
-        string_trim_in_place(word);
-    }
-
-    return words;
+    return string_split(text, ' ');
 }
 
 template<typename Map>

@@ -1,6 +1,7 @@
 #ifndef UTIL_HPP
 #define UTIL_HPP
 
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <windflow.hpp>
@@ -92,6 +93,15 @@ split_in_words(const std::string &input) {
     }
 
     return words;
+}
+
+/*
+ * Removes space characters from a string, in place.
+ * Return a reference to the string itself.
+ */
+static inline std::string &string_trim_in_place_algorithm(std::string &s) {
+    s.erase(remove(s.begin(), s.end(), ' '), s.end());
+    return s;
 }
 
 #endif // #ifndef UTIL_HPP
