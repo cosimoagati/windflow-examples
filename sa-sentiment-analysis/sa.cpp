@@ -88,20 +88,15 @@ static inline vector<string> read_strings_from_file(const string &path) {
  */
 static inline vector<string> string_split(const string &s, char delim) {
     vector<string> words;
+    auto           word_begin = s.begin();
 
-    for (auto word_begin = s.begin(); word_begin < s.end();) {
-        auto   word_end = word_begin;
-        string word;
-
-        while (*word_end != delim && word_end < s.end()) {
-            ++word_end;
+    for (auto curr = word_begin; curr < s.end(); ++curr) {
+        if (*word_begin == delim) {
+            ++word_begin;
+        } else if (*curr == delim) {
+            words.emplace_back(word_begin, curr);
+            word_begin = curr + 1;
         }
-
-        word.assign(word_begin, word_end);
-        if (!word.empty()) {
-            words.emplace_back(move(word));
-        }
-        word_begin = word_end + 1;
     }
     return words;
 }
