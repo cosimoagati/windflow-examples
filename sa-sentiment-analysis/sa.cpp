@@ -199,7 +199,8 @@ static inline void parse_and_validate_args(int argc, char **argv,
         }
         default:
             cerr << "Use as " << argv[0]
-                 << " [-c true|false] -t <duration> -m <parallelism>\n";
+                 << " [-c true|false] -t <duration> -s <source parallelism> -m "
+                    "<map parallelism>\n";
             exit(EXIT_FAILURE);
         }
     }
