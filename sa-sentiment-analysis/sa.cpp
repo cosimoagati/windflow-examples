@@ -19,7 +19,10 @@ constexpr auto current_time = current_time_usecs;
 
 enum class Sentiment { Positive, Negative, Neutral };
 
-using SentimentResult = pair<Sentiment, int>;
+struct SentimentResult {
+    Sentiment sentiment;
+    int       score;
+};
 
 struct Tuple {
     string          tweet;
@@ -362,9 +365,9 @@ public:
             total_average += input->latency;
 
             if constexpr (verbose_output) {
-                cout << "Received tweet with score " << input->result.second
+                cout << "Received tweet with score " << input->result.score
                      << " and classification "
-                     << sentiment_to_string(input->result.first) << "\n";
+                     << sentiment_to_string(input->result.sentiment) << "\n";
             }
         } else {
             g_average_latency.store(total_average / (double) tuples_received);
