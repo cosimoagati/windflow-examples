@@ -84,8 +84,7 @@ static inline vector<string> read_strings_from_file(const string &path) {
 
 /*
  * Return a std::vector of std::string_views, obtained from splitting the
- * original string_view. by the delim character.  No addional allocations are
- * performed.
+ * original string_view. by the delim character.
  */
 static inline vector<string_view> string_split(const string_view &s,
                                                char               delim) {
