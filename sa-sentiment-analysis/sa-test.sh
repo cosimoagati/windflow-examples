@@ -1,6 +1,6 @@
 #!/bin/sh
 
-output_file="sa-test-output.txt-$(date --iso-8601)"
+output_file="sa-test-output-$(date --iso-8601).txt"
 duration=120
 
 if [ -f "$output_file" ]; then
