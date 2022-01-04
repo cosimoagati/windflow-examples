@@ -314,7 +314,7 @@ public:
             shipper.push({move(tweet), SentimentResult {}, timestamp});
             ++sent_tuples;
         }
-        g_sent_tuples.store(sent_tuples);
+        g_sent_tuples.fetch_add(sent_tuples);
     }
 };
 
