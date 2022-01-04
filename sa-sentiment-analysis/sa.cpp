@@ -228,7 +228,8 @@ parse_and_validate_args(int argc, char **argv, unsigned long &duration,
 
 static inline void print_statistics(unsigned long elapsed_time,
                                     unsigned long sent_tuples,
-                                    unsigned long latency) {
+                                    unsigned long cumulative_latency,
+                                    unsigned long received_tuples) {
     const auto elapsed_time_in_seconds =
         elapsed_time / (double) timeunit_scale_factor();
 
@@ -238,7 +239,8 @@ static inline void print_statistics(unsigned long elapsed_time,
     const auto throughput_in_seconds   = throughput * timeunit_scale_factor();
     const auto service_time            = 1 / throughput;
     const auto service_time_in_seconds = service_time / timeunit_scale_factor();
-    const auto latency_in_seconds = latency / (double) timeunit_scale_factor();
+    const auto average_latency = cumulative_latency / (double) received_tuples;
+    const auto latency_in_seconds = average_latency / timeunit_scale_factor();
 
     cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string()
          << "s (" << elapsed_time_in_seconds << " seconds)\n";
@@ -248,13 +250,14 @@ static inline void print_statistics(unsigned long elapsed_time,
          << " tuples per second)\n";
     cout << "Service time: " << service_time << ' ' << timeunit_string()
          << "s (" << service_time_in_seconds << " seconds)\n";
-    cout << "Average latency: " << latency << ' ' << timeunit_string() << "s ("
-         << latency_in_seconds << " seconds)\n";
+    cout << "Average latency: " << average_latency << ' ' << timeunit_string()
+         << "s (" << latency_in_seconds << " seconds)\n";
 }
 
 /* Global variables */
-atomic_ulong   g_sent_tuples;
-atomic<double> g_average_latency;
+atomic_ulong g_sent_tuples;
+atomic_ulong g_cumulative_latency;
+atomic_ulong g_received_tuples;
 
 class SourceFunctor {
     static constexpr auto default_path = "example-dataset.txt";
@@ -403,8 +406,8 @@ public:
                      << sentiment_to_string(input->result.sentiment) << "\n";
             }
         } else {
-            g_average_latency.store(cumulative_latency
-                                    / (double) tuples_received);
+            g_cumulative_latency.fetch_add(cumulative_latency);
+            g_received_tuples.fetch_add(tuples_received);
         }
     }
 };
@@ -463,6 +466,6 @@ int main(int argc, char *argv[]) {
     const auto elapsed_time = current_time() - start_time;
 
     print_statistics(elapsed_time, g_sent_tuples.load(),
-                     g_average_latency.load());
+                     g_cumulative_latency.load(), g_sent_tuples.load());
     return 0;
 }
