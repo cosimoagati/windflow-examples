@@ -88,8 +88,8 @@ static inline vector<string> read_strings_from_file(const string &path) {
  */
 static inline vector<string_view> string_split(const string_view &s,
                                                char               delim) {
-    auto                word_begin = 0;
     constexpr auto      max_words_in_tweet = 280;
+    auto                word_begin         = 0;
     vector<string_view> words;
 
     words.reserve(max_words_in_tweet);
