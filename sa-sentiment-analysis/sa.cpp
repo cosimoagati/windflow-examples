@@ -278,13 +278,9 @@ class SourceFunctor {
     unsigned long  duration;
 
 public:
-    SourceFunctor(const string &path, unsigned long d)
+    SourceFunctor(unsigned long d = 60, const string &path = default_path)
         : dataset {read_strings_from_file(path)},
           duration {d * timeunit_scale_factor()} {}
-
-    SourceFunctor(unsigned long d) : SourceFunctor {default_path, d} {}
-
-    SourceFunctor() : SourceFunctor {default_path, 60} {}
 
     void operator()(Source_Shipper<Tuple> &shipper) {
         const auto end_time    = current_time() + duration;
@@ -339,9 +335,8 @@ class BasicClassifier {
     unordered_map<unsigned long, int> sentiment_map;
 
 public:
-    BasicClassifier(const string &path)
+    BasicClassifier(const string &path = default_path)
         : sentiment_map {get_sentiment_map<decltype(sentiment_map)>(path)} {}
-    BasicClassifier() : BasicClassifier {default_path} {}
 
     SentimentResult classify(string &tweet) {
         const auto words                   = split_in_words_in_place(tweet);
@@ -364,9 +359,8 @@ class CachingClassifier {
     unordered_map<unsigned long, SentimentResult> result_cache;
 
 public:
-    CachingClassifier(const string &path)
+    CachingClassifier(const string &path = default_path)
         : sentiment_map {get_sentiment_map<decltype(sentiment_map)>(path)} {}
-    CachingClassifier() : CachingClassifier {default_path} {}
 
     SentimentResult classify(string &tweet) {
         const auto cached_result = result_cache.find(gethash(tweet));
