@@ -109,12 +109,12 @@ static inline bool is_punctuation(char c) {
 }
 
 /*
- * Remove punctuation characters from string s, in-place.
- * The input string s itself is modified.
+ * Replaces punctuation characters with a space. The input string s itself is
+ * modified.
  * Return a reference to s.
  */
-static inline string &remove_punctuation_in_place(string &s) {
-    s.erase(remove_if(s.begin(), s.end(), is_punctuation), s.end());
+static inline string &replace_punctuation_with_spaces_in_place(string &s) {
+    replace_if(s.begin(), s.end(), is_punctuation, ' ');
     return s;
 }
 
@@ -134,8 +134,8 @@ static inline string &lowercase_in_place(string &s) {
  * tweet.
  * The input string may be modified.
  */
-static inline vector<string> split_in_words_in_place(string &text) {
-    remove_punctuation_in_place(text);
+static inline vector<string_view> split_in_words_in_place(string &text) {
+    replace_punctuation_with_spaces_in_place(text);
     lowercase_in_place(text);
     return string_split(text, ' ');
 }
