@@ -156,10 +156,11 @@ static inline Map get_sentiment_map(const string &path) {
     return sentiment_map;
 }
 
-static inline void parse_and_validate_args(
-    int argc, char **argv, unsigned long &duration,
-    unsigned &source_parallelism, unsigned int &map_parallelism,
-    unsigned &sink_parallelism, unsigned &batch_size, bool &use_chaining) {
+static inline void
+parse_and_validate_args(int argc, char **argv, unsigned long &duration,
+                        unsigned &source_parallelism, unsigned &map_parallelism,
+                        unsigned &sink_parallelism, unsigned &batch_size,
+                        bool &use_chaining) {
     int option;
     while ((option = getopt(argc, argv, "t:m:c:s:k:b:")) != -1) {
         switch (option) {
