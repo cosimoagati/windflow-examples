@@ -5,6 +5,7 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <string_view>
 #include <unistd.h>
 #include <unordered_map>
 #include <utility>
@@ -82,24 +83,25 @@ static inline vector<string> read_strings_from_file(const string &path) {
 }
 
 /*
- * Return a std::vector of std::strings, obtained from splitting the original
- * string by the delim character.
- * The original string is unmodifierd.
+ * Return a std::vector of std::string_views, obtained from splitting the
+ * original string_view. by the delim character.  No addional allocations are
+ * performed.
  */
-static inline vector<string> string_split(const string &s, char delim) {
-    vector<string> words;
-    auto           word_begin = s.begin();
+static inline vector<string_view> string_split(const string_view &s,
+                                               char               delim) {
+    vector<string_view> words;
+    size_t              word_begin = {0};
 
-    for (auto curr = word_begin; curr < s.end(); ++curr) {
-        if (*word_begin == delim) {
+    for (size_t i = {0}; i < s.length(); ++i) {
+        if (s[word_begin] == delim) {
             ++word_begin;
-        } else if (*curr == delim) {
-            words.emplace_back(word_begin, curr);
-            word_begin = curr + 1;
+        } else if (s[i] == delim) {
+            words.emplace_back(s.data() + word_begin, i - word_begin);
+            word_begin = i + 1;
         }
     }
-    if (*word_begin != delim) {
-        words.emplace_back(word_begin, s.end());
+    if (s[word_begin] != delim) {
+        words.emplace_back(s.data() + word_begin, s.length() - word_begin);
     }
     return words;
 }
@@ -140,15 +142,16 @@ static inline vector<string_view> split_in_words_in_place(string &text) {
     return string_split(text, ' ');
 }
 
-template<typename Map>
-static inline Map get_sentiment_map(const string &path) {
-    ifstream                  input_file {path};
-    Map                       sentiment_map;
-    typename Map::key_type    word;
-    typename Map::mapped_type sentiment;
+static inline unordered_map<unsigned long, int>
+get_sentiment_map(const string &path) {
+    const hash<string>                gethash;
+    ifstream                          input_file {path};
+    unordered_map<unsigned long, int> sentiment_map;
+    string                            word;
+    int                               sentiment;
 
     while (input_file >> word >> sentiment) {
-        sentiment_map[word] = sentiment;
+        sentiment_map[gethash(word)] = sentiment;
     }
     return sentiment_map;
 }
@@ -300,12 +303,13 @@ public:
 };
 
 class BasicClassifier {
-    static constexpr auto      default_path = "AFINN-111.txt";
-    unordered_map<string, int> sentiment_map;
+    static constexpr auto             default_path = "AFINN-111.txt";
+    hash<string_view>                 gethash;
+    unordered_map<unsigned long, int> sentiment_map;
 
 public:
     BasicClassifier(const string &path)
-        : sentiment_map {get_sentiment_map<decltype(sentiment_map)>(path)} {}
+        : sentiment_map {get_sentiment_map(path)} {}
     BasicClassifier() : BasicClassifier {default_path} {}
 
     SentimentResult classify(string &tweet) {
@@ -313,8 +317,8 @@ public:
         auto       current_tweet_sentiment = 0;
 
         for (const auto &word : words) {
-            if (sentiment_map.find(word) != sentiment_map.end()) {
-                current_tweet_sentiment += sentiment_map[word];
+            if (sentiment_map.find(gethash(word)) != sentiment_map.end()) {
+                current_tweet_sentiment += sentiment_map[gethash(word)];
             }
         }
         return {score_to_sentiment(current_tweet_sentiment),
@@ -323,27 +327,28 @@ public:
 };
 
 class CachingClassifier {
-    static constexpr auto                  default_path = "AFINN-111.txt";
-    unordered_map<string, int>             sentiment_map;
-    unordered_map<string, SentimentResult> result_cache;
+    static constexpr auto             default_path = "AFINN-111.txt";
+    hash<string_view>                 gethash;
+    unordered_map<unsigned long, int> sentiment_map;
+    unordered_map<unsigned long, SentimentResult> result_cache;
 
 public:
     CachingClassifier(const string &path)
-        : sentiment_map {get_sentiment_map<decltype(sentiment_map)>(path)} {}
+        : sentiment_map {get_sentiment_map(path)} {}
     CachingClassifier() : CachingClassifier {default_path} {}
 
     SentimentResult classify(string &tweet) {
-        const auto cached_result = result_cache.find(tweet);
+        const auto cached_result = result_cache.find(gethash(tweet));
         if (cached_result != result_cache.end()) {
             return cached_result->second;
         }
-        auto &     result_cache_entry      = result_cache[tweet];
+        auto &     result_cache_entry      = result_cache[gethash(tweet)];
         const auto words                   = split_in_words_in_place(tweet);
         auto       current_tweet_sentiment = 0;
 
         for (const auto &word : words) {
-            if (sentiment_map.find(word) != sentiment_map.end()) {
-                current_tweet_sentiment += sentiment_map[word];
+            if (sentiment_map.find(gethash(word)) != sentiment_map.end()) {
+                current_tweet_sentiment += sentiment_map[gethash(word)];
             }
         }
         result_cache_entry = {score_to_sentiment(current_tweet_sentiment),
