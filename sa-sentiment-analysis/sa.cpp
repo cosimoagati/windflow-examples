@@ -29,7 +29,6 @@ struct Tuple {
     string          tweet;
     SentimentResult result;
     unsigned long   timestamp;
-    unsigned long   latency;
 };
 
 /*
