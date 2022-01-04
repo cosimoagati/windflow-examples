@@ -305,16 +305,11 @@ class JsonSourceFunctor {
     unsigned long duration;
 
 public:
-    JsonSourceFunctor(const string &path, unsigned long d)
+    JsonSourceFunctor(unsigned long d = 60, const char *path = default_path)
         : duration {d * timeunit_scale_factor()} {
         ifstream file {path};
         file >> json_map;
     }
-
-    JsonSourceFunctor(unsigned long d) : JsonSourceFunctor {default_path, d} {}
-
-    JsonSourceFunctor() : JsonSourceFunctor {default_path, 60} {}
-
     void operator()(Source_Shipper<Tuple> &shipper) {
         const auto    end_time = current_time() + duration;
         unsigned long sent_tuples {0};
