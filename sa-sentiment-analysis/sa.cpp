@@ -403,10 +403,12 @@ public:
 
 class SinkFunctor {
     static constexpr auto verbose_output = false;
-    unsigned long         tuples_received {0};
-    unsigned long         cumulative_latency {0};
+    unsigned long         tuples_received;
+    unsigned long         cumulative_latency;
 
 public:
+    SinkFunctor() : tuples_received {0}, cumulative_latency {0} {}
+
     void operator()(optional<Tuple> &input) {
         if (input) {
             ++tuples_received;
