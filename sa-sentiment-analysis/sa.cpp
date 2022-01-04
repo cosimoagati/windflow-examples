@@ -137,7 +137,6 @@ static inline string &lowercase_in_place(string &s) {
 static inline vector<string> split_in_words_in_place(string &text) {
     remove_punctuation_in_place(text);
     lowercase_in_place(text);
-
     return string_split(text, ' ');
 }
 
