@@ -16,7 +16,7 @@ using namespace std;
 using namespace nlohmann;
 using namespace wf;
 
-constexpr auto current_time = current_time_usecs;
+constexpr auto current_time = current_time_nsecs;
 
 enum class Sentiment { Positive, Negative, Neutral };
 
