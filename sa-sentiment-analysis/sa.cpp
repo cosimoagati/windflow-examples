@@ -83,7 +83,7 @@ static inline const char *sentiment_to_string(Sentiment sentiment) {
  * Return a vector of strings each containing a line from the file found in
  * path.
  */
-static inline vector<string> read_strings_from_file(const string &path) {
+static inline vector<string> read_strings_from_file(const char *path) {
     ifstream       input_file {path};
     vector<string> strings;
 
@@ -155,7 +155,7 @@ static inline vector<string_view> split_in_words_in_place(string &text) {
 }
 
 template<typename Map>
-static inline Map get_sentiment_map(const string &path) {
+static inline Map get_sentiment_map(const char *path) {
     const hash<string> gethash;
     ifstream           input_file {path};
     Map                sentiment_map;
@@ -278,7 +278,7 @@ class SourceFunctor {
     unsigned long  duration;
 
 public:
-    SourceFunctor(unsigned long d = 60, const string &path = default_path)
+    SourceFunctor(unsigned long d = 60, const char *path = default_path)
         : dataset {read_strings_from_file(path)},
           duration {d * timeunit_scale_factor()} {}
 
@@ -330,7 +330,7 @@ class BasicClassifier {
     unordered_map<unsigned long, int> sentiment_map;
 
 public:
-    BasicClassifier(const string &path = default_path)
+    BasicClassifier(const char *path = default_path)
         : sentiment_map {get_sentiment_map<decltype(sentiment_map)>(path)} {}
 
     SentimentResult classify(string &tweet) {
@@ -354,7 +354,7 @@ class CachingClassifier {
     unordered_map<unsigned long, SentimentResult> result_cache;
 
 public:
-    CachingClassifier(const string &path = default_path)
+    CachingClassifier(const char *path = default_path)
         : sentiment_map {get_sentiment_map<decltype(sentiment_map)>(path)} {}
 
     SentimentResult classify(string &tweet) {
@@ -383,7 +383,7 @@ class MapFunctor {
 
 public:
     MapFunctor() = default;
-    MapFunctor(const string &path) : classifier {path} {}
+    MapFunctor(const char *path) : classifier {path} {}
 
     void operator()(Tuple &tuple) {
         tuple.result = classifier.classify(tuple.tweet);
