@@ -160,9 +160,10 @@ static inline void parse_and_validate_args(int argc, char **argv,
                                            unsigned long &duration,
                                            unsigned &     source_parallelism,
                                            unsigned int & map_parallelism,
+                                           unsigned &     sink_parallelism,
                                            bool &         use_chaining) {
     int option;
-    while ((option = getopt(argc, argv, "t:m:c:s:")) != -1) {
+    while ((option = getopt(argc, argv, "t:m:c:s:k:")) != -1) {
         switch (option) {
         case 't':
             duration = atol(optarg);
@@ -172,6 +173,9 @@ static inline void parse_and_validate_args(int argc, char **argv,
             break;
         case 'm':
             map_parallelism = atoi(optarg);
+            break;
+        case 'k':
+            sink_parallelism = atoi(optarg);
             break;
         case 'c': {
             const auto opt_string = string {optarg};
@@ -206,6 +210,11 @@ static inline void parse_and_validate_args(int argc, char **argv,
 
     if (map_parallelism <= 0) {
         cerr << "Error: Map parallelism degree is not positive\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (sink_parallelism <= 0) {
+        cerr << "Error: Sink parallelism degree is not positive\n";
         exit(EXIT_FAILURE);
     }
 }
@@ -396,6 +405,7 @@ public:
 static inline PipeGraph &build_graph(bool use_chaining, unsigned long duration,
                                      unsigned   source_parallelism,
                                      unsigned   map_parallelism,
+                                     unsigned   sink_parallelism,
                                      PipeGraph &graph) {
     SourceFunctor source_functor {duration};
     auto          source = Source_Builder {source_functor}
@@ -410,8 +420,10 @@ static inline PipeGraph &build_graph(bool use_chaining, unsigned long duration,
                                .build();
 
     SinkFunctor sink_functor;
-    auto        sink =
-        Sink_Builder {sink_functor}.withParallelism(1).withName("sink").build();
+    auto        sink = Sink_Builder {sink_functor}
+                    .withParallelism(sink_parallelism)
+                    .withName("sink")
+                    .build();
 
     if (use_chaining) {
         graph.add_source(source).chain(classifier_node).chain_sink(sink);
@@ -425,15 +437,16 @@ int main(int argc, char *argv[]) {
     auto use_chaining       = false;
     auto source_parallelism = 1u;
     auto map_parallelism    = 1u;
+    auto sink_parallelism   = 1u;
     auto duration           = 60ul;
 
     parse_and_validate_args(argc, argv, duration, source_parallelism,
-                            map_parallelism, use_chaining);
+                            map_parallelism, sink_parallelism, use_chaining);
 
     PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DEFAULT,
                      Time_Policy_t::INGRESS_TIME};
     build_graph(use_chaining, duration, source_parallelism, map_parallelism,
-                graph);
+                sink_parallelism, graph);
     const auto start_time = current_time();
     graph.run();
     const auto elapsed_time = current_time() - start_time;
