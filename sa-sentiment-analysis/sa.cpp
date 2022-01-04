@@ -88,10 +88,10 @@ static inline vector<string> read_strings_from_file(const string &path) {
  */
 static inline vector<string_view> string_split(const string_view &s,
                                                char               delim) {
+    auto                word_begin = 0;
     vector<string_view> words;
-    size_t              word_begin = {0};
 
-    for (size_t i = {0}; i < s.length(); ++i) {
+    for (auto i = 0; i < s.length(); ++i) {
         if (s[word_begin] == delim) {
             ++word_begin;
         } else if (s[i] == delim) {
