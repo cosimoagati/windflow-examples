@@ -264,7 +264,7 @@ public:
         while (current_time() < end_time) {
             auto       tweet     = dataset[index];
             const auto timestamp = current_time();
-            shipper.push({move(tweet), SentimentResult {}, timestamp, 0});
+            shipper.push({move(tweet), SentimentResult {}, timestamp});
             ++sent_tuples;
             index = (index + 1) % dataset.size();
         }
@@ -296,7 +296,7 @@ public:
         while (current_time() < end_time) {
             auto       tweet     = json_map["text"];
             const auto timestamp = current_time();
-            shipper.push({move(tweet), SentimentResult {}, timestamp, 0});
+            shipper.push({move(tweet), SentimentResult {}, timestamp});
             ++sent_tuples;
         }
         g_sent_tuples.store(sent_tuples);
@@ -367,21 +367,20 @@ public:
     MapFunctor(const string &path) : classifier {path} {}
 
     void operator()(Tuple &tuple) {
-        tuple.result  = classifier.classify(tuple.tweet);
-        tuple.latency = current_time() - tuple.timestamp;
+        tuple.result = classifier.classify(tuple.tweet);
     }
 };
 
 class SinkFunctor {
     static constexpr auto verbose_output = false;
     unsigned long         tuples_received {0};
-    unsigned long         total_average {0};
+    unsigned long         cumulative_latency {0};
 
 public:
     void operator()(optional<Tuple> &input) {
         if (input) {
             ++tuples_received;
-            total_average += input->latency;
+            cumulative_latency += current_time() - input->timestamp;
 
             if constexpr (verbose_output) {
                 cout << "Received tweet with score " << input->result.score
@@ -389,7 +388,8 @@ public:
                      << sentiment_to_string(input->result.sentiment) << "\n";
             }
         } else {
-            g_average_latency.store(total_average / (double) tuples_received);
+            g_average_latency.store(cumulative_latency
+                                    / (double) tuples_received);
         }
     }
 };
