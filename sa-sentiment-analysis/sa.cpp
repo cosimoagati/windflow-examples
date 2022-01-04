@@ -206,17 +206,17 @@ parse_and_validate_args(int argc, char **argv, unsigned long &duration,
     }
 
     if (source_parallelism <= 0) {
-        cerr << "Error: Source parallelism degree is not positive\n";
+        cerr << "Error: source parallelism degree is not positive\n";
         exit(EXIT_FAILURE);
     }
 
     if (map_parallelism <= 0) {
-        cerr << "Error: Map parallelism degree is not positive\n";
+        cerr << "Error: map parallelism degree is not positive\n";
         exit(EXIT_FAILURE);
     }
 
     if (sink_parallelism <= 0) {
-        cerr << "Error: Sink parallelism degree is not positive\n";
+        cerr << "Error: sink parallelism degree is not positive\n";
         exit(EXIT_FAILURE);
     }
 
