@@ -274,9 +274,8 @@ atomic_ulong g_received_tuples;
 
 class SourceFunctor {
     static constexpr auto default_path = "example-dataset.txt";
-
-    vector<string> dataset;
-    unsigned long  duration;
+    vector<string>        dataset;
+    unsigned long         duration;
 
 public:
     SourceFunctor(unsigned long d = 60, const char *path = default_path)
