@@ -16,6 +16,7 @@
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include <rapidjson/prettywriter.h>
 #include <string>
 #include <string_view>
 #include <unistd.h>
@@ -26,6 +27,7 @@
 
 using namespace std;
 using namespace nlohmann;
+using namespace rapidjson;
 using namespace wf;
 
 constexpr auto current_time = current_time_nsecs;
