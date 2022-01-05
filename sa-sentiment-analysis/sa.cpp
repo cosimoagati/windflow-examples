@@ -339,8 +339,9 @@ public:
         auto       current_tweet_sentiment = 0;
 
         for (const auto &word : words) {
-            if (sentiment_map.find(gethash(word)) != sentiment_map.end()) {
-                current_tweet_sentiment += sentiment_map[gethash(word)];
+            const auto word_hash = gethash(word);
+            if (sentiment_map.find(word_hash) != sentiment_map.end()) {
+                current_tweet_sentiment += sentiment_map[word_hash];
             }
         }
         return {score_to_sentiment(current_tweet_sentiment),
@@ -359,17 +360,19 @@ public:
         : sentiment_map {get_sentiment_map<decltype(sentiment_map)>(path)} {}
 
     SentimentResult classify(string &tweet) {
-        const auto cached_result = result_cache.find(gethash(tweet));
+        const auto tweet_hash    = gethash(tweet);
+        const auto cached_result = result_cache.find(tweet_hash);
+
         if (cached_result != result_cache.end()) {
             return cached_result->second;
         }
-        auto &     result_cache_entry      = result_cache[gethash(tweet)];
+        auto &     result_cache_entry      = result_cache[tweet_hash];
         const auto words                   = split_in_words_in_place(tweet);
         auto       current_tweet_sentiment = 0;
 
         for (const auto &word : words) {
-            if (sentiment_map.find(gethash(word)) != sentiment_map.end()) {
-                current_tweet_sentiment += sentiment_map[gethash(word)];
+            if (sentiment_map.find(tweet_hash) != sentiment_map.end()) {
+                current_tweet_sentiment += sentiment_map[tweet_hash];
             }
         }
         result_cache_entry = {score_to_sentiment(current_tweet_sentiment),
