@@ -102,20 +102,20 @@ static inline vector<string> read_strings_from_file(const char *path) {
 static inline vector<string_view> string_split(const string_view &s,
                                                char               delim) {
     constexpr auto      max_words_in_tweet = 280;
-    auto                word_begin         = 0;
+    auto                word_offset        = 0;
     vector<string_view> words;
 
     words.reserve(max_words_in_tweet);
     for (auto i = 0; i < s.length(); ++i) {
-        if (s[word_begin] == delim) {
-            ++word_begin;
+        if (s[word_offset] == delim) {
+            ++word_offset;
         } else if (s[i] == delim) {
-            words.emplace_back(s.data() + word_begin, i - word_begin);
-            word_begin = i + 1;
+            words.emplace_back(s.data() + word_offset, i - word_offset);
+            word_offset = i + 1;
         }
     }
-    if (s[word_begin] != delim) {
-        words.emplace_back(s.data() + word_begin, s.length() - word_begin);
+    if (s[word_offset] != delim) {
+        words.emplace_back(s.data() + word_offset, s.length() - word_offset);
     }
     return words;
 }
