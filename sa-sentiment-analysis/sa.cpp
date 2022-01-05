@@ -144,9 +144,8 @@ static inline string &lowercase_in_place(string &s) {
 }
 
 /*
- * Return a std::vector of std::strings, each representing the "words" in a
- * tweet.
- * The input string may be modified.
+ * Return a std::vector of std::string_views, each representing the "words" in a
+ * tweet.  The input string may be modified.
  */
 static inline vector<string_view> split_in_words_in_place(string &text) {
     replace_punctuation_with_spaces_in_place(text);
