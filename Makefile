@@ -47,6 +47,8 @@ debug: debug-cpu debug-gpu
 cpu: $(CPU_EXAMPLES)
 gpu: $(GPU_EXAMPLES)
 
+sa: sa-sentiment-analysis/sa
+
 clean:
 	rm -f $(CPU_EXAMPLES) $(GPU_EXAMPLES) $(CPU_OBJS) $(GPU_OBJS)
 
