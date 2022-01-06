@@ -100,7 +100,6 @@ static inline vector<string_view> string_split(const string_view &s,
     auto                word_offset        = 0u;
     vector<string_view> words;
 
-    words.reserve(max_words_in_tweet);
     for (auto i = 0u; i < s.length(); ++i) {
         if (s[word_offset] == delim) {
             ++word_offset;
