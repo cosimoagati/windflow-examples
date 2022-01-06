@@ -270,9 +270,9 @@ static inline void print_statistics(unsigned long elapsed_time,
 }
 
 /* Global variables */
-atomic_ulong g_sent_tuples;
-atomic_ulong g_cumulative_latency;
-atomic_ulong g_received_tuples;
+atomic_ulong g_sent_tuples {0};
+atomic_ulong g_cumulative_latency {0};
+atomic_ulong g_received_tuples {0};
 
 class SourceFunctor {
     static constexpr auto default_path = "example-dataset.txt";
