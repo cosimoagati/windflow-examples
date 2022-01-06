@@ -32,6 +32,15 @@ using namespace wf;
 
 constexpr auto current_time = current_time_nsecs;
 
+const auto timeunit_string = current_time == current_time_usecs ? "microsecond"
+                             : current_time == current_time_nsecs ? "nanosecond"
+                                                                  : "time unit";
+
+const auto timeunit_scale_factor =
+    current_time == current_time_usecs   ? 1000000ul
+    : current_time == current_time_nsecs ? 1000000000ul
+                                         : 1ul;
+
 enum class Sentiment { Positive, Negative, Neutral };
 
 struct SentimentResult {
@@ -44,24 +53,6 @@ struct Tuple {
     SentimentResult result;
     unsigned long   timestamp;
 };
-
-/*
- * Return a string representation of the current time unit.
- */
-constexpr const char *timeunit_string() {
-    return current_time == current_time_usecs   ? "microsecond"
-           : current_time == current_time_nsecs ? "nanosecond"
-                                                : "time unit";
-}
-
-/*
- * Return how many of the chosen time units fit in a second.
- */
-constexpr unsigned long timeunit_scale_factor() {
-    return current_time == current_time_usecs   ? 1000000
-           : current_time == current_time_nsecs ? 1000000000
-                                                : 1;
-}
 
 /*
  * Return an appropriate Sentiment value based on its numerical score.
@@ -246,26 +237,26 @@ static inline void print_statistics(unsigned long elapsed_time,
                                     unsigned long cumulative_latency,
                                     unsigned long received_tuples) {
     const auto elapsed_time_in_seconds =
-        elapsed_time / (double) timeunit_scale_factor();
+        elapsed_time / (double) timeunit_scale_factor;
 
     const auto throughput =
         elapsed_time > 0 ? sent_tuples / (double) elapsed_time : sent_tuples;
 
-    const auto throughput_in_seconds   = throughput * timeunit_scale_factor();
+    const auto throughput_in_seconds   = throughput * timeunit_scale_factor;
     const auto service_time            = 1 / throughput;
-    const auto service_time_in_seconds = service_time / timeunit_scale_factor();
+    const auto service_time_in_seconds = service_time / timeunit_scale_factor;
     const auto average_latency = cumulative_latency / (double) received_tuples;
-    const auto latency_in_seconds = average_latency / timeunit_scale_factor();
+    const auto latency_in_seconds = average_latency / timeunit_scale_factor;
 
-    cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string()
-         << "s (" << elapsed_time_in_seconds << " seconds)\n";
+    cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string << "s ("
+         << elapsed_time_in_seconds << " seconds)\n";
     cout << "Total number of tuples sent: " << sent_tuples << " \n";
     cout << "Processed about " << throughput << " tuples per "
-         << timeunit_string() << " (" << throughput_in_seconds
+         << timeunit_string << " (" << throughput_in_seconds
          << " tuples per second)\n";
-    cout << "Service time: " << service_time << ' ' << timeunit_string()
-         << "s (" << service_time_in_seconds << " seconds)\n";
-    cout << "Average latency: " << average_latency << ' ' << timeunit_string()
+    cout << "Service time: " << service_time << ' ' << timeunit_string << "s ("
+         << service_time_in_seconds << " seconds)\n";
+    cout << "Average latency: " << average_latency << ' ' << timeunit_string
          << "s (" << latency_in_seconds << " seconds)\n";
 }
 
@@ -282,7 +273,7 @@ class SourceFunctor {
 public:
     SourceFunctor(unsigned long d = 60, const char *path = default_path)
         : dataset {read_strings_from_file(path)},
-          duration {d * timeunit_scale_factor()} {}
+          duration {d * timeunit_scale_factor} {}
 
     void operator()(Source_Shipper<Tuple> &shipper) {
         const auto end_time    = current_time() + duration;
@@ -308,7 +299,7 @@ class JsonSourceFunctor {
 
 public:
     JsonSourceFunctor(unsigned long d = 60, const char *path = default_path)
-        : duration {d * timeunit_scale_factor()} {
+        : duration {d * timeunit_scale_factor} {
         ifstream file {path};
         file >> json_map;
     }
