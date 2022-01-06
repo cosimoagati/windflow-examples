@@ -92,6 +92,10 @@ static inline vector<string> read_strings_from_file(const char *path) {
  */
 static inline vector<string_view> string_split(const string_view &s,
                                                char               delim) {
+    if (s.length() == 0) {
+        return {};
+    }
+
     constexpr auto      max_words_in_tweet = 280;
     const auto          length             = s.length();
     const auto          string_begin       = s.data();
