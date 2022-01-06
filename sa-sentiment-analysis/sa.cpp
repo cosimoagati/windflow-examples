@@ -92,12 +92,7 @@ static inline vector<string> read_strings_from_file(const char *path) {
  */
 static inline vector<string_view> string_split(const string_view &s,
                                                char               delim) {
-    if (s.length() == 0) {
-        return {};
-    }
-
-    constexpr auto      max_words_in_tweet = 280;
-    auto                word_offset        = 0u;
+    auto                word_offset = 0u;
     vector<string_view> words;
 
     for (auto i = 0u; i < s.length(); ++i) {
@@ -108,7 +103,7 @@ static inline vector<string_view> string_split(const string_view &s,
             word_offset = i;
         }
     }
-    if (s[word_offset] != delim) {
+    if (!s.empty() && s[word_offset] != delim) {
         words.emplace_back(s.data() + word_offset, s.length() - word_offset);
     }
     return words;
