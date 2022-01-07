@@ -155,7 +155,7 @@ static inline Map get_sentiment_map(const char *path) {
 
 static inline void
 parse_and_validate_args(int argc, char **argv, unsigned long &duration,
-                        unsigned tuple_rate, unsigned &source_parallelism,
+                        unsigned &tuple_rate, unsigned &source_parallelism,
                         unsigned &map_parallelism, unsigned &sink_parallelism,
                         unsigned &batch_size, bool &use_chaining) {
     int option;
