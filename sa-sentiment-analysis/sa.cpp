@@ -103,7 +103,7 @@ static inline vector<string_view> string_split(const string_view &s,
             word_offset = i;
         }
     }
-    if (!s.empty() && s[word_offset] != delim) {
+    if (word_offset < s.length() && s[word_offset] != delim) {
         words.emplace_back(s.data() + word_offset, s.length() - word_offset);
     }
     return words;
