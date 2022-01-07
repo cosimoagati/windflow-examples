@@ -285,9 +285,11 @@ class SourceFunctor {
     }
 
     void generate_with_fixed_rate(Source_Shipper<Tuple> &shipper) {
-        const auto end_time    = current_time() + duration;
-        auto       sent_tuples = 0l;
-        size_t     index {0};
+        const auto          end_time = current_time() + duration;
+        const unsigned long delay =
+            (1.0 / tuple_rate_per_second) * timeunit_scale_factor;
+        auto   sent_tuples = 0l;
+        size_t index {0};
 
         while (current_time() < end_time) {
             auto       tweet     = dataset[index];
@@ -295,9 +297,6 @@ class SourceFunctor {
             shipper.push({move(tweet), SentimentResult {}, timestamp});
             ++sent_tuples;
             index = (index + 1) % dataset.size();
-
-            const unsigned long delay =
-                (1.0 / tuple_rate_per_second) * timeunit_scale_factor;
             wait(delay);
         }
         global_sent_tuples.fetch_add(sent_tuples);
