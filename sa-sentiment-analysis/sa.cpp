@@ -92,19 +92,14 @@ static inline vector<string> read_strings_from_file(const char *path) {
  */
 static inline vector<string_view> string_split(const string_view &s,
                                                char               delim) {
-    auto                word_offset = 0u;
+    const auto          is_delim   = [=](char c) { return c == delim; };
+    auto                word_begin = find_if_not(s.begin(), s.end(), is_delim);
     vector<string_view> words;
 
-    for (auto i = 0u; i < s.length(); ++i) {
-        if (s[word_offset] == delim) {
-            ++word_offset;
-        } else if (s[i] == delim) {
-            words.emplace_back(s.data() + word_offset, i - word_offset);
-            word_offset = i;
-        }
-    }
-    if (word_offset < s.length() && s[word_offset] != delim) {
-        words.emplace_back(s.data() + word_offset, s.length() - word_offset);
+    while (word_begin < s.end()) {
+        const auto word_end = find_if(word_begin + 1, s.end(), is_delim);
+        words.emplace_back(word_begin, word_end - word_begin);
+        word_begin = find_if_not(word_end, s.end(), is_delim);
     }
     return words;
 }
