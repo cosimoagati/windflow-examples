@@ -252,7 +252,7 @@ static inline void print_statistics(unsigned long elapsed_time,
 /*
  * Suspend execution for an amount of time units specified by duration.
  */
-void wait(unsigned long duration) {
+void busy_wait(unsigned long duration) {
     auto start_time = current_time();
     while (current_time() - start_time < duration)
         ;
@@ -297,7 +297,7 @@ class SourceFunctor {
             shipper.push({move(tweet), SentimentResult {}, timestamp});
             ++sent_tuples;
             index = (index + 1) % dataset.size();
-            wait(delay);
+            busy_wait(delay);
         }
         global_sent_tuples.fetch_add(sent_tuples);
     }
