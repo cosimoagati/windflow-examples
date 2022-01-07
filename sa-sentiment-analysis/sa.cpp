@@ -252,9 +252,9 @@ static inline void print_statistics(unsigned long elapsed_time,
 }
 
 /* Global variables */
-atomic_ulong g_sent_tuples {0};
-atomic_ulong g_cumulative_latency {0};
-atomic_ulong g_received_tuples {0};
+atomic_ulong global_sent_tuples {0};
+atomic_ulong global_cumulative_latency {0};
+atomic_ulong global_received_tuples {0};
 
 class SourceFunctor {
     static constexpr auto default_path = "example-dataset.txt";
@@ -278,7 +278,7 @@ public:
             ++sent_tuples;
             index = (index + 1) % dataset.size();
         }
-        g_sent_tuples.fetch_add(sent_tuples);
+        global_sent_tuples.fetch_add(sent_tuples);
     }
 };
 
@@ -304,7 +304,7 @@ public:
             shipper.push({move(tweet), SentimentResult {}, timestamp});
             ++sent_tuples;
         }
-        g_sent_tuples.fetch_add(sent_tuples);
+        global_sent_tuples.fetch_add(sent_tuples);
     }
 };
 
@@ -396,8 +396,8 @@ public:
                      << sentiment_to_string(input->result.sentiment) << "\n";
             }
         } else {
-            g_cumulative_latency.fetch_add(cumulative_latency);
-            g_received_tuples.fetch_add(tuples_received);
+            global_cumulative_latency.fetch_add(cumulative_latency);
+            global_received_tuples.fetch_add(tuples_received);
         }
     }
 };
@@ -455,7 +455,8 @@ int main(int argc, char *argv[]) {
     graph.run();
     const auto elapsed_time = current_time() - start_time;
 
-    print_statistics(elapsed_time, g_sent_tuples.load(),
-                     g_cumulative_latency.load(), g_sent_tuples.load());
+    print_statistics(elapsed_time, global_sent_tuples.load(),
+                     global_cumulative_latency.load(),
+                     global_sent_tuples.load());
     return 0;
 }
