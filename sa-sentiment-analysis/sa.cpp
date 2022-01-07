@@ -258,7 +258,7 @@ static inline void print_statistics(unsigned long elapsed_time,
  * Suspend execution for an amount of time units specified by duration.
  */
 void busy_wait(unsigned long duration) {
-    auto start_time = current_time();
+    const auto start_time = current_time();
     while (current_time() - start_time < duration)
         ;
 }
