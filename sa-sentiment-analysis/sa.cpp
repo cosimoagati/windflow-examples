@@ -200,28 +200,23 @@ parse_and_validate_args(int argc, char **argv, unsigned long &duration,
         }
     }
 
-    if (duration <= 0) {
+    if (duration == 0) {
         cerr << "Error: duration is not positive\n";
         exit(EXIT_FAILURE);
     }
 
-    if (source_parallelism <= 0) {
+    if (source_parallelism == 0) {
         cerr << "Error: source parallelism degree is not positive\n";
         exit(EXIT_FAILURE);
     }
 
-    if (map_parallelism <= 0) {
+    if (map_parallelism == 0) {
         cerr << "Error: map parallelism degree is not positive\n";
         exit(EXIT_FAILURE);
     }
 
-    if (sink_parallelism <= 0) {
+    if (sink_parallelism == 0) {
         cerr << "Error: sink parallelism degree is not positive\n";
-        exit(EXIT_FAILURE);
-    }
-
-    if (batch_size < 0) {
-        cerr << "Error: batch size is negative";
         exit(EXIT_FAILURE);
     }
 }
