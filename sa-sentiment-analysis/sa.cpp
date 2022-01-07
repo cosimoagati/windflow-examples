@@ -251,6 +251,17 @@ static inline void print_statistics(unsigned long elapsed_time,
          << "s (" << latency_in_seconds << " seconds)\n";
 }
 
+/*
+ * Suspend execution for an amount of time units specified by duration.
+ */
+void wait(unsigned long duration) {
+    auto start_time = current_time();
+    auto done       = false;
+    while (!done) {
+        done = (current_time() - start_time) >= duration;
+    }
+}
+
 /* Global variables */
 atomic_ulong global_sent_tuples {0};
 atomic_ulong global_cumulative_latency {0};
