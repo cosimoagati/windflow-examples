@@ -313,10 +313,10 @@ public:
           tuple_rate_per_second {rate}, duration {d * timeunit_scale_factor} {}
 
     void operator()(Source_Shipper<Tuple> &shipper) {
-        if (tuple_rate_per_second == 0) {
-            generate_at_max_rate(shipper);
-        } else {
+        if (tuple_rate_per_second > 0) {
             generate_with_rate(shipper);
+        } else {
+            generate_at_max_rate(shipper);
         }
     }
 };
