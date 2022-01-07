@@ -222,6 +222,7 @@ parse_and_validate_args(int argc, char **argv, unsigned long &duration,
 }
 
 static inline void print_statistics(unsigned long elapsed_time,
+                                    unsigned long duration,
                                     unsigned long sent_tuples,
                                     unsigned long cumulative_latency,
                                     unsigned long received_tuples) {
@@ -239,6 +240,9 @@ static inline void print_statistics(unsigned long elapsed_time,
 
     cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string << "s ("
          << elapsed_time_in_seconds << " seconds)\n"
+         << "Excess time after source stopped: "
+         << elapsed_time - duration * timeunit_scale_factor << ' '
+         << timeunit_string << "s\n"
          << "Total number of tuples sent: " << sent_tuples << '\n'
          << "Total number of tuples recieved: " << received_tuples << '\n'
          << "Processed about " << throughput << " tuples per "
@@ -496,7 +500,7 @@ int main(int argc, char *argv[]) {
     graph.run();
     const auto elapsed_time = current_time() - start_time;
 
-    print_statistics(elapsed_time, global_sent_tuples.load(),
+    print_statistics(elapsed_time, duration, global_sent_tuples.load(),
                      global_cumulative_latency.load(),
                      global_sent_tuples.load());
     return 0;
