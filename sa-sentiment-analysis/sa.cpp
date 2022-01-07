@@ -240,6 +240,7 @@ static inline void print_statistics(unsigned long elapsed_time,
     cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string << "s ("
          << elapsed_time_in_seconds << " seconds)\n";
     cout << "Total number of tuples sent: " << sent_tuples << " \n";
+    cout << "Total number of tuples recieved: " << received_tuples << '\n';
     cout << "Processed about " << throughput << " tuples per "
          << timeunit_string << " (" << throughput_in_seconds
          << " tuples per second)\n";
