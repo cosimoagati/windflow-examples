@@ -277,6 +277,7 @@ class SourceFunctor {
         const auto end_time    = current_time() + duration;
         auto       sent_tuples = 0l;
         size_t     index {0};
+
         while (current_time() < end_time) {
             auto       tweet     = dataset[index];
             const auto timestamp = current_time();
