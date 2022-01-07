@@ -304,7 +304,7 @@ class SourceFunctor {
     }
 
 public:
-    SourceFunctor(unsigned long d = 60, unsigned rate = 0,
+    SourceFunctor(unsigned long d = 60, unsigned rate = 1000,
                   const char *path = default_path)
         : dataset {read_strings_from_file(path)},
           tuple_rate_per_second {rate}, duration {d * timeunit_scale_factor} {}
