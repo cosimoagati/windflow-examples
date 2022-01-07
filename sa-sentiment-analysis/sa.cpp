@@ -287,7 +287,7 @@ class SourceFunctor {
         global_sent_tuples.fetch_add(sent_tuples);
     }
 
-    void generate_with_rate(Source_Shipper<Tuple> &shipper) {
+    void generate_with_fixed_rate(Source_Shipper<Tuple> &shipper) {
         const auto end_time    = current_time() + duration;
         auto       sent_tuples = 0l;
         size_t     index {0};
@@ -314,7 +314,7 @@ public:
 
     void operator()(Source_Shipper<Tuple> &shipper) {
         if (tuple_rate_per_second > 0) {
-            generate_with_rate(shipper);
+            generate_with_fixed_rate(shipper);
         } else {
             generate_at_max_rate(shipper);
         }
