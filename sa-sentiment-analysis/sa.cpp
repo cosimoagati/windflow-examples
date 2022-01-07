@@ -155,11 +155,11 @@ static inline Map get_sentiment_map(const char *path) {
 
 static inline void
 parse_and_validate_args(int argc, char **argv, unsigned long &duration,
-                        unsigned &source_parallelism, unsigned &map_parallelism,
-                        unsigned &sink_parallelism, unsigned &batch_size,
-                        bool &use_chaining) {
+                        unsigned tuple_rate, unsigned &source_parallelism,
+                        unsigned &map_parallelism, unsigned &sink_parallelism,
+                        unsigned &batch_size, bool &use_chaining) {
     int option;
-    while ((option = getopt(argc, argv, "t:m:c:s:k:b:")) != -1) {
+    while ((option = getopt(argc, argv, "t:m:c:s:k:b:r:")) != -1) {
         switch (option) {
         case 't':
             duration = atol(optarg);
@@ -189,6 +189,9 @@ parse_and_validate_args(int argc, char **argv, unsigned long &duration,
             }
             break;
         }
+        case 'r':
+            tuple_rate = atoi(optarg);
+            break;
         default:
             cerr << "Use as " << argv[0]
                  << " [-c true|false] -t <duration> -s <source parallelism> -m "
@@ -442,12 +445,11 @@ public:
     }
 };
 
-static inline PipeGraph &build_graph(bool use_chaining, unsigned long duration,
-                                     unsigned source_parallelism,
-                                     unsigned map_parallelism,
-                                     unsigned sink_parallelism,
-                                     unsigned batch_size, PipeGraph &graph) {
-    SourceFunctor source_functor {duration};
+static inline PipeGraph &
+build_graph(bool use_chaining, unsigned long duration, unsigned tuple_rate,
+            unsigned source_parallelism, unsigned map_parallelism,
+            unsigned sink_parallelism, unsigned batch_size, PipeGraph &graph) {
+    SourceFunctor source_functor {duration, tuple_rate};
     auto          source = Source_Builder {source_functor}
                       .withParallelism(source_parallelism)
                       .withName("source")
@@ -482,15 +484,16 @@ int main(int argc, char *argv[]) {
     auto sink_parallelism   = 1u;
     auto batch_size         = 0u;
     auto duration           = 60ul;
+    auto tuple_rate         = 0u;
 
-    parse_and_validate_args(argc, argv, duration, source_parallelism,
-                            map_parallelism, sink_parallelism, batch_size,
-                            use_chaining);
+    parse_and_validate_args(argc, argv, duration, tuple_rate,
+                            source_parallelism, map_parallelism,
+                            sink_parallelism, batch_size, use_chaining);
 
     PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DEFAULT,
                      Time_Policy_t::INGRESS_TIME};
-    build_graph(use_chaining, duration, source_parallelism, map_parallelism,
-                sink_parallelism, batch_size, graph);
+    build_graph(use_chaining, duration, tuple_rate, source_parallelism,
+                map_parallelism, sink_parallelism, batch_size, graph);
     const auto start_time = current_time();
     graph.run();
     const auto elapsed_time = current_time() - start_time;
