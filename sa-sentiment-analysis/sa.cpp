@@ -271,13 +271,23 @@ class SourceFunctor {
     static constexpr auto default_path = "example-dataset.txt";
     vector<string>        dataset;
     unsigned long         duration;
+    unsigned              tuple_rate_per_second;
 
-public:
-    SourceFunctor(unsigned long d = 60, const char *path = default_path)
-        : dataset {read_strings_from_file(path)},
-          duration {d * timeunit_scale_factor} {}
+    void generate_at_max_rate(Source_Shipper<Tuple> &shipper) {
+        const auto end_time    = current_time() + duration;
+        auto       sent_tuples = 0l;
+        size_t     index {0};
+        while (current_time() < end_time) {
+            auto       tweet     = dataset[index];
+            const auto timestamp = current_time();
+            shipper.push({move(tweet), SentimentResult {}, timestamp});
+            ++sent_tuples;
+            index = (index + 1) % dataset.size();
+        }
+        global_sent_tuples.fetch_add(sent_tuples);
+    }
 
-    void operator()(Source_Shipper<Tuple> &shipper) {
+    void generate_with_rate(Source_Shipper<Tuple> &shipper) {
         const auto end_time    = current_time() + duration;
         auto       sent_tuples = 0l;
         size_t     index {0};
@@ -288,8 +298,26 @@ public:
             shipper.push({move(tweet), SentimentResult {}, timestamp});
             ++sent_tuples;
             index = (index + 1) % dataset.size();
+
+            const unsigned long delay =
+                (1.0 / tuple_rate_per_second) * timeunit_scale_factor;
+            wait(delay);
         }
         global_sent_tuples.fetch_add(sent_tuples);
+    }
+
+public:
+    SourceFunctor(unsigned long d = 60, unsigned rate = 0,
+                  const char *path = default_path)
+        : dataset {read_strings_from_file(path)},
+          tuple_rate_per_second {rate}, duration {d * timeunit_scale_factor} {}
+
+    void operator()(Source_Shipper<Tuple> &shipper) {
+        if (tuple_rate_per_second == 0) {
+            generate_at_max_rate(shipper);
+        } else {
+            generate_with_rate(shipper);
+        }
     }
 };
 
