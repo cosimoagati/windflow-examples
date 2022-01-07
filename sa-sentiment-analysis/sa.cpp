@@ -254,10 +254,8 @@ static inline void print_statistics(unsigned long elapsed_time,
  */
 void wait(unsigned long duration) {
     auto start_time = current_time();
-    auto done       = false;
-    while (!done) {
-        done = (current_time() - start_time) >= duration;
-    }
+    while (current_time() - start_time < duration)
+        ;
 }
 
 /* Global variables */
