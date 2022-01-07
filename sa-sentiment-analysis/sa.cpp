@@ -422,13 +422,18 @@ public:
 
     void operator()(optional<Tuple> &input) {
         if (input) {
+            const auto arrival_time = current_time();
+            const auto latency      = arrival_time - input->timestamp;
             ++tuples_received;
-            cumulative_latency += current_time() - input->timestamp;
+            cumulative_latency += latency;
 
             if constexpr (verbose_output) {
-                cout << "Received tweet with score " << input->result.score
+                cout << "arrival time: " << arrival_time
+                     << " ts:" << input->timestamp << " latency: " << latency
+                     << '\n'
+                     << "Received tweet with score " << input->result.score
                      << " and classification "
-                     << sentiment_to_string(input->result.sentiment) << "\n";
+                     << sentiment_to_string(input->result.sentiment) << '\n';
             }
         } else {
             global_cumulative_latency.fetch_add(cumulative_latency);
