@@ -486,7 +486,7 @@ int main(int argc, char *argv[]) {
     auto sink_parallelism   = 1u;
     auto batch_size         = 0u;
     auto duration           = 60ul;
-    auto tuple_rate         = 0u;
+    auto tuple_rate         = 1000u;
 
     parse_and_validate_args(argc, argv, duration, tuple_rate,
                             source_parallelism, map_parallelism,
