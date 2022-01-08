@@ -71,7 +71,7 @@ public:
         internal_vector.push_back(element);
     }
 
-    const vector<T> &data() {
+    const vector<T> &data() const {
         return internal_vector;
     }
 };
