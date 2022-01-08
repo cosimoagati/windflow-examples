@@ -292,7 +292,7 @@ static inline void print_statistics(unsigned long elapsed_time,
          << "s (" << latency_in_seconds << " seconds)\n";
 }
 
-void dump_metric(const char *name, std::vector<unsigned long> &samples) {
+void dump_metric(const char *name, vector<unsigned long> &samples) {
     if (samples.empty()) {
         return;
     }
