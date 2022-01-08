@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <rapidjson/prettywriter.h>
 #include <string>
@@ -420,6 +421,9 @@ public:
 };
 
 class SinkFunctor {
+#ifndef NDEBUG
+    inline static mutex print_mutex {};
+#endif
     unsigned long tuples_received;
     unsigned long cumulative_latency;
 
@@ -433,6 +437,7 @@ public:
             ++tuples_received;
             cumulative_latency += latency;
 #ifndef NDEBUG
+            const lock_guard lock {print_mutex};
             cout << "arrival time: " << arrival_time
                  << " ts:" << input->timestamp << " latency: " << latency
                  << '\n'
