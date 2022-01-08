@@ -368,7 +368,13 @@ class SourceFunctor {
     unsigned long         duration;
     unsigned              tuple_rate_per_second;
 
-    void generate_at_max_rate(Source_Shipper<Tuple> &shipper) {
+public:
+    SourceFunctor(unsigned long d = 60, unsigned rate = 1000,
+                  const char *path = default_path)
+        : dataset {read_strings_from_file(path)},
+          tuple_rate_per_second {rate}, duration {d * timeunit_scale_factor} {}
+
+    void operator()(Source_Shipper<Tuple> &shipper) {
         const auto end_time    = current_time() + duration;
         auto       sent_tuples = 0l;
         size_t     index {0};
@@ -379,40 +385,14 @@ class SourceFunctor {
             shipper.push({move(tweet), SentimentResult {}, timestamp});
             ++sent_tuples;
             index = (index + 1) % dataset.size();
+
+            if (tuple_rate_per_second > 0) {
+                const unsigned long delay =
+                    (1.0 / tuple_rate_per_second) * timeunit_scale_factor;
+                busy_wait(delay);
+            }
         }
         global_sent_tuples.fetch_add(sent_tuples);
-    }
-
-    void generate_with_fixed_rate(Source_Shipper<Tuple> &shipper) {
-        const auto          end_time = current_time() + duration;
-        const unsigned long delay =
-            (1.0 / tuple_rate_per_second) * timeunit_scale_factor;
-        auto   sent_tuples = 0l;
-        size_t index {0};
-
-        while (current_time() < end_time) {
-            auto       tweet     = dataset[index];
-            const auto timestamp = current_time();
-            shipper.push({move(tweet), SentimentResult {}, timestamp});
-            ++sent_tuples;
-            index = (index + 1) % dataset.size();
-            busy_wait(delay);
-        }
-        global_sent_tuples.fetch_add(sent_tuples);
-    }
-
-public:
-    SourceFunctor(unsigned long d = 60, unsigned rate = 1000,
-                  const char *path = default_path)
-        : dataset {read_strings_from_file(path)},
-          tuple_rate_per_second {rate}, duration {d * timeunit_scale_factor} {}
-
-    void operator()(Source_Shipper<Tuple> &shipper) {
-        if (tuple_rate_per_second > 0) {
-            generate_with_fixed_rate(shipper);
-        } else {
-            generate_at_max_rate(shipper);
-        }
     }
 };
 
