@@ -346,7 +346,7 @@ void dump_metric(const char *name, vector<unsigned long> &samples) {
 
     const auto filename = string {"metric-"} + name + ".json";
     ofstream   fs {filename};
-    fs << buffer.GetString();
+    fs << buffer.GetString() << '\n';
 }
 
 /*
