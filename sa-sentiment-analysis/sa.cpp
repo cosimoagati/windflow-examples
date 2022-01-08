@@ -311,7 +311,7 @@ void dump_metric(const char *name, std::vector<unsigned long> &samples) {
     writer.Key("mean");
     writer.Double(total / (double) samples.size());
 
-    const auto   minmax = std::minmax_element(samples.begin(), samples.end());
+    const auto   minmax = minmax_element(samples.begin(), samples.end());
     const double min    = *minmax.first;
     const double max    = *minmax.second;
 
