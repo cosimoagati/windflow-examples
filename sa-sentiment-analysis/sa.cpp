@@ -193,11 +193,12 @@ static inline Map get_sentiment_map(const char *path) {
 
 static inline void
 parse_and_validate_args(int argc, char **argv, unsigned long &duration,
-                        unsigned &tuple_rate, unsigned &source_parallelism,
-                        unsigned &map_parallelism, unsigned &sink_parallelism,
-                        unsigned &batch_size, bool &use_chaining) {
+                        unsigned &tuple_rate, unsigned &sampling_rate,
+                        unsigned &source_parallelism, unsigned &map_parallelism,
+                        unsigned &sink_parallelism, unsigned &batch_size,
+                        bool &use_chaining) {
     int option;
-    while ((option = getopt(argc, argv, "t:m:c:s:k:b:r:")) != -1) {
+    while ((option = getopt(argc, argv, "t:m:c:s:k:b:r:p:")) != -1) {
         switch (option) {
         case 't':
             duration = atol(optarg);
@@ -229,6 +230,9 @@ parse_and_validate_args(int argc, char **argv, unsigned long &duration,
         }
         case 'r':
             tuple_rate = atoi(optarg);
+            break;
+        case 'p':
+            sampling_rate = atoi(optarg);
             break;
         default:
             cerr << "Use as " << argv[0]
@@ -514,10 +518,22 @@ class SinkFunctor {
     vector<unsigned long> latency_samples;
     unsigned long         tuples_received;
     unsigned long         cumulative_latency;
+    unsigned long         last_sampling_time;
+    unsigned              latency_sampling_rate;
+
+    bool is_time_to_sample(unsigned long arrival_time,
+                           unsigned long last_sampling_time) {
+        const auto time_since_last_sampling = arrival_time - last_sampling_time;
+        const auto time_between_samples =
+            (1.0 / latency_sampling_rate) * timeunit_scale_factor;
+        return latency_sampling_rate == 0
+               || time_since_last_sampling >= time_between_samples;
+    }
 
 public:
-    SinkFunctor()
-        : latency_samples {}, tuples_received {0}, cumulative_latency {0} {}
+    SinkFunctor(unsigned rate = 100)
+        : latency_samples {}, tuples_received {0}, cumulative_latency {0},
+          last_sampling_time {current_time()}, latency_sampling_rate {rate} {}
 
     void operator()(optional<Tuple> &input) {
         if (input) {
@@ -525,7 +541,11 @@ public:
             const auto latency      = arrival_time - input->timestamp;
             ++tuples_received;
             cumulative_latency += latency;
-            latency_samples.push_back(latency);
+
+            if (is_time_to_sample(arrival_time, last_sampling_time)) {
+                latency_samples.push_back(latency);
+                last_sampling_time = arrival_time;
+            }
 #ifndef NDEBUG
             const lock_guard lock {print_mutex};
             cout << "arrival time: " << arrival_time
@@ -545,8 +565,9 @@ public:
 
 static inline PipeGraph &
 build_graph(bool use_chaining, unsigned long duration, unsigned tuple_rate,
-            unsigned source_parallelism, unsigned map_parallelism,
-            unsigned sink_parallelism, unsigned batch_size, PipeGraph &graph) {
+            unsigned sampling_rate, unsigned source_parallelism,
+            unsigned map_parallelism, unsigned sink_parallelism,
+            unsigned batch_size, PipeGraph &graph) {
     SourceFunctor source_functor {duration, tuple_rate};
     auto          source = Source_Builder {source_functor}
                       .withParallelism(source_parallelism)
@@ -561,7 +582,7 @@ build_graph(bool use_chaining, unsigned long duration, unsigned tuple_rate,
                                .withOutputBatchSize(batch_size)
                                .build();
 
-    SinkFunctor sink_functor;
+    SinkFunctor sink_functor {sampling_rate};
     auto        sink = Sink_Builder {sink_functor}
                     .withParallelism(sink_parallelism)
                     .withName("sink")
@@ -583,15 +604,17 @@ int main(int argc, char *argv[]) {
     auto batch_size         = 0u;
     auto duration           = 60ul;
     auto tuple_rate         = 1000u;
+    auto sampling_rate      = 100u;
 
-    parse_and_validate_args(argc, argv, duration, tuple_rate,
+    parse_and_validate_args(argc, argv, duration, tuple_rate, sampling_rate,
                             source_parallelism, map_parallelism,
                             sink_parallelism, batch_size, use_chaining);
 
     PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DEFAULT,
                      Time_Policy_t::INGRESS_TIME};
-    build_graph(use_chaining, duration, tuple_rate, source_parallelism,
-                map_parallelism, sink_parallelism, batch_size, graph);
+    build_graph(use_chaining, duration, tuple_rate, sampling_rate,
+                source_parallelism, map_parallelism, sink_parallelism,
+                batch_size, graph);
     const auto start_time = current_time();
     graph.run();
     const auto elapsed_time = current_time() - start_time;
