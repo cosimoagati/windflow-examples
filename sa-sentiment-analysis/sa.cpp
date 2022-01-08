@@ -309,6 +309,10 @@ void dump_metric(const char *name, vector<unsigned long> &samples) {
     writer.Key("name");
     writer.String(name);
 
+    writer.Key("time unit");
+    const auto plural_timeunit_string = string {timeunit_string} + 's';
+    writer.String(plural_timeunit_string.c_str());
+
     writer.Key("samples");
     writer.Uint(samples.size());
 
