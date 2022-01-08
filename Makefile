@@ -1,7 +1,7 @@
 CPU_EXAMPLES:= example1 example2 sa-sentiment-analysis/sa mo-machine-outlier/mo
 GPU_EXAMPLES:= example3 example4 example5
 CXX = g++
-CXXFLAGS = -std=c++17 -pedantic -O3 -fno-exceptions -flto -fno-permissive
+CXXFLAGS = -std=c++17 -pedantic -O3 -fno-exceptions -flto -fno-permissive -DNDEBUG
 INCLUDE_FLAGS = -I$(HOME)/.local/include -I$(HOME)/fastflow	\
 -I$(HOME)/.local/include/wf
 LIBS = -pthread
@@ -34,7 +34,7 @@ GPU_OBJS:=$(GPU_SRCS:.cu=.o)
 
 all: cpu gpu
 
-debug-cpu: CXXFLAGS := $(CXXFLAGS) -fno-lto -Og -g -fno-inline -Wall -Wextra \
+debug-cpu: CXXFLAGS := $(CXXFLAGS) -fno-lto -Og -g -fno-inline -Wall -Wextra -UNDEBUG \
 			-Wpedantic
 debug-cpu: CXX := $(DEBUG_CXX)
 debug-cpu: cpu

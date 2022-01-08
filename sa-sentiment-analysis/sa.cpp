@@ -63,6 +63,7 @@ static inline Sentiment score_to_sentiment(int score) {
                        : Sentiment::Neutral;
 }
 
+#ifndef NDEBUG
 /*
  * Return a string literal representation of a tweet sentiment.
  */
@@ -71,6 +72,7 @@ static inline const char *sentiment_to_string(Sentiment sentiment) {
            : sentiment == Sentiment::Negative ? "Negative"
                                               : "Neutral";
 }
+#endif
 
 /*
  * Return a vector of strings each containing a line from the file found in
@@ -418,9 +420,8 @@ public:
 };
 
 class SinkFunctor {
-    static constexpr auto verbose_output = false;
-    unsigned long         tuples_received;
-    unsigned long         cumulative_latency;
+    unsigned long tuples_received;
+    unsigned long cumulative_latency;
 
 public:
     SinkFunctor() : tuples_received {0}, cumulative_latency {0} {}
@@ -431,15 +432,14 @@ public:
             const auto latency      = arrival_time - input->timestamp;
             ++tuples_received;
             cumulative_latency += latency;
-
-            if constexpr (verbose_output) {
-                cout << "arrival time: " << arrival_time
-                     << " ts:" << input->timestamp << " latency: " << latency
-                     << '\n'
-                     << "Received tweet with score " << input->result.score
-                     << " and classification "
-                     << sentiment_to_string(input->result.sentiment) << '\n';
-            }
+#ifndef NDEBUG
+            cout << "arrival time: " << arrival_time
+                 << " ts:" << input->timestamp << " latency: " << latency
+                 << '\n'
+                 << "Received tweet with score " << input->result.score
+                 << " and classification "
+                 << sentiment_to_string(input->result.sentiment) << endl;
+#endif
         } else {
             global_cumulative_latency.fetch_add(cumulative_latency);
             global_received_tuples.fetch_add(tuples_received);
