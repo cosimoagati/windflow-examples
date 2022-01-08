@@ -293,6 +293,10 @@ static inline void print_statistics(unsigned long elapsed_time,
 }
 
 void dump_metric(const char *name, std::vector<unsigned long> &samples) {
+    if (samples.empty()) {
+        return;
+    }
+
     StringBuffer                          buffer;
     PrettyWriter<rapidjson::StringBuffer> writer(buffer);
 
