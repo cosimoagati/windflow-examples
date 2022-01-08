@@ -378,8 +378,8 @@ public:
 
     void operator()(Source_Shipper<Tuple> &shipper) {
         const auto end_time    = current_time() + duration;
-        auto       sent_tuples = 0l;
-        size_t     index {0};
+        auto       sent_tuples = 0ul;
+        size_t     index       = 0;
 
         while (current_time() < end_time) {
             auto       tweet     = dataset[index];
@@ -411,8 +411,8 @@ public:
         file >> json_map;
     }
     void operator()(Source_Shipper<Tuple> &shipper) {
-        const auto    end_time = current_time() + duration;
-        unsigned long sent_tuples {0};
+        const auto end_time    = current_time() + duration;
+        auto       sent_tuples = 0ul;
 
         while (current_time() < end_time) {
             auto       tweet     = json_map["text"];
