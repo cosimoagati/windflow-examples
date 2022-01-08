@@ -55,6 +55,27 @@ struct Tuple {
     unsigned long   timestamp;
 };
 
+template<typename T>
+class AtomicVector {
+    vector<T> internal_vector;
+    mutex     vector_mutex;
+
+public:
+    void push_back(const T &element) {
+        const lock_guard lock {vector_mutex};
+        internal_vector.push_back(element);
+    }
+
+    void push_back(T &&element) {
+        const lock_guard lock {vector_mutex};
+        internal_vector.push_back(element);
+    }
+
+    const vector<T> &data() {
+        return internal_vector;
+    }
+};
+
 /*
  * Return an appropriate Sentiment value based on its numerical score.
  */
@@ -105,6 +126,20 @@ static inline vector<string_view> string_split(const string_view &s,
         word_begin = find_if_not(word_end, s.end(), is_delim);
     }
     return words;
+}
+
+template<typename T>
+static inline vector<T> concatenate_vectors(const vector<vector<T>> &vectors) {
+    vector<T> merged_vector;
+    size_t    total_size {0};
+    for (const auto &v : vectors) {
+        total_size += v.size();
+    }
+    merged_vector.reserve(total_size);
+    for (const auto &v : vectors) {
+        merged_vector.insert(merged_vector.end(), v.begin(), v.end());
+    }
+    return merged_vector;
 }
 
 static inline bool is_punctuation(char c) {
@@ -257,6 +292,53 @@ static inline void print_statistics(unsigned long elapsed_time,
          << "s (" << latency_in_seconds << " seconds)\n";
 }
 
+void dump_metric(const char *name, std::vector<unsigned long> &samples) {
+    StringBuffer                          buffer;
+    PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+
+    writer.StartObject();
+
+    writer.Key("name");
+    writer.String(name);
+
+    writer.Key("samples");
+    writer.Uint(samples.size());
+
+    writer.Key("total");
+    const auto total = accumulate(samples.begin(), samples.end(), 0.0);
+    writer.Uint(total);
+
+    writer.Key("mean");
+    writer.Double(total / (double) samples.size());
+
+    const auto   minmax = std::minmax_element(samples.begin(), samples.end());
+    const double min    = *minmax.first;
+    const double max    = *minmax.second;
+
+    writer.Key("0");
+    writer.Double(min);
+
+    // XXX no interpolation since we are dealing with *many* samples
+
+    // add percentiles
+    for (const auto percentile : {0.05, 0.25, 0.5, 0.75, 0.95}) {
+        const auto pointer = samples.begin() + samples.size() * percentile;
+        nth_element(samples.begin(), pointer, samples.end());
+        const auto label = to_string(static_cast<int>(percentile * 100));
+        writer.Key(label.c_str());
+        writer.Double((double) *pointer);
+    }
+
+    writer.Key("100");
+    writer.Double(max);
+
+    writer.EndObject();
+
+    const auto filename = string {"metric-"} + name + ".json";
+    ofstream   fs {filename};
+    fs << buffer.GetString();
+}
+
 /*
  * Suspend execution for an amount of time units specified by duration.
  */
@@ -267,9 +349,10 @@ void busy_wait(unsigned long duration) {
 }
 
 /* Global variables */
-atomic_ulong global_sent_tuples {0};
-atomic_ulong global_cumulative_latency {0};
-atomic_ulong global_received_tuples {0};
+atomic_ulong                        global_sent_tuples {0};
+atomic_ulong                        global_cumulative_latency {0};
+atomic_ulong                        global_received_tuples {0};
+AtomicVector<vector<unsigned long>> global_latency_samples;
 
 class SourceFunctor {
     static constexpr auto default_path = "example-dataset.txt";
@@ -424,11 +507,13 @@ class SinkFunctor {
 #ifndef NDEBUG
     inline static mutex print_mutex {};
 #endif
-    unsigned long tuples_received;
-    unsigned long cumulative_latency;
+    vector<unsigned long> latency_samples;
+    unsigned long         tuples_received;
+    unsigned long         cumulative_latency;
 
 public:
-    SinkFunctor() : tuples_received {0}, cumulative_latency {0} {}
+    SinkFunctor()
+        : latency_samples {}, tuples_received {0}, cumulative_latency {0} {}
 
     void operator()(optional<Tuple> &input) {
         if (input) {
@@ -436,6 +521,7 @@ public:
             const auto latency      = arrival_time - input->timestamp;
             ++tuples_received;
             cumulative_latency += latency;
+            latency_samples.push_back(latency);
 #ifndef NDEBUG
             const lock_guard lock {print_mutex};
             cout << "arrival time: " << arrival_time
@@ -448,6 +534,7 @@ public:
         } else {
             global_cumulative_latency.fetch_add(cumulative_latency);
             global_received_tuples.fetch_add(tuples_received);
+            global_latency_samples.push_back(move(latency_samples));
         }
     }
 };
@@ -508,5 +595,7 @@ int main(int argc, char *argv[]) {
     print_statistics(elapsed_time, duration, global_sent_tuples.load(),
                      global_cumulative_latency.load(),
                      global_sent_tuples.load());
+    auto latency_samples = concatenate_vectors(global_latency_samples.data());
+    dump_metric("latency", latency_samples);
     return 0;
 }
