@@ -392,7 +392,6 @@ void serialize_metric_to_json(const char *name, vector<unsigned long> &samples,
         writer.Key("0th percentile");
         writer.Double(min);
 
-        // add percentiles
         for (const auto percentile : {0.05, 0.25, 0.5, 0.75, 0.95}) {
             const auto pointer = samples.begin() + samples.size() * percentile;
             nth_element(samples.begin(), pointer, samples.end());
