@@ -298,8 +298,15 @@ void print_initial_parameters(unsigned source_parallelism,
     } else {
         cout << "unlimited (BEWARE OF QUEUE CONGESTION)\n";
     }
-    cout << "Sampling rate: " << sampling_rate << " measurements per second\n"
-         << "Chaining: " << (use_chaining ? "enabled" : "disabled") << '\n';
+
+    cout << "Sampling rate: ";
+    if (sampling_rate > 0) {
+        cout << sampling_rate << " measurements per second\n";
+    } else {
+        cout << "unlimited (sample every incoming tuple)\n";
+    }
+
+    cout << "Chaining: " << (use_chaining ? "enabled" : "disabled") << '\n';
 }
 
 static inline void print_statistics(unsigned long elapsed_time,
