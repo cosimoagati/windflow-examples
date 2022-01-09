@@ -32,22 +32,6 @@ using namespace nlohmann;
 using namespace rapidjson;
 using namespace wf;
 
-constexpr auto current_time = current_time_nsecs;
-
-const auto timeunit_string = current_time == current_time_usecs ? "microsecond"
-                             : current_time == current_time_nsecs ? "nanosecond"
-                                                                  : "time unit";
-
-const auto timeunit_scale_factor =
-    current_time == current_time_usecs   ? 1000000ul
-    : current_time == current_time_nsecs ? 1000000000ul
-                                         : 1ul;
-
-const struct option long_opts[] = {
-    {"help", 0, 0, 'h'},        {"rate", 1, 0, 'r'},  {"sampling", 0, 0, 's'},
-    {"parallelism", 1, 0, 'p'}, {"batch", 1, 0, 'b'}, {"chaining", 0, 0, 'c'},
-    {"duration", 1, 0, 'd'},    {0, 0, 0, 0}};
-
 enum class Sentiment { Positive, Negative, Neutral };
 
 struct SentimentResult {
@@ -81,6 +65,22 @@ public:
         return internal_vector;
     }
 };
+
+constexpr auto current_time = current_time_nsecs;
+
+const auto timeunit_string = current_time == current_time_usecs ? "microsecond"
+                             : current_time == current_time_nsecs ? "nanosecond"
+                                                                  : "time unit";
+
+const auto timeunit_scale_factor =
+    current_time == current_time_usecs   ? 1000000ul
+    : current_time == current_time_nsecs ? 1000000000ul
+                                         : 1ul;
+
+const struct option long_opts[] = {
+    {"help", 0, 0, 'h'},        {"rate", 1, 0, 'r'},  {"sampling", 0, 0, 's'},
+    {"parallelism", 1, 0, 'p'}, {"batch", 1, 0, 'b'}, {"chaining", 0, 0, 'c'},
+    {"duration", 1, 0, 'd'},    {0, 0, 0, 0}};
 
 /*
  * Return an appropriate Sentiment value based on its numerical score.
