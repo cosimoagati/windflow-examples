@@ -66,11 +66,12 @@ class Metric {
 public:
     Metric(const char *name = "name") : metric_name {name} {}
 
-    void merge(const vector<T> &new_samples) {
+    Metric &merge(const vector<T> &new_samples) {
         lock_guard guard {metric_mutex};
         sorted_samples.insert(sorted_samples.begin(), new_samples.begin(),
                               new_samples.end());
         sort(sorted_samples.begin(), sorted_samples.end());
+        return *this;
     }
 
     size_t size() const {
