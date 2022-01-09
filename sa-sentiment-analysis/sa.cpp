@@ -272,7 +272,7 @@ void print_initial_parameters(unsigned source_parallelism,
                               unsigned sampling_rate, bool use_chaining) {
     cout << "Running graph with the following parameters:\n"
          << "Source parallelism: " << source_parallelism << '\n'
-         << "Map parallelism: " << map_parallelism << '\n'
+         << "Classifier parallelism: " << map_parallelism << '\n'
          << "Sink parallelism: " << sink_parallelism << '\n'
          << "Batching: ";
     if (batch_size > 0) {
