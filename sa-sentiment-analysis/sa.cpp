@@ -574,9 +574,9 @@ public:
             const auto arrival_time = current_time();
             const auto latency      = arrival_time - input->timestamp;
             ++tuples_received;
-            cumulative_latency += latency;
 
             if (is_time_to_sample(arrival_time, last_sampling_time)) {
+                cumulative_latency += latency;
                 latency_samples.push_back(latency);
                 last_sampling_time = arrival_time;
             }
