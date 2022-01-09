@@ -432,7 +432,7 @@ class SourceFunctor {
     unsigned              tuple_rate_per_second;
 
 public:
-    SourceFunctor(unsigned long d = 60, unsigned rate = 1000,
+    SourceFunctor(unsigned d = 60, unsigned rate = 1000,
                   const char *path = default_path)
         : dataset {read_strings_from_file(path)},
           tuple_rate_per_second {rate}, duration {d * timeunit_scale_factor} {}
@@ -466,7 +466,7 @@ class JsonSourceFunctor {
     unsigned long duration;
 
 public:
-    JsonSourceFunctor(unsigned long d = 60, const char *path = default_path)
+    JsonSourceFunctor(unsigned d = 60, const char *path = default_path)
         : duration {d * timeunit_scale_factor} {
         ifstream file {path};
         file >> json_map;
