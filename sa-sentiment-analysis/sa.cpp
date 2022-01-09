@@ -399,7 +399,8 @@ void dump_metric(const char *name, vector<unsigned long> &samples,
         writer.Key("mean");
         writer.Double(0.0);
         for (const auto percentile : {"0", "25", "50", "75", "95", "100"}) {
-            writer.Key(percentile);
+            const auto label = string {percentile} + "th percentile";
+            writer.Key(label.c_str());
             writer.Double(0.0);
         }
     }
