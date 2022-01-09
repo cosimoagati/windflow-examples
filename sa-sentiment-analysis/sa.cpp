@@ -381,9 +381,9 @@ void serialize_metric_to_json(const char *name, vector<unsigned long> &samples,
 
     if (!samples.empty()) {
         writer.Key("mean");
-        const auto cumulative_latency =
-            accumulate(samples.begin(), samples.end(), 0.0);
-        writer.Double(cumulative_latency / (double) samples.size());
+        const auto mean = accumulate(samples.begin(), samples.end(), 0.0)
+                          / (double) samples.size();
+        writer.Double(mean);
 
         const auto   minmax = minmax_element(samples.begin(), samples.end());
         const double min    = *minmax.first;
@@ -434,6 +434,7 @@ atomic_ulong                        global_cumulative_latency {0};
 atomic_ulong                        global_received_tuples {0};
 AtomicVector<vector<unsigned long>> global_latency_samples;
 AtomicVector<vector<unsigned long>> global_interdeparture_samples;
+AtomicVector<vector<unsigned long>> global_service_time_samples;
 
 class SourceFunctor {
     static constexpr auto default_path = "example-dataset.txt";
@@ -570,10 +571,11 @@ class SinkFunctor {
 #endif
     vector<unsigned long> latency_samples {};
     vector<unsigned long> interdeparture_samples {};
+    vector<unsigned long> service_time_samples {};
     unsigned long         tuples_received {0};
     unsigned long         cumulative_latency {0};
     unsigned long         last_sampling_time {current_time()};
-    unsigned long         last_arrival_time {current_time()};
+    unsigned long         last_arrival_time {last_sampling_time};
     unsigned              sampling_rate;
 
     bool is_time_to_sample(unsigned long arrival_time) {
@@ -587,7 +589,7 @@ class SinkFunctor {
 public:
     SinkFunctor(unsigned rate = 100) : sampling_rate {rate} {}
 
-    void operator()(optional<Tuple> &input) {
+    void operator()(optional<Tuple> &input, RuntimeContext &context) {
         if (input) {
             const auto arrival_time        = current_time();
             const auto latency             = arrival_time - input->timestamp;
@@ -600,6 +602,12 @@ public:
                 cumulative_latency += latency;
                 latency_samples.push_back(latency);
                 interdeparture_samples.push_back(interdeparture_time);
+
+                // The current service time is computed via this heuristic, it
+                // MIGHT not be reliable.
+                const auto service_time =
+                    interdeparture_time / (double) context.getParallelism();
+                service_time_samples.push_back(service_time);
                 last_sampling_time = arrival_time;
             }
 #ifndef NDEBUG
@@ -617,6 +625,7 @@ public:
             global_latency_samples.push_back(move(latency_samples));
             global_interdeparture_samples.push_back(
                 move(interdeparture_samples));
+            global_service_time_samples.push_back(move(service_time_samples));
         }
     }
 };
@@ -673,6 +682,11 @@ int main(int argc, char *argv[]) {
         concatenate_vectors(global_interdeparture_samples.data());
     serialize_metric_to_json("individual-sink-interdeparture-time",
                              interderparture_samples, received_tuples);
+
+    auto service_time_samples =
+        concatenate_vectors(global_service_time_samples.data());
+    serialize_metric_to_json("service-time", service_time_samples,
+                             received_tuples);
 
     print_statistics(
         elapsed_time, parameters.duration, global_sent_tuples.load(),
