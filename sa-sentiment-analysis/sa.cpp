@@ -315,10 +315,11 @@ void print_initial_parameters(const Parameters &parameters) {
          << '\n';
 }
 
-static inline void
-print_statistics(unsigned long elapsed_time, unsigned long duration,
-                 unsigned long sent_tuples, unsigned long cumulative_latency,
-                 unsigned long received_tuples, unsigned long sampled_tuples) {
+static inline void print_statistics(unsigned long elapsed_time,
+                                    unsigned long duration,
+                                    unsigned long sent_tuples,
+                                    double        average_latency,
+                                    unsigned long received_tuples) {
     const auto elapsed_time_in_seconds =
         elapsed_time / (double) timeunit_scale_factor;
 
@@ -328,7 +329,6 @@ print_statistics(unsigned long elapsed_time, unsigned long duration,
     const auto throughput_in_seconds   = throughput * timeunit_scale_factor;
     const auto service_time            = 1 / throughput;
     const auto service_time_in_seconds = service_time / timeunit_scale_factor;
-    const auto average_latency = cumulative_latency / (double) sampled_tuples;
     const auto latency_in_seconds = average_latency / timeunit_scale_factor;
 
     cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string << "s ("
@@ -429,7 +429,6 @@ void busy_wait(unsigned long duration) {
 
 /* Global variables */
 atomic_ulong                        global_sent_tuples {0};
-atomic_ulong                        global_cumulative_latency {0};
 atomic_ulong                        global_received_tuples {0};
 AtomicVector<vector<unsigned long>> global_latency_samples;
 AtomicVector<vector<unsigned long>> global_interdeparture_samples;
@@ -572,7 +571,6 @@ class SinkFunctor {
     vector<unsigned long> interdeparture_samples {};
     vector<unsigned long> service_time_samples {};
     unsigned long         tuples_received {0};
-    unsigned long         cumulative_latency {0};
     unsigned long         last_sampling_time {current_time()};
     unsigned long         last_arrival_time {last_sampling_time};
     unsigned              sampling_rate;
@@ -598,7 +596,6 @@ public:
             last_arrival_time = arrival_time;
 
             if (is_time_to_sample(arrival_time)) {
-                cumulative_latency += latency;
                 latency_samples.push_back(latency);
                 interdeparture_samples.push_back(interdeparture_time);
 
@@ -619,7 +616,6 @@ public:
                  << sentiment_to_string(input->result.sentiment) << endl;
 #endif
         } else {
-            global_cumulative_latency.fetch_add(cumulative_latency);
             global_received_tuples.fetch_add(tuples_received);
             global_latency_samples.push_back(move(latency_samples));
             global_interdeparture_samples.push_back(
@@ -674,7 +670,9 @@ int main(int argc, char *argv[]) {
     const auto received_tuples = global_received_tuples.load();
 
     auto latency_samples = concatenate_vectors(global_latency_samples.data());
-    const auto sampled_tuples = latency_samples.size();
+    const auto average_latency =
+        accumulate(latency_samples.begin(), latency_samples.end(), 0.0)
+        / (!latency_samples.empty() ? latency_samples.size() : 1.0);
     serialize_metric_to_json("latency", latency_samples, received_tuples);
 
     auto interderparture_samples =
@@ -687,8 +685,8 @@ int main(int argc, char *argv[]) {
     serialize_metric_to_json("service-time", service_time_samples,
                              received_tuples);
 
-    print_statistics(
-        elapsed_time, parameters.duration, global_sent_tuples.load(),
-        global_cumulative_latency.load(), received_tuples, sampled_tuples);
+    print_statistics(elapsed_time, parameters.duration,
+                     global_sent_tuples.load(), average_latency,
+                     received_tuples);
     return 0;
 }
