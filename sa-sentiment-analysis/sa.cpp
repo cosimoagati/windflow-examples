@@ -114,19 +114,6 @@ static inline const char *sentiment_to_string(Sentiment sentiment) {
 }
 #endif
 
-static inline vector<size_t> get_parallelism_degrees(const char *degrees) {
-    const string   degree_string {degrees};
-    stringstream   stream {degree_string};
-    vector<size_t> parallelism_degrees;
-    for (size_t i; stream >> i;) {
-        parallelism_degrees.push_back(i);
-        if (stream.peek() == ',') {
-            stream.ignore();
-        }
-    }
-    return parallelism_degrees;
-}
-
 /*
  * Return a vector of strings each containing a line from the file found in
  * path.
@@ -157,6 +144,14 @@ static inline vector<string_view> string_split(const string_view &s,
         word_begin = find_if_not(word_end, s.end(), is_delim);
     }
     return words;
+}
+
+static inline vector<size_t> get_parallelism_degrees(const char *degrees) {
+    vector<size_t> parallelism_degrees;
+    for (const auto &s : string_split(degrees, ',')) {
+        parallelism_degrees.push_back(atoi(s.data()));
+    }
+    return parallelism_degrees;
 }
 
 /*
