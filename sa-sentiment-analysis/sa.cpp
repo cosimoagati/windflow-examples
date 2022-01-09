@@ -671,8 +671,8 @@ int main(int argc, char *argv[]) {
 
     auto interderparture_samples =
         concatenate_vectors(global_interdeparture_samples.data());
-    serialize_metric_to_json("interdeparture-time", interderparture_samples,
-                             received_tuples);
+    serialize_metric_to_json("individual-sink-interdeparture-time",
+                             interderparture_samples, received_tuples);
 
     print_statistics(
         elapsed_time, parameters.duration, global_sent_tuples.load(),
