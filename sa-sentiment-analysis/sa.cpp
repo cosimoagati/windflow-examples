@@ -290,6 +290,7 @@ void print_initial_parameters(unsigned source_parallelism,
     } else {
         cout << "None\n";
     }
+
     cout << "Duration: " << duration << " seconds\n"
          << "Tuple generation rate: ";
     if (tuple_rate > 0) {
