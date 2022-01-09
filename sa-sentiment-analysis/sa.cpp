@@ -554,12 +554,12 @@ class SinkFunctor {
 #ifndef NDEBUG
     inline static mutex print_mutex {};
 #endif
-    vector<unsigned long> latency_samples;
-    vector<unsigned long> interdeparture_samples;
-    unsigned long         tuples_received;
-    unsigned long         cumulative_latency;
-    unsigned long         last_sampling_time;
-    unsigned long         last_arrival_time;
+    vector<unsigned long> latency_samples {};
+    vector<unsigned long> interdeparture_samples {};
+    unsigned long         tuples_received {0};
+    unsigned long         cumulative_latency {0};
+    unsigned long         last_sampling_time {current_time()};
+    unsigned long         last_arrival_time {current_time()};
     unsigned              sampling_rate;
 
     bool is_time_to_sample(unsigned long arrival_time) {
@@ -571,10 +571,7 @@ class SinkFunctor {
     }
 
 public:
-    SinkFunctor(unsigned rate = 100)
-        : latency_samples {}, interdeparture_samples {}, tuples_received {0},
-          cumulative_latency {0}, last_sampling_time {current_time()},
-          last_arrival_time {current_time()}, sampling_rate {rate} {}
+    SinkFunctor(unsigned rate = 100) : sampling_rate {rate} {}
 
     void operator()(optional<Tuple> &input) {
         if (input) {
