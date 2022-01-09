@@ -684,19 +684,17 @@ int main(int argc, char *argv[]) {
 
     const auto start_time = current_time();
     graph.run();
-    const auto elapsed_time    = current_time() - start_time;
-    const auto received_tuples = global_received_tuples.load();
+    const auto elapsed_time = current_time() - start_time;
 
-    serialize_to_json(global_latency_metric, received_tuples);
-    serialize_to_json(global_interdeparture_metric, received_tuples);
-    serialize_to_json(global_service_time_metric, received_tuples);
+    serialize_to_json(global_latency_metric, global_received_tuples);
+    serialize_to_json(global_interdeparture_metric, global_received_tuples);
+    serialize_to_json(global_service_time_metric, global_received_tuples);
 
     const auto average_latency =
         accumulate(global_latency_metric.begin(), global_latency_metric.end(),
                    0.0)
         / (!global_latency_metric.empty() ? global_latency_metric.size() : 1.0);
-    print_statistics(elapsed_time, parameters.duration,
-                     global_sent_tuples.load(), average_latency,
-                     received_tuples);
+    print_statistics(elapsed_time, parameters.duration, global_sent_tuples,
+                     average_latency, global_received_tuples);
     return 0;
 }
