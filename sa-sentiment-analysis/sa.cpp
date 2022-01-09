@@ -309,11 +309,10 @@ void print_initial_parameters(unsigned source_parallelism,
     cout << "Chaining: " << (use_chaining ? "enabled" : "disabled") << '\n';
 }
 
-static inline void print_statistics(unsigned long elapsed_time,
-                                    unsigned long duration,
-                                    unsigned long sent_tuples,
-                                    unsigned long cumulative_latency,
-                                    unsigned long received_tuples) {
+static inline void
+print_statistics(unsigned long elapsed_time, unsigned long duration,
+                 unsigned long sent_tuples, unsigned long cumulative_latency,
+                 unsigned long received_tuples, unsigned long sampled_tuples) {
     const auto elapsed_time_in_seconds =
         elapsed_time / (double) timeunit_scale_factor;
 
@@ -323,7 +322,7 @@ static inline void print_statistics(unsigned long elapsed_time,
     const auto throughput_in_seconds   = throughput * timeunit_scale_factor;
     const auto service_time            = 1 / throughput;
     const auto service_time_in_seconds = service_time / timeunit_scale_factor;
-    const auto average_latency = cumulative_latency / (double) received_tuples;
+    const auto average_latency = cumulative_latency / (double) sampled_tuples;
     const auto latency_in_seconds = average_latency / timeunit_scale_factor;
 
     cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string << "s ("
@@ -657,10 +656,10 @@ int main(int argc, char *argv[]) {
     graph.run();
     const auto elapsed_time = current_time() - start_time;
 
+    auto latency_samples = concatenate_vectors(global_latency_samples.data());
     print_statistics(elapsed_time, duration, global_sent_tuples.load(),
                      global_cumulative_latency.load(),
-                     global_received_tuples.load());
-    auto latency_samples = concatenate_vectors(global_latency_samples.data());
+                     global_received_tuples.load(), latency_samples.size());
     dump_metric("latency", latency_samples, global_received_tuples.load());
     return 0;
 }
