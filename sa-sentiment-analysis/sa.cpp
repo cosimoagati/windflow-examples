@@ -354,7 +354,7 @@ print_statistics(unsigned long elapsed_time, unsigned long duration,
 
 static inline string get_datetime_string() {
     const auto current_date = time(nullptr);
-    auto       date_string  = string {asctime(localtime(&current_date))};
+    string     date_string {asctime(localtime(&current_date))};
     if (!date_string.empty()) {
         date_string.pop_back();
     }
