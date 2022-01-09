@@ -361,8 +361,8 @@ static inline string get_datetime_string() {
     return date_string;
 }
 
-void dump_metric(const char *name, vector<unsigned long> &samples,
-                 unsigned long total_measurements) {
+void serialize_metric_to_json(const char *name, vector<unsigned long> &samples,
+                              unsigned long total_measurements) {
     StringBuffer                          buffer;
     PrettyWriter<rapidjson::StringBuffer> writer {buffer};
 
@@ -672,12 +672,12 @@ int main(int argc, char *argv[]) {
 
     auto latency_samples = concatenate_vectors(global_latency_samples.data());
     const auto sampled_tuples = latency_samples.size();
-    dump_metric("latency", latency_samples, received_tuples);
+    serialize_metric_to_json("latency", latency_samples, received_tuples);
 
     auto interderparture_samples =
         concatenate_vectors(global_interdeparture_samples.data());
-    dump_metric("interdeparture-time", interderparture_samples,
-                received_tuples);
+    serialize_metric_to_json("interdeparture-time", interderparture_samples,
+                             received_tuples);
 
     print_statistics(
         elapsed_time, parameters.duration, global_sent_tuples.load(),
