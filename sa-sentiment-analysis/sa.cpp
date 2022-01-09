@@ -552,20 +552,20 @@ class SinkFunctor {
     unsigned long         tuples_received;
     unsigned long         cumulative_latency;
     unsigned long         last_sampling_time;
-    unsigned              latency_sampling_rate;
+    unsigned              sampling_rate;
 
     bool is_time_to_sample(unsigned long arrival_time) {
         const auto time_since_last_sampling = arrival_time - last_sampling_time;
         const auto time_between_samples =
-            (1.0 / latency_sampling_rate) * timeunit_scale_factor;
-        return latency_sampling_rate == 0
+            (1.0 / sampling_rate) * timeunit_scale_factor;
+        return sampling_rate == 0
                || time_since_last_sampling >= time_between_samples;
     }
 
 public:
     SinkFunctor(unsigned rate = 100)
         : latency_samples {}, tuples_received {0}, cumulative_latency {0},
-          last_sampling_time {current_time()}, latency_sampling_rate {rate} {}
+          last_sampling_time {current_time()}, sampling_rate {rate} {}
 
     void operator()(optional<Tuple> &input) {
         if (input) {
