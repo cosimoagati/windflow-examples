@@ -554,8 +554,7 @@ class SinkFunctor {
     unsigned long         last_sampling_time;
     unsigned              latency_sampling_rate;
 
-    bool is_time_to_sample(unsigned long arrival_time,
-                           unsigned long last_sampling_time) {
+    bool is_time_to_sample(unsigned long arrival_time) {
         const auto time_since_last_sampling = arrival_time - last_sampling_time;
         const auto time_between_samples =
             (1.0 / latency_sampling_rate) * timeunit_scale_factor;
@@ -574,7 +573,7 @@ public:
             const auto latency      = arrival_time - input->timestamp;
             ++tuples_received;
 
-            if (is_time_to_sample(arrival_time, last_sampling_time)) {
+            if (is_time_to_sample(arrival_time)) {
                 cumulative_latency += latency;
                 latency_samples.push_back(latency);
                 last_sampling_time = arrival_time;
