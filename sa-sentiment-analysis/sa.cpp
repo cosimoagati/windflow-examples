@@ -414,6 +414,7 @@ atomic_ulong                        global_sent_tuples {0};
 atomic_ulong                        global_cumulative_latency {0};
 atomic_ulong                        global_received_tuples {0};
 AtomicVector<vector<unsigned long>> global_latency_samples;
+AtomicVector<vector<unsigned long>> global_interdeparture_samples;
 
 class SourceFunctor {
     static constexpr auto default_path = "example-dataset.txt";
@@ -549,9 +550,11 @@ class SinkFunctor {
     inline static mutex print_mutex {};
 #endif
     vector<unsigned long> latency_samples;
+    vector<unsigned long> interdeparture_samples;
     unsigned long         tuples_received;
     unsigned long         cumulative_latency;
     unsigned long         last_sampling_time;
+    unsigned long         last_arrival_time;
     unsigned              sampling_rate;
 
     bool is_time_to_sample(unsigned long arrival_time) {
@@ -564,18 +567,23 @@ class SinkFunctor {
 
 public:
     SinkFunctor(unsigned rate = 100)
-        : latency_samples {}, tuples_received {0}, cumulative_latency {0},
-          last_sampling_time {current_time()}, sampling_rate {rate} {}
+        : latency_samples {}, interdeparture_samples {}, tuples_received {0},
+          cumulative_latency {0}, last_sampling_time {current_time()},
+          last_arrival_time {current_time()}, sampling_rate {rate} {}
 
     void operator()(optional<Tuple> &input) {
         if (input) {
-            const auto arrival_time = current_time();
-            const auto latency      = arrival_time - input->timestamp;
+            const auto arrival_time        = current_time();
+            const auto latency             = arrival_time - input->timestamp;
+            const auto interdeparture_time = arrival_time - last_arrival_time;
+
             ++tuples_received;
+            last_arrival_time = arrival_time;
 
             if (is_time_to_sample(arrival_time)) {
                 cumulative_latency += latency;
                 latency_samples.push_back(latency);
+                interdeparture_samples.push_back(interdeparture_time);
                 last_sampling_time = arrival_time;
             }
 #ifndef NDEBUG
@@ -591,6 +599,8 @@ public:
             global_cumulative_latency.fetch_add(cumulative_latency);
             global_received_tuples.fetch_add(tuples_received);
             global_latency_samples.push_back(move(latency_samples));
+            global_interdeparture_samples.push_back(
+                move(interdeparture_samples));
         }
     }
 };
@@ -653,12 +663,20 @@ int main(int argc, char *argv[]) {
 
     const auto start_time = current_time();
     graph.run();
-    const auto elapsed_time = current_time() - start_time;
+    const auto elapsed_time    = current_time() - start_time;
+    const auto received_tuples = global_received_tuples.load();
 
     auto latency_samples = concatenate_vectors(global_latency_samples.data());
+    const auto sampled_tuples = latency_samples.size();
+    dump_metric("latency", latency_samples, received_tuples);
+
+    auto interderparture_samples =
+        concatenate_vectors(global_interdeparture_samples.data());
+    dump_metric("interdeparture-time", interderparture_samples,
+                received_tuples);
+
     print_statistics(elapsed_time, duration, global_sent_tuples.load(),
-                     global_cumulative_latency.load(),
-                     global_received_tuples.load(), latency_samples.size());
-    dump_metric("latency", latency_samples, global_received_tuples.load());
+                     global_cumulative_latency.load(), received_tuples,
+                     sampled_tuples);
     return 0;
 }
