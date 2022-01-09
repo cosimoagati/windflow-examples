@@ -603,7 +603,7 @@ int main(int argc, char *argv[]) {
 
     print_statistics(elapsed_time, duration, global_sent_tuples.load(),
                      global_cumulative_latency.load(),
-                     global_sent_tuples.load());
+                     global_received_tuples.load());
     auto latency_samples = concatenate_vectors(global_latency_samples.data());
     dump_metric("latency", latency_samples);
     return 0;
