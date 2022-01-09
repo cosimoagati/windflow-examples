@@ -58,23 +58,43 @@ struct Tuple {
 };
 
 template<typename T>
-class AtomicVector {
-    vector<T> internal_vector;
-    mutex     vector_mutex;
+class Metric {
+    vector<T> sorted_samples;
+    string    metric_name;
+    mutex     metric_mutex;
 
 public:
-    void push_back(const T &element) {
-        const lock_guard lock {vector_mutex};
-        internal_vector.push_back(element);
+    Metric(const char *name = "name") : metric_name {name} {}
+
+    void merge_samples(const vector<T> &new_samples) {
+        lock_guard guard {metric_mutex};
+        sorted_samples.insert(sorted_samples.begin(), new_samples.begin(),
+                              new_samples.end());
+        sort(sorted_samples.begin(), sorted_samples.end());
     }
 
-    void push_back(T &&element) {
-        const lock_guard lock {vector_mutex};
-        internal_vector.push_back(element);
+    size_t size() const {
+        return sorted_samples.size();
     }
 
-    const vector<T> &data() const {
-        return internal_vector;
+    size_t length() const {
+        return sorted_samples.length();
+    }
+
+    bool empty() const {
+        return sorted_samples.empty();
+    }
+
+    typename vector<T>::const_iterator begin() const {
+        return sorted_samples.begin();
+    }
+
+    typename vector<T>::const_iterator end() const {
+        return sorted_samples.end();
+    }
+
+    const char *name() const {
+        return metric_name.c_str();
     }
 };
 
@@ -356,8 +376,8 @@ static inline string get_datetime_string() {
     return date_string;
 }
 
-void serialize_metric_to_json(const char *name, vector<unsigned long> &samples,
-                              unsigned long total_measurements) {
+void serialize_metric_to_json(const Metric<unsigned long> &metric,
+                              unsigned long                total_measurements) {
     StringBuffer                          buffer;
     PrettyWriter<rapidjson::StringBuffer> writer {buffer};
 
@@ -367,25 +387,25 @@ void serialize_metric_to_json(const char *name, vector<unsigned long> &samples,
     writer.String(get_datetime_string().c_str());
 
     writer.Key("name");
-    writer.String(name);
+    writer.String(metric.name());
 
     writer.Key("time unit");
     const auto plural_timeunit_string = string {timeunit_string} + 's';
     writer.String(plural_timeunit_string.c_str());
 
     writer.Key("sampled measurements");
-    writer.Uint(samples.size());
+    writer.Uint(metric.size());
 
     writer.Key("total measurements");
     writer.Uint(total_measurements);
 
-    if (!samples.empty()) {
+    if (!metric.empty()) {
         writer.Key("mean");
-        const auto mean = accumulate(samples.begin(), samples.end(), 0.0)
-                          / (double) samples.size();
+        const auto mean = accumulate(metric.begin(), metric.end(), 0.0)
+                          / (double) metric.size();
         writer.Double(mean);
 
-        const auto   minmax = minmax_element(samples.begin(), samples.end());
+        const auto   minmax = minmax_element(metric.begin(), metric.end());
         const double min    = *minmax.first;
         const double max    = *minmax.second;
 
@@ -393,8 +413,7 @@ void serialize_metric_to_json(const char *name, vector<unsigned long> &samples,
         writer.Double(min);
 
         for (const auto percentile : {0.05, 0.25, 0.5, 0.75, 0.95}) {
-            const auto pointer = samples.begin() + samples.size() * percentile;
-            nth_element(samples.begin(), pointer, samples.end());
+            const auto pointer = metric.begin() + metric.size() * percentile;
             const auto label =
                 to_string(static_cast<int>(percentile * 100)) + "th percentile";
             writer.Key(label.c_str());
@@ -413,7 +432,7 @@ void serialize_metric_to_json(const char *name, vector<unsigned long> &samples,
     }
     writer.EndObject();
 
-    const auto filename = string {"metric-"} + name + ".json";
+    const auto filename = string {"metric-"} + metric.name() + ".json";
     ofstream   fs {filename};
     fs << buffer.GetString() << '\n';
 }
@@ -428,11 +447,11 @@ void busy_wait(unsigned long duration) {
 }
 
 /* Global variables */
-atomic_ulong                        global_sent_tuples {0};
-atomic_ulong                        global_received_tuples {0};
-AtomicVector<vector<unsigned long>> global_latency_samples;
-AtomicVector<vector<unsigned long>> global_interdeparture_samples;
-AtomicVector<vector<unsigned long>> global_service_time_samples;
+atomic_ulong          global_sent_tuples {0};
+atomic_ulong          global_received_tuples {0};
+Metric<unsigned long> global_latency_metric {"latency"};
+Metric<unsigned long> global_interdeparture_metric {"interdeparture-time"};
+Metric<unsigned long> global_service_time_metric {"service-time"};
 
 class SourceFunctor {
     static constexpr auto default_path = "example-dataset.txt";
@@ -617,10 +636,9 @@ public:
 #endif
         } else {
             global_received_tuples.fetch_add(tuples_received);
-            global_latency_samples.push_back(move(latency_samples));
-            global_interdeparture_samples.push_back(
-                move(interdeparture_samples));
-            global_service_time_samples.push_back(move(service_time_samples));
+            global_latency_metric.merge_samples(latency_samples);
+            global_interdeparture_metric.merge_samples(interdeparture_samples);
+            global_service_time_metric.merge_samples(service_time_samples);
         }
     }
 };
@@ -669,22 +687,14 @@ int main(int argc, char *argv[]) {
     const auto elapsed_time    = current_time() - start_time;
     const auto received_tuples = global_received_tuples.load();
 
-    auto latency_samples = concatenate_vectors(global_latency_samples.data());
+    serialize_metric_to_json(global_latency_metric, received_tuples);
+    serialize_metric_to_json(global_interdeparture_metric, received_tuples);
+    serialize_metric_to_json(global_service_time_metric, received_tuples);
+
     const auto average_latency =
-        accumulate(latency_samples.begin(), latency_samples.end(), 0.0)
-        / (!latency_samples.empty() ? latency_samples.size() : 1.0);
-    serialize_metric_to_json("latency", latency_samples, received_tuples);
-
-    auto interderparture_samples =
-        concatenate_vectors(global_interdeparture_samples.data());
-    serialize_metric_to_json("individual-sink-interdeparture-time",
-                             interderparture_samples, received_tuples);
-
-    auto service_time_samples =
-        concatenate_vectors(global_service_time_samples.data());
-    serialize_metric_to_json("service-time", service_time_samples,
-                             received_tuples);
-
+        accumulate(global_latency_metric.begin(), global_latency_metric.end(),
+                   0.0)
+        / (!global_latency_metric.empty() ? global_latency_metric.size() : 1.0);
     print_statistics(elapsed_time, parameters.duration,
                      global_sent_tuples.load(), average_latency,
                      received_tuples);
