@@ -296,11 +296,8 @@ static inline void print_statistics(unsigned long elapsed_time,
          << "s (" << latency_in_seconds << " seconds)\n";
 }
 
-void dump_metric(const char *name, vector<unsigned long> &samples) {
-    if (samples.empty()) {
-        return;
-    }
-
+void dump_metric(const char *name, vector<unsigned long> &samples,
+                 unsigned long total_measurements) {
     StringBuffer                          buffer;
     PrettyWriter<rapidjson::StringBuffer> writer(buffer);
 
@@ -313,35 +310,44 @@ void dump_metric(const char *name, vector<unsigned long> &samples) {
     const auto plural_timeunit_string = string {timeunit_string} + 's';
     writer.String(plural_timeunit_string.c_str());
 
-    writer.Key("samples");
+    writer.Key("sampled measurements");
     writer.Uint(samples.size());
 
-    writer.Key("total");
-    const auto total = accumulate(samples.begin(), samples.end(), 0.0);
-    writer.Uint(total);
+    writer.Key("total measurements");
+    writer.Uint(total_measurements);
 
-    writer.Key("mean");
-    writer.Double(total / (double) samples.size());
+    if (!samples.empty()) {
+        writer.Key("mean");
+        const auto cumulative_latency =
+            accumulate(samples.begin(), samples.end(), 0.0);
+        writer.Double(cumulative_latency / (double) samples.size());
 
-    const auto   minmax = minmax_element(samples.begin(), samples.end());
-    const double min    = *minmax.first;
-    const double max    = *minmax.second;
+        const auto   minmax = minmax_element(samples.begin(), samples.end());
+        const double min    = *minmax.first;
+        const double max    = *minmax.second;
 
-    writer.Key("0");
-    writer.Double(min);
+        writer.Key("0");
+        writer.Double(min);
 
-    // add percentiles
-    for (const auto percentile : {0.05, 0.25, 0.5, 0.75, 0.95}) {
-        const auto pointer = samples.begin() + samples.size() * percentile;
-        nth_element(samples.begin(), pointer, samples.end());
-        const auto label = to_string(static_cast<int>(percentile * 100));
-        writer.Key(label.c_str());
-        writer.Double((double) *pointer);
+        // add percentiles
+        for (const auto percentile : {0.05, 0.25, 0.5, 0.75, 0.95}) {
+            const auto pointer = samples.begin() + samples.size() * percentile;
+            nth_element(samples.begin(), pointer, samples.end());
+            const auto label = to_string(static_cast<int>(percentile * 100));
+            writer.Key(label.c_str());
+            writer.Double((double) *pointer);
+        }
+        writer.Key("100");
+        writer.Double(max);
+    } else {
+        writer.Key("mean");
+        writer.Double(0.0);
+
+        for (const auto percentile : {"0", "25", "50", "75", "95", "100"}) {
+            writer.Key(percentile);
+            writer.Double(0.0);
+        }
     }
-
-    writer.Key("100");
-    writer.Double(max);
-
     writer.EndObject();
 
     const auto filename = string {"metric-"} + name + ".json";
@@ -605,6 +611,6 @@ int main(int argc, char *argv[]) {
                      global_cumulative_latency.load(),
                      global_received_tuples.load());
     auto latency_samples = concatenate_vectors(global_latency_samples.data());
-    dump_metric("latency", latency_samples);
+    dump_metric("latency", latency_samples, global_received_tuples.load());
     return 0;
 }
