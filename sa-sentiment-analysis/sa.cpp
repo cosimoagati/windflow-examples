@@ -405,29 +405,29 @@ void serialize_metric_to_json(const Metric<unsigned long> &metric,
                           / (double) metric.size();
         writer.Double(mean);
 
-        const auto   minmax = minmax_element(metric.begin(), metric.end());
-        const double min    = *minmax.first;
-        const double max    = *minmax.second;
+        const auto minmax = minmax_element(metric.begin(), metric.end());
+        const auto min    = *minmax.first;
+        const auto max    = *minmax.second;
 
         writer.Key("0th percentile");
-        writer.Double(min);
+        writer.Uint(min);
 
         for (const auto percentile : {0.05, 0.25, 0.5, 0.75, 0.95}) {
             const auto pointer = metric.begin() + metric.size() * percentile;
             const auto label =
                 to_string(static_cast<int>(percentile * 100)) + "th percentile";
             writer.Key(label.c_str());
-            writer.Double((double) *pointer);
+            writer.Uint(*pointer);
         }
         writer.Key("100th percentile");
-        writer.Double(max);
+        writer.Uint(max);
     } else {
         writer.Key("mean");
-        writer.Double(0.0);
+        writer.Uint(0);
         for (const auto percentile : {"0", "25", "50", "75", "95", "100"}) {
             const auto label = string {percentile} + "th percentile";
             writer.Key(label.c_str());
-            writer.Double(0.0);
+            writer.Uint(0);
         }
     }
     writer.EndObject();
