@@ -211,7 +211,7 @@ static inline Map get_sentiment_map(const char *path) {
 }
 
 static inline void
-parse_and_validate_args(int argc, char **argv, unsigned long &duration,
+parse_and_validate_args(int argc, char **argv, unsigned &duration,
                         unsigned &tuple_rate, unsigned &sampling_rate,
                         unsigned &source_parallelism, unsigned &map_parallelism,
                         unsigned &sink_parallelism, unsigned &batch_size,
@@ -268,7 +268,7 @@ parse_and_validate_args(int argc, char **argv, unsigned long &duration,
 void print_initial_parameters(unsigned source_parallelism,
                               unsigned map_parallelism,
                               unsigned sink_parallelism, unsigned batch_size,
-                              unsigned long duration, unsigned tuple_rate,
+                              unsigned duration, unsigned tuple_rate,
                               unsigned sampling_rate, bool use_chaining) {
     cout << "Running graph with the following parameters:\n"
          << "Source parallelism: " << source_parallelism << '\n'
@@ -617,7 +617,7 @@ int main(int argc, char *argv[]) {
     auto map_parallelism    = 1u;
     auto sink_parallelism   = 1u;
     auto batch_size         = 0u;
-    auto duration           = 60ul;
+    auto duration           = 60u;
     auto tuple_rate         = 1000u;
     auto sampling_rate      = 100u;
     auto use_chaining       = false;
