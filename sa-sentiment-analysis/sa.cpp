@@ -639,7 +639,6 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
 int main(int argc, char *argv[]) {
     Parameters parameters;
-
     parse_and_validate_args(argc, argv, parameters);
     print_initial_parameters(parameters);
 
