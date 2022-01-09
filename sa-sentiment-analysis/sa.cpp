@@ -262,6 +262,16 @@ parse_and_validate_args(int argc, char **argv, unsigned &duration,
                     "(-h) option for usage information.\n";
             exit(EXIT_FAILURE);
         }
+
+        if (duration == 0) {
+            cerr << "Error: duration must be positive\n";
+            exit(EXIT_FAILURE);
+        }
+        if (source_parallelism == 0 || map_parallelism == 0
+            || sink_parallelism == 0) {
+            cerr << "Error: parallelism degree must be positive\n";
+            exit(EXIT_FAILURE);
+        }
     }
 }
 
