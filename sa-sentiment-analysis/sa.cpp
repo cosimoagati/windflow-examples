@@ -78,8 +78,8 @@ const auto timeunit_scale_factor =
                                          : 1ul;
 
 const struct option long_opts[] = {
-    {"help", 0, 0, 'h'},        {"rate", 1, 0, 'r'},  {"sampling", 0, 0, 's'},
-    {"parallelism", 1, 0, 'p'}, {"batch", 1, 0, 'b'}, {"chaining", 0, 0, 'c'},
+    {"help", 0, 0, 'h'},        {"rate", 1, 0, 'r'},  {"sampling", 1, 0, 's'},
+    {"parallelism", 1, 0, 'p'}, {"batch", 1, 0, 'b'}, {"chaining", 1, 0, 'c'},
     {"duration", 1, 0, 'd'},    {0, 0, 0, 0}};
 
 /*
