@@ -376,8 +376,8 @@ static inline string get_datetime_string() {
     return date_string;
 }
 
-void serialize_metric_to_json(const Metric<unsigned long> &metric,
-                              unsigned long                total_measurements) {
+void serialize_to_json(const Metric<unsigned long> &metric,
+                       unsigned long                total_measurements) {
     StringBuffer                          buffer;
     PrettyWriter<rapidjson::StringBuffer> writer {buffer};
 
@@ -687,9 +687,9 @@ int main(int argc, char *argv[]) {
     const auto elapsed_time    = current_time() - start_time;
     const auto received_tuples = global_received_tuples.load();
 
-    serialize_metric_to_json(global_latency_metric, received_tuples);
-    serialize_metric_to_json(global_interdeparture_metric, received_tuples);
-    serialize_metric_to_json(global_service_time_metric, received_tuples);
+    serialize_to_json(global_latency_metric, received_tuples);
+    serialize_to_json(global_interdeparture_metric, received_tuples);
+    serialize_to_json(global_service_time_metric, received_tuples);
 
     const auto average_latency =
         accumulate(global_latency_metric.begin(), global_latency_metric.end(),
