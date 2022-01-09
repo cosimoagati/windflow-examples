@@ -9,3 +9,4 @@
 /sa-sentiment-analysis/metric-latency.json
 /sa-sentiment-analysis/metric-interdeparture-time.json
 /sa-sentiment-analysis/metric-individual-sink-interdeparture-time.json
+/sa-sentiment-analysis/metric-service-time.json
