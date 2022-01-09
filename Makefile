@@ -1,7 +1,8 @@
 CPU_EXAMPLES:= example1 example2 sa-sentiment-analysis/sa mo-machine-outlier/mo
 GPU_EXAMPLES:= example3 example4 example5
 CXX = g++
-CXXFLAGS = -std=c++17 -pedantic -O3 -fno-exceptions -flto -fno-permissive -DNDEBUG
+CXXFLAGS = -std=c++17 -pedantic -O3 -fno-exceptions -flto -fno-permissive	\
+-DNDEBUG -DFF_BOUNDED_BUFFER -DDEFAULT_BUFFER_CAPACITY=32786
 INCLUDE_FLAGS = -I$(HOME)/.local/include -I$(HOME)/fastflow	\
 -I$(HOME)/.local/include/wf
 LIBS = -pthread
