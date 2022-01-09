@@ -33,14 +33,14 @@ using namespace rapidjson;
 using namespace wf;
 
 struct Parameters {
-    unsigned source_parallelism = 1;
-    unsigned map_parallelism    = 1;
-    unsigned sink_parallelism   = 1;
-    unsigned batch_size         = 0;
-    unsigned duration           = 60;
-    unsigned tuple_rate         = 1000;
-    unsigned sampling_rate      = 100;
-    bool     use_chaining       = false;
+    unsigned source_parallelism {1};
+    unsigned map_parallelism {1};
+    unsigned sink_parallelism {1};
+    unsigned batch_size {0};
+    unsigned duration {60};
+    unsigned tuple_rate {1000};
+    unsigned sampling_rate {100};
+    bool     use_chaining {false};
 };
 
 enum class Sentiment { Positive, Negative, Neutral };
@@ -354,7 +354,7 @@ print_statistics(unsigned long elapsed_time, unsigned long duration,
 void dump_metric(const char *name, vector<unsigned long> &samples,
                  unsigned long total_measurements) {
     StringBuffer                          buffer;
-    PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+    PrettyWriter<rapidjson::StringBuffer> writer {buffer};
 
     writer.StartObject();
 
