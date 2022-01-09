@@ -252,9 +252,10 @@ parse_and_validate_args(int argc, char **argv, unsigned long &duration,
             duration = atoi(optarg);
             break;
         case 'h':
-            cout << "Parameters: --rate <value> --keys <value> --sampling "
+            cout << "Parameters: --rate <value> --sampling "
                     "<value> --batch <size> --parallelism "
-                    "<nSource,nPredictor,nSink> [--chaining]\n";
+                    "<nSource,nPredictor,nSink> [--duration <seconds>] "
+                    "[--chaining <value>]\n";
             exit(EXIT_SUCCESS);
         default:
             cerr << "Error in parsing the input arguments.  Use the --help "
