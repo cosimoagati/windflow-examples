@@ -158,6 +158,11 @@ static inline vector<string_view> string_split(const string_view &s,
     return words;
 }
 
+/*
+ * Return a std::vector containing all the elements in the vectors contained in
+ * the "vectors" parameters.  The order is exactly the one obtained by
+ * concatenating the elements in every individual vector.
+ */
 template<typename T>
 static inline vector<T> concatenate_vectors(const vector<vector<T>> &vectors) {
     vector<T> merged_vector;
