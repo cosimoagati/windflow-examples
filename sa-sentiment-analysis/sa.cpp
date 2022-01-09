@@ -32,6 +32,17 @@ using namespace nlohmann;
 using namespace rapidjson;
 using namespace wf;
 
+struct Parameters {
+    unsigned source_parallelism = 1;
+    unsigned map_parallelism    = 1;
+    unsigned sink_parallelism   = 1;
+    unsigned batch_size         = 0;
+    unsigned duration           = 60;
+    unsigned tuple_rate         = 1000;
+    unsigned sampling_rate      = 100;
+    bool     use_chaining       = false;
+};
+
 enum class Sentiment { Positive, Negative, Neutral };
 
 struct SentimentResult {
@@ -210,12 +221,8 @@ static inline Map get_sentiment_map(const char *path) {
     return sentiment_map;
 }
 
-static inline void
-parse_and_validate_args(int argc, char **argv, unsigned &duration,
-                        unsigned &tuple_rate, unsigned &sampling_rate,
-                        unsigned &source_parallelism, unsigned &map_parallelism,
-                        unsigned &sink_parallelism, unsigned &batch_size,
-                        bool &use_chaining) {
+static inline void parse_and_validate_args(int argc, char **argv,
+                                           Parameters &parameters) {
     int option;
     int index;
 
@@ -224,13 +231,13 @@ parse_and_validate_args(int argc, char **argv, unsigned &duration,
         != -1) {
         switch (option) {
         case 'r':
-            tuple_rate = atoi(optarg);
+            parameters.tuple_rate = atoi(optarg);
             break;
         case 's':
-            sampling_rate = atoi(optarg);
+            parameters.sampling_rate = atoi(optarg);
             break;
         case 'b':
-            batch_size = atoi(optarg);
+            parameters.batch_size = atoi(optarg);
             break;
         case 'p': {
             const auto degrees = get_parallelism_degrees(optarg);
@@ -239,17 +246,17 @@ parse_and_validate_args(int argc, char **argv, unsigned &duration,
                         "degree string requires exactly three elements.\n";
                 exit(EXIT_FAILURE);
             } else {
-                source_parallelism = degrees[0];
-                map_parallelism    = degrees[1];
-                sink_parallelism   = degrees[2];
+                parameters.source_parallelism = degrees[0];
+                parameters.map_parallelism    = degrees[1];
+                parameters.sink_parallelism   = degrees[2];
             }
             break;
         }
         case 'c':
-            use_chaining = atoi(optarg) > 0 ? true : false;
+            parameters.use_chaining = atoi(optarg) > 0 ? true : false;
             break;
         case 'd':
-            duration = atoi(optarg);
+            parameters.duration = atoi(optarg);
             break;
         case 'h':
             cout << "Parameters: --rate <value> --sampling "
@@ -263,50 +270,48 @@ parse_and_validate_args(int argc, char **argv, unsigned &duration,
             exit(EXIT_FAILURE);
         }
 
-        if (duration == 0) {
+        if (parameters.duration == 0) {
             cerr << "Error: duration must be positive\n";
             exit(EXIT_FAILURE);
         }
-        if (source_parallelism == 0 || map_parallelism == 0
-            || sink_parallelism == 0) {
+        if (parameters.source_parallelism == 0
+            || parameters.map_parallelism == 0
+            || parameters.sink_parallelism == 0) {
             cerr << "Error: parallelism degree must be positive\n";
             exit(EXIT_FAILURE);
         }
     }
 }
 
-void print_initial_parameters(unsigned source_parallelism,
-                              unsigned map_parallelism,
-                              unsigned sink_parallelism, unsigned batch_size,
-                              unsigned duration, unsigned tuple_rate,
-                              unsigned sampling_rate, bool use_chaining) {
+void print_initial_parameters(const Parameters &parameters) {
     cout << "Running graph with the following parameters:\n"
-         << "Source parallelism: " << source_parallelism << '\n'
-         << "Classifier parallelism: " << map_parallelism << '\n'
-         << "Sink parallelism: " << sink_parallelism << '\n'
+         << "Source parallelism: " << parameters.source_parallelism << '\n'
+         << "Classifier parallelism: " << parameters.map_parallelism << '\n'
+         << "Sink parallelism: " << parameters.sink_parallelism << '\n'
          << "Batching: ";
-    if (batch_size > 0) {
-        cout << batch_size << '\n';
+    if (parameters.batch_size > 0) {
+        cout << parameters.batch_size << '\n';
     } else {
         cout << "None\n";
     }
 
-    cout << "Duration: " << duration << " seconds\n"
+    cout << "Duration: " << parameters.duration << " seconds\n"
          << "Tuple generation rate: ";
-    if (tuple_rate > 0) {
-        cout << tuple_rate << " tuples per second\n";
+    if (parameters.tuple_rate > 0) {
+        cout << parameters.tuple_rate << " tuples per second\n";
     } else {
         cout << "unlimited (BEWARE OF QUEUE CONGESTION)\n";
     }
 
     cout << "Sampling rate: ";
-    if (sampling_rate > 0) {
-        cout << sampling_rate << " measurements per second\n";
+    if (parameters.sampling_rate > 0) {
+        cout << parameters.sampling_rate << " measurements per second\n";
     } else {
         cout << "unlimited (sample every incoming tuple)\n";
     }
 
-    cout << "Chaining: " << (use_chaining ? "enabled" : "disabled") << '\n';
+    cout << "Chaining: " << (parameters.use_chaining ? "enabled" : "disabled")
+         << '\n';
 }
 
 static inline void
@@ -605,32 +610,29 @@ public:
     }
 };
 
-static inline PipeGraph &
-build_graph(bool use_chaining, unsigned duration, unsigned tuple_rate,
-            unsigned sampling_rate, unsigned source_parallelism,
-            unsigned map_parallelism, unsigned sink_parallelism,
-            unsigned batch_size, PipeGraph &graph) {
-    SourceFunctor source_functor {duration, tuple_rate};
+static inline PipeGraph &build_graph(const Parameters &parameters,
+                                     PipeGraph &       graph) {
+    SourceFunctor source_functor {parameters.duration, parameters.tuple_rate};
     auto          source = Source_Builder {source_functor}
-                      .withParallelism(source_parallelism)
+                      .withParallelism(parameters.source_parallelism)
                       .withName("source")
-                      .withOutputBatchSize(batch_size)
+                      .withOutputBatchSize(parameters.batch_size)
                       .build();
 
     MapFunctor<BasicClassifier> map_functor;
     auto                        classifier_node = Map_Builder {map_functor}
-                               .withParallelism(map_parallelism)
+                               .withParallelism(parameters.map_parallelism)
                                .withName("classifier")
-                               .withOutputBatchSize(batch_size)
+                               .withOutputBatchSize(parameters.batch_size)
                                .build();
 
-    SinkFunctor sink_functor {sampling_rate};
+    SinkFunctor sink_functor {parameters.sampling_rate};
     auto        sink = Sink_Builder {sink_functor}
-                    .withParallelism(sink_parallelism)
+                    .withParallelism(parameters.sink_parallelism)
                     .withName("sink")
                     .build();
 
-    if (use_chaining) {
+    if (parameters.use_chaining) {
         graph.add_source(source).chain(classifier_node).chain_sink(sink);
     } else {
         graph.add_source(source).add(classifier_node).add_sink(sink);
@@ -639,27 +641,14 @@ build_graph(bool use_chaining, unsigned duration, unsigned tuple_rate,
 }
 
 int main(int argc, char *argv[]) {
-    auto source_parallelism = 1u;
-    auto map_parallelism    = 1u;
-    auto sink_parallelism   = 1u;
-    auto batch_size         = 0u;
-    auto duration           = 60u;
-    auto tuple_rate         = 1000u;
-    auto sampling_rate      = 100u;
-    auto use_chaining       = false;
+    Parameters parameters;
 
-    parse_and_validate_args(argc, argv, duration, tuple_rate, sampling_rate,
-                            source_parallelism, map_parallelism,
-                            sink_parallelism, batch_size, use_chaining);
-    print_initial_parameters(source_parallelism, map_parallelism,
-                             sink_parallelism, batch_size, duration, tuple_rate,
-                             sampling_rate, use_chaining);
+    parse_and_validate_args(argc, argv, parameters);
+    print_initial_parameters(parameters);
 
     PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DEFAULT,
                      Time_Policy_t::INGRESS_TIME};
-    build_graph(use_chaining, duration, tuple_rate, sampling_rate,
-                source_parallelism, map_parallelism, sink_parallelism,
-                batch_size, graph);
+    build_graph(parameters, graph);
 
     const auto start_time = current_time();
     graph.run();
@@ -675,8 +664,8 @@ int main(int argc, char *argv[]) {
     dump_metric("interdeparture-time", interderparture_samples,
                 received_tuples);
 
-    print_statistics(elapsed_time, duration, global_sent_tuples.load(),
-                     global_cumulative_latency.load(), received_tuples,
-                     sampled_tuples);
+    print_statistics(
+        elapsed_time, parameters.duration, global_sent_tuples.load(),
+        global_cumulative_latency.load(), received_tuples, sampled_tuples);
     return 0;
 }
