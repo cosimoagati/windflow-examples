@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdlib>
+#include <ctime>
 #include <fstream>
 #include <getopt.h>
 #include <iostream>
@@ -351,12 +352,24 @@ print_statistics(unsigned long elapsed_time, unsigned long duration,
          << "s (" << latency_in_seconds << " seconds)\n";
 }
 
+static inline string get_datetime_string() {
+    const auto current_date = time(nullptr);
+    auto       date_string  = string {asctime(localtime(&current_date))};
+    if (!date_string.empty()) {
+        date_string.pop_back();
+    }
+    return date_string;
+}
+
 void dump_metric(const char *name, vector<unsigned long> &samples,
                  unsigned long total_measurements) {
     StringBuffer                          buffer;
     PrettyWriter<rapidjson::StringBuffer> writer {buffer};
 
     writer.StartObject();
+
+    writer.Key("date");
+    writer.String(get_datetime_string().c_str());
 
     writer.Key("name");
     writer.String(name);
