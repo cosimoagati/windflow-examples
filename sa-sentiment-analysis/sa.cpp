@@ -66,7 +66,7 @@ class Metric {
 public:
     Metric(const char *name = "name") : metric_name {name} {}
 
-    void merge_samples(const vector<T> &new_samples) {
+    void merge(const vector<T> &new_samples) {
         lock_guard guard {metric_mutex};
         sorted_samples.insert(sorted_samples.begin(), new_samples.begin(),
                               new_samples.end());
@@ -636,9 +636,9 @@ public:
 #endif
         } else {
             global_received_tuples.fetch_add(tuples_received);
-            global_latency_metric.merge_samples(latency_samples);
-            global_interdeparture_metric.merge_samples(interdeparture_samples);
-            global_service_time_metric.merge_samples(service_time_samples);
+            global_latency_metric.merge(latency_samples);
+            global_interdeparture_metric.merge(interdeparture_samples);
+            global_service_time_metric.merge(service_time_samples);
         }
     }
 };
