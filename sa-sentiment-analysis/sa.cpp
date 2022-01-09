@@ -580,7 +580,7 @@ public:
 };
 
 static inline PipeGraph &
-build_graph(bool use_chaining, unsigned long duration, unsigned tuple_rate,
+build_graph(bool use_chaining, unsigned duration, unsigned tuple_rate,
             unsigned sampling_rate, unsigned source_parallelism,
             unsigned map_parallelism, unsigned sink_parallelism,
             unsigned batch_size, PipeGraph &graph) {
