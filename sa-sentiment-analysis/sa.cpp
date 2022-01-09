@@ -381,18 +381,19 @@ void dump_metric(const char *name, vector<unsigned long> &samples,
         const double min    = *minmax.first;
         const double max    = *minmax.second;
 
-        writer.Key("0");
+        writer.Key("0th percentile");
         writer.Double(min);
 
         // add percentiles
         for (const auto percentile : {0.05, 0.25, 0.5, 0.75, 0.95}) {
             const auto pointer = samples.begin() + samples.size() * percentile;
             nth_element(samples.begin(), pointer, samples.end());
-            const auto label = to_string(static_cast<int>(percentile * 100));
+            const auto label =
+                to_string(static_cast<int>(percentile * 100)) + "th percentile";
             writer.Key(label.c_str());
             writer.Double((double) *pointer);
         }
-        writer.Key("100");
+        writer.Key("100th percentile");
         writer.Double(max);
     } else {
         writer.Key("mean");
