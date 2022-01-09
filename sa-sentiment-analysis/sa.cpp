@@ -317,17 +317,20 @@ void print_initial_parameters(const Parameters &parameters) {
         cout << "None\n";
     }
 
-    cout << "Duration: " << parameters.duration << " seconds\n"
+    cout << "Duration: " << parameters.duration << " second"
+         << (parameters.duration == 1 ? "" : "s") << '\n'
          << "Tuple generation rate: ";
     if (parameters.tuple_rate > 0) {
-        cout << parameters.tuple_rate << " tuples per second\n";
+        cout << parameters.tuple_rate << " tuple"
+             << (parameters.tuple_rate == 1 ? "" : "s") << " per second\n ";
     } else {
         cout << "unlimited (BEWARE OF QUEUE CONGESTION)\n";
     }
 
     cout << "Sampling rate: ";
     if (parameters.sampling_rate > 0) {
-        cout << parameters.sampling_rate << " measurements per second\n";
+        cout << parameters.sampling_rate << " measurement"
+             << (parameters.sampling_rate == 1 ? "" : "s") << " per second\n";
     } else {
         cout << "unlimited (sample every incoming tuple)\n";
     }
