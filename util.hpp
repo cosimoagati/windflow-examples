@@ -94,6 +94,20 @@ split_in_words(const std::string &input) {
 
     return words;
 }
+/*
+ * Return a vector of strings each containing a line from the file found in
+ * path.
+ */
+static inline std::vector<std::string>
+read_strings_from_file(const char *path) {
+    std::ifstream            input_file {path};
+    std::vector<std::string> strings;
+
+    for (std::string line; getline(input_file, line);) {
+        strings.emplace_back(move(line));
+    }
+    return strings;
+}
 
 /*
  * Removes space characters from a string, in place.
