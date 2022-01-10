@@ -606,6 +606,7 @@ public:
             }
 #ifndef NDEBUG
             const lock_guard lock {print_mutex};
+            cout << input->tweet << " ";
             cout << "arrival time: " << arrival_time
                  << " ts:" << input->timestamp << " latency: " << latency
                  << '\n'
