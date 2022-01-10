@@ -341,10 +341,11 @@ static inline void print_statistics(unsigned long elapsed_time,
                                     double        average_latency,
                                     unsigned long received_tuples) {
     const auto elapsed_time_in_seconds =
-        elapsed_time / (double) timeunit_scale_factor;
+        elapsed_time / static_cast<double>(timeunit_scale_factor);
 
     const auto throughput =
-        elapsed_time > 0 ? sent_tuples / (double) elapsed_time : sent_tuples;
+        elapsed_time > 0 ? sent_tuples / static_cast<double>(elapsed_time)
+                         : sent_tuples;
 
     const auto throughput_in_seconds   = throughput * timeunit_scale_factor;
     const auto service_time            = 1 / throughput;
@@ -567,7 +568,8 @@ public:
                 // The current service time is computed via this heuristic,
                 // it MIGHT not be reliable.
                 const auto service_time =
-                    interdeparture_time / (double) context.getParallelism();
+                    interdeparture_time
+                    / static_cast<double>(context.getParallelism());
                 service_time_samples.push_back(service_time);
                 last_sampling_time = arrival_time;
             }
