@@ -764,7 +764,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     AnomalyScorerFunctor anomaly_scorer_functor;
     auto                 anomaly_scorer_node =
-        Map_Builder {anomaly_scorer_functor}
+        FlatMap_Builder {anomaly_scorer_functor}
             .withParallelism(parameters.anomaly_scorer_parallelism)
             .withName("anomaly scorer")
             .withOutputBatchSize(parameters.batch_size)
