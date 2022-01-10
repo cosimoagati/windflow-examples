@@ -386,8 +386,8 @@ void serialize_to_json(const Metric<unsigned long> &metric,
     json_stats["total measurements"]   = total_measurements;
 
     if (!metric.empty()) {
-        const auto mean = accumulate(metric.begin(), metric.end(), 0.0)
-                          / (double) metric.size();
+        const auto mean =
+            accumulate(metric.begin(), metric.end(), 0.0) / metric.size();
         json_stats["mean"] = mean;
 
         for (const auto percentile : {0.0, 0.05, 0.25, 0.5, 0.75, 0.95, 1.0}) {
