@@ -182,12 +182,12 @@ static inline bool is_punctuation(char c) {
 }
 
 /*
- * Replaces punctuation characters with a space. The input string s itself is
- * modified.
- * Return a reference to s.
+ * Replaces non-alphanumeric characters with a space. The input string s itself
+ * is modified. Return a reference to s.
  */
-static inline string &replace_punctuation_with_spaces_in_place(string &s) {
-    replace_if(s.begin(), s.end(), is_punctuation, ' ');
+static inline string &replace_non_alnum_with_spaces_in_place(string &s) {
+    constexpr auto is_not_alnum = [](char c) { return !isalnum(c); };
+    replace_if(s.begin(), s.end(), is_not_alnum, ' ');
     return s;
 }
 
@@ -207,7 +207,7 @@ static inline string &lowercase_in_place(string &s) {
  * tweet.  The input string may be modified.
  */
 static inline vector<string_view> split_in_words_in_place(string &text) {
-    replace_punctuation_with_spaces_in_place(text);
+    replace_non_alnum_with_spaces_in_place(text);
     lowercase_in_place(text);
     return string_split(text, ' ');
 }
