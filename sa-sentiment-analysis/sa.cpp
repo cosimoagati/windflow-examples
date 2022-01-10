@@ -390,19 +390,13 @@ void serialize_to_json(const Metric<unsigned long> &metric,
                           / (double) metric.size();
         serialized_stats["mean"] = mean;
 
-        const auto minmax = minmax_element(metric.begin(), metric.end());
-        const auto min    = *minmax.first;
-        const auto max    = *minmax.second;
-
-        serialized_stats["0th percentile"] = min;
-
-        for (const auto percentile : {0.05, 0.25, 0.5, 0.75, 0.95}) {
-            const auto pointer = metric.begin() + metric.size() * percentile;
-            const auto label   = to_string(static_cast<int>(percentile * 100))
+        for (const auto percentile : {0.0, 0.05, 0.25, 0.5, 0.75, 0.95, 1.0}) {
+            const auto percentile_value_position =
+                metric.begin() + (metric.size() - 1) * percentile;
+            const auto label = to_string(static_cast<int>(percentile * 100))
                                + "th percentile ";
-            serialized_stats[label] = *pointer;
+            serialized_stats[label] = *percentile_value_position;
         }
-        serialized_stats["100th percentile"] = max;
     } else {
         serialized_stats["mean"] = 0;
         for (const auto percentile : {"0", "25", "50", "75", "95", "100"}) {
