@@ -133,20 +133,6 @@ static inline const char *sentiment_to_string(Sentiment sentiment) {
 #endif
 
 /*
- * Return a vector of strings each containing a line from the file found in
- * path.
- */
-static inline vector<string> read_strings_from_file(const char *path) {
-    ifstream       input_file {path};
-    vector<string> strings;
-
-    for (string line; getline(input_file, line);) {
-        strings.emplace_back(move(line));
-    }
-    return strings;
-}
-
-/*
  * Return a std::vector of std::string_views, obtained from splitting the
  * original string_view. by the delim character.
  */
@@ -224,6 +210,19 @@ static inline vector<string_view> split_in_words_in_place(string &text) {
     replace_punctuation_with_spaces_in_place(text);
     lowercase_in_place(text);
     return string_split(text, ' ');
+}
+
+static inline vector<string> get_tweets_from_file(const char *filename) {
+    ifstream       twitterstream {filename};
+    vector<string> tweets;
+
+    while (twitterstream.good()) {
+        nlohmann::json new_tweet;
+        twitterstream >> new_tweet;
+        tweets.push_back(move(new_tweet["data"]["text"]));
+        twitterstream >> ws;
+    }
+    return tweets;
 }
 
 template<typename Map>
@@ -433,16 +432,16 @@ Metric<unsigned long> global_interdeparture_metric {"interdeparture-time"};
 Metric<unsigned long> global_service_time_metric {"service-time"};
 
 class SourceFunctor {
-    static constexpr auto default_path = "example-dataset.txt";
-    vector<string>        dataset;
+    static constexpr auto default_path = "tweetstream.jsonl";
+    vector<string>        tweets;
     unsigned long         duration;
     unsigned              tuple_rate_per_second;
 
 public:
-    SourceFunctor(unsigned d = 60, unsigned rate = 1000,
+    SourceFunctor(unsigned d = 60, unsigned rate = 60,
                   const char *path = default_path)
-        : dataset {read_strings_from_file(path)},
-          tuple_rate_per_second {rate}, duration {d * timeunit_scale_factor} {}
+        : tweets {get_tweets_from_file(path)},
+          duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {}
 
     void operator()(Source_Shipper<Tuple> &shipper) {
         const auto end_time    = current_time() + duration;
@@ -450,43 +449,17 @@ public:
         size_t     index       = 0;
 
         while (current_time() < end_time) {
-            auto       tweet     = dataset[index];
+            auto       tweet     = tweets[index];
             const auto timestamp = current_time();
             shipper.push({move(tweet), SentimentResult {}, timestamp});
             ++sent_tuples;
-            index = (index + 1) % dataset.size();
+            index = (index + 1) % tweets.size();
 
             if (tuple_rate_per_second > 0) {
                 const unsigned long delay =
                     (1.0 / tuple_rate_per_second) * timeunit_scale_factor;
                 busy_wait(delay);
             }
-        }
-        global_sent_tuples.fetch_add(sent_tuples);
-    }
-};
-
-class JsonSourceFunctor {
-    static constexpr auto default_path = "twitterexample.json";
-
-    nlohmann::json json_map;
-    unsigned long  duration;
-
-public:
-    JsonSourceFunctor(unsigned d = 60, const char *path = default_path)
-        : duration {d * timeunit_scale_factor} {
-        ifstream file {path};
-        file >> json_map;
-    }
-    void operator()(Source_Shipper<Tuple> &shipper) {
-        const auto end_time    = current_time() + duration;
-        auto       sent_tuples = 0ul;
-
-        while (current_time() < end_time) {
-            auto       tweet     = json_map["text"];
-            const auto timestamp = current_time();
-            shipper.push({move(tweet), SentimentResult {}, timestamp});
-            ++sent_tuples;
         }
         global_sent_tuples.fetch_add(sent_tuples);
     }
