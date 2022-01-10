@@ -279,7 +279,7 @@ static inline void parse_and_validate_args(int argc, char **argv,
         case 'h':
             cout << "Parameters: --rate <value> --sampling "
                     "<value> --batch <size> --parallelism "
-                    "<nSource,nPredictor,nSink> [--duration <seconds>] "
+                    "<nSource,nClassifier,nSink> [--duration <seconds>] "
                     "[--chaining <value>]\n";
             exit(EXIT_SUCCESS);
         default:
