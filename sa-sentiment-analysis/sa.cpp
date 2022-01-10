@@ -622,8 +622,8 @@ public:
                 latency_samples.push_back(latency);
                 interdeparture_samples.push_back(interdeparture_time);
 
-                // The current service time is computed via this heuristic, it
-                // MIGHT not be reliable.
+                // The current service time is computed via this heuristic,
+                // it MIGHT not be reliable.
                 const auto service_time =
                     interdeparture_time / (double) context.getParallelism();
                 service_time_samples.push_back(service_time);
