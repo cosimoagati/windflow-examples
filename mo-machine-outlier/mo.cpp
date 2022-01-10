@@ -578,12 +578,106 @@ public:
     }
 };
 
+template<typename T>
+struct AnomalyResultTuple {
+    string        id;
+    double        stream_anomaly_score;
+    double        current_data_instance_score;
+    unsigned long measurement_timestamp;
+    T             current_data_instance;
+};
+
+// IMPORTANT: Current template parameters are almost certainly wrong, triple
+// check!!!
 class AnomalyScorerFunctor {
+    template<typename T>
+    struct StreamProfile {
+        string id;
+        T      current_data_instance;
+        double stream_anomaly_score;
+        double current_data_instance_score;
+    };
+
+    unordered_map<string, StreamProfile<MachineMetadata>> stream_profiles;
+
+    double        lambda {0.017};
+    double        factor {2.71 - lambda};
+    double        threshold {1 / (1 - factor) * 0.5};
+    unsigned long last_measurement_timestamp {0};
+    bool          shrink_next_round {false};
+
 public:
-    void operator()(Tuple &tuple) {
-        // TODO
+    void operator()(const ObservationResultTuple &      tuple,
+                    Shipper<AnomalyResultTuple<Tuple>> &shipper) {
+        const auto current_measurement_timestamp = tuple.measurement_timestamp;
+
+        if (current_measurement_timestamp > last_measurement_timestamp) {
+            for (auto &entry : stream_profiles) {
+                auto &profile = entry.second;
+
+                if (shrink_next_round) {
+                    profile.stream_anomaly_score = 0.0;
+                }
+
+                AnomalyResultTuple<Tuple> output {
+                    entry.first, profile.stream_anomaly_score,
+                    profile.current_data_instance_score,
+                    current_measurement_timestamp,
+                    profile.current_data_instance};
+                shipper.push(move(output));
+            }
+
+            if (shrink_next_round) {
+                shrink_next_round = false;
+            }
+            last_measurement_timestamp = current_measurement_timestamp;
+        }
+
+        const auto id                          = tuple.id;
+        const auto data_instance_anomaly_score = tuple.score;
+
+        if (stream_profiles.find(id) != stream_profiles.end()) {
+            stream_profiles[id] = {id, tuple.parent_tuple.metadata,
+                                   data_instance_anomaly_score, tuple.score};
+
+        } else {
+            auto &profile                = stream_profiles[id];
+            profile.stream_anomaly_score = profile.stream_anomaly_score * factor
+                                           + data_instance_anomaly_score;
+            profile.current_data_instance       = tuple.parent_tuple.metadata;
+            profile.current_data_instance_score = data_instance_anomaly_score;
+
+            if (profile.stream_anomaly_score > threshold) {
+                shrink_next_round = true;
+            }
+        }
     }
 };
+
+Tuple bfprt(const vector<Tuple> &tuples, int i) {
+    class TupleWrapper {
+        Tuple  tuple;
+        double score;
+
+        TupleWrapper(const Tuple &tuple, double score)
+            : tuple {tuple}, score {score} {}
+
+        int compare_to(const TupleWrapper &other) {
+            if (score == other.score) {
+                return 0;
+            } else if (score > other.score) {
+                return 1;
+            } else {
+                return -1;
+            }
+        }
+    };
+
+    vector<TupleWrapper> tuple_wrapper_list;
+    for (const auto &t : tuples) {
+        m
+    }
+}
 
 class AlertTriggererFunctor {
 public:
