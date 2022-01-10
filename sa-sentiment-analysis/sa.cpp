@@ -300,7 +300,7 @@ void print_initial_parameters(const Parameters &parameters) {
          << "Tuple generation rate: ";
     if (parameters.tuple_rate > 0) {
         cout << parameters.tuple_rate << " tuple"
-             << (parameters.tuple_rate == 1 ? "" : "s") << " per second\n ";
+             << (parameters.tuple_rate == 1 ? "" : "s") << " per second\n";
     } else {
         cout << "unlimited (BEWARE OF QUEUE CONGESTION)\n";
     }
