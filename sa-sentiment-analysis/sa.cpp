@@ -19,7 +19,6 @@
 #include <iostream>
 #include <mutex>
 #include <nlohmann/json.hpp>
-#include <rapidjson/prettywriter.h>
 #include <string>
 #include <string_view>
 #include <unistd.h>
@@ -29,8 +28,6 @@
 #include <wf/windflow.hpp>
 
 using namespace std;
-using namespace nlohmann;
-using namespace rapidjson;
 using namespace wf;
 
 struct Parameters {
@@ -382,63 +379,41 @@ static inline string get_datetime_string() {
 
 void serialize_to_json(const Metric<unsigned long> &metric,
                        unsigned long                total_measurements) {
-    StringBuffer                          buffer;
-    PrettyWriter<rapidjson::StringBuffer> writer {buffer};
-
-    writer.StartObject();
-
-    writer.Key("date");
-    writer.String(get_datetime_string().c_str());
-
-    writer.Key("name");
-    writer.String(metric.name());
-
-    writer.Key("time unit");
-    const auto plural_timeunit_string = string {timeunit_string} + 's';
-    writer.String(plural_timeunit_string.c_str());
-
-    writer.Key("sampled measurements");
-    writer.Uint(metric.size());
-
-    writer.Key("total measurements");
-    writer.Uint(total_measurements);
+    nlohmann::ordered_json serialized_stats;
+    serialized_stats["date"]                 = get_datetime_string();
+    serialized_stats["name"]                 = metric.name();
+    serialized_stats["time unit"]            = string {timeunit_string} + 's';
+    serialized_stats["sampled measurements"] = metric.size();
+    serialized_stats["total measurements"]   = total_measurements;
 
     if (!metric.empty()) {
-        writer.Key("mean");
         const auto mean = accumulate(metric.begin(), metric.end(), 0.0)
                           / (double) metric.size();
-        writer.Double(mean);
+        serialized_stats["mean"] = mean;
 
         const auto minmax = minmax_element(metric.begin(), metric.end());
         const auto min    = *minmax.first;
         const auto max    = *minmax.second;
 
-        writer.Key("0th percentile");
-        writer.Uint(min);
+        serialized_stats["0th percentile"] = min;
 
         for (const auto percentile : {0.05, 0.25, 0.5, 0.75, 0.95}) {
             const auto pointer = metric.begin() + metric.size() * percentile;
-            const auto label =
-                to_string(static_cast<int>(percentile * 100)) + "th percentile";
-            writer.Key(label.c_str());
-            writer.Uint(*pointer);
+            const auto label   = to_string(static_cast<int>(percentile * 100))
+                               + "th percentile ";
+            serialized_stats[label] = *pointer;
         }
-        writer.Key("100th percentile");
-        writer.Uint(max);
+        serialized_stats["100th percentile"] = max;
     } else {
-        writer.Key("mean");
-        writer.Uint(0);
+        serialized_stats["mean"] = 0;
         for (const auto percentile : {"0", "25", "50", "75", "95", "100"}) {
-            const auto label = string {percentile} + "th percentile";
-            writer.Key(label.c_str());
-            writer.Uint(0);
+            const auto label        = string {percentile} + "th percentile";
+            serialized_stats[label] = 0;
         }
     }
-    writer.EndObject();
-
     const auto filename = string {"metric-"} + metric.name() + ".json";
     ofstream   fs {filename};
-    fs << buffer.GetString() << '\n';
+    fs << serialized_stats.dump(4) << '\n';
 }
 
 /*
@@ -494,8 +469,8 @@ public:
 class JsonSourceFunctor {
     static constexpr auto default_path = "twitterexample.json";
 
-    json          json_map;
-    unsigned long duration;
+    nlohmann::json json_map;
+    unsigned long  duration;
 
 public:
     JsonSourceFunctor(unsigned d = 60, const char *path = default_path)
