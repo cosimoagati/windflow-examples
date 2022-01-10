@@ -675,7 +675,6 @@ Tuple bfprt(const vector<Tuple> &tuples, int i) {
 
     vector<TupleWrapper> tuple_wrapper_list;
     for (const auto &t : tuples) {
-        m
     }
 }
 
