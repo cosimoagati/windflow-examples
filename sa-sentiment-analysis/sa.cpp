@@ -405,8 +405,7 @@ void serialize_to_json(const Metric<unsigned long> &metric,
             json_stats[label] = 0;
         }
     }
-    const auto filename = string {"metric-"} + metric.name() + ".json";
-    ofstream   fs {filename};
+    ofstream fs {string {"metric-"} + metric.name() + ".json"};
     fs << json_stats.dump(4) << '\n';
 }
 
