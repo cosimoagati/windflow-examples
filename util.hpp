@@ -118,4 +118,24 @@ static inline std::string &string_trim_in_place_algorithm(std::string &s) {
     return s;
 }
 
+/*
+ * Return a std::vector containing all the elements in the vectors contained in
+ * the "vectors" parameters.  The order is exactly the one obtained by
+ * concatenating the elements in every individual vector.
+ */
+template<typename T>
+static inline std::vector<T>
+concatenate_vectors(const std::vector<std::vector<T>> &vectors) {
+    std::vector<T> merged_vector;
+    size_t         total_size {0};
+    for (const auto &v : vectors) {
+        total_size += v.size();
+    }
+    merged_vector.reserve(total_size);
+    for (const auto &v : vectors) {
+        merged_vector.insert(merged_vector.end(), v.begin(), v.end());
+    }
+    return merged_vector;
+}
+
 #endif // #ifndef UTIL_HPP

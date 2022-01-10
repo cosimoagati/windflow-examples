@@ -158,25 +158,6 @@ static inline vector<size_t> get_parallelism_degrees(const char *degrees) {
     return parallelism_degrees;
 }
 
-/*
- * Return a std::vector containing all the elements in the vectors contained in
- * the "vectors" parameters.  The order is exactly the one obtained by
- * concatenating the elements in every individual vector.
- */
-template<typename T>
-static inline vector<T> concatenate_vectors(const vector<vector<T>> &vectors) {
-    vector<T> merged_vector;
-    size_t    total_size {0};
-    for (const auto &v : vectors) {
-        total_size += v.size();
-    }
-    merged_vector.reserve(total_size);
-    for (const auto &v : vectors) {
-        merged_vector.insert(merged_vector.end(), v.begin(), v.end());
-    }
-    return merged_vector;
-}
-
 static inline bool is_punctuation(char c) {
     return c == '.' || c == ',' || c == '?' || c == '!' || c == ':';
 }
