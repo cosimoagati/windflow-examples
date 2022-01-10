@@ -378,35 +378,35 @@ static inline string get_datetime_string() {
 
 void serialize_to_json(const Metric<unsigned long> &metric,
                        unsigned long                total_measurements) {
-    nlohmann::ordered_json serialized_stats;
-    serialized_stats["date"]                 = get_datetime_string();
-    serialized_stats["name"]                 = metric.name();
-    serialized_stats["time unit"]            = string {timeunit_string} + 's';
-    serialized_stats["sampled measurements"] = metric.size();
-    serialized_stats["total measurements"]   = total_measurements;
+    nlohmann::ordered_json json_stats;
+    json_stats["date"]                 = get_datetime_string();
+    json_stats["name"]                 = metric.name();
+    json_stats["time unit"]            = string {timeunit_string} + 's';
+    json_stats["sampled measurements"] = metric.size();
+    json_stats["total measurements"]   = total_measurements;
 
     if (!metric.empty()) {
         const auto mean = accumulate(metric.begin(), metric.end(), 0.0)
                           / (double) metric.size();
-        serialized_stats["mean"] = mean;
+        json_stats["mean"] = mean;
 
         for (const auto percentile : {0.0, 0.05, 0.25, 0.5, 0.75, 0.95, 1.0}) {
             const auto percentile_value_position =
                 metric.begin() + (metric.size() - 1) * percentile;
             const auto label = to_string(static_cast<int>(percentile * 100))
                                + "th percentile ";
-            serialized_stats[label] = *percentile_value_position;
+            json_stats[label] = *percentile_value_position;
         }
     } else {
-        serialized_stats["mean"] = 0;
+        json_stats["mean"] = 0;
         for (const auto percentile : {"0", "25", "50", "75", "95", "100"}) {
-            const auto label        = string {percentile} + "th percentile";
-            serialized_stats[label] = 0;
+            const auto label  = string {percentile} + "th percentile";
+            json_stats[label] = 0;
         }
     }
     const auto filename = string {"metric-"} + metric.name() + ".json";
     ofstream   fs {filename};
-    fs << serialized_stats.dump(4) << '\n';
+    fs << json_stats.dump(4) << '\n';
 }
 
 /*
