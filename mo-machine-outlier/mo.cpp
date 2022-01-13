@@ -693,28 +693,74 @@ public:
     }
 };
 
-Tuple bfprt(const vector<Tuple> &tuples, int i) {
-    class TupleWrapper {
-        Tuple  tuple;
-        double score;
+class TupleWrapper {
+    Tuple  tuple;
+    double score;
 
-        TupleWrapper(const Tuple &tuple, double score)
-            : tuple {tuple}, score {score} {}
+public:
+    TupleWrapper(const Tuple &tuple, double score)
+        : tuple {tuple}, score {score} {}
 
-        int compare_to(const TupleWrapper &other) {
-            if (score == other.score) {
-                return 0;
-            } else if (score > other.score) {
-                return 1;
-            } else {
-                return -1;
-            }
+    int compare_to(const TupleWrapper &other) const {
+        if (score == other.score) {
+            return 0;
+        } else if (score > other.score) {
+            return 1;
+        } else {
+            return -1;
         }
-    };
+    }
+};
 
+static inline void tuple_swap(vector<TupleWrapper> &tuple_wrapper_list,
+                              int left, int right) {
+    // Using copying for now: should use move semantics here!
+    const auto tmp            = tuple_wrapper_list[left];
+    tuple_wrapper_list[left]  = tuple_wrapper_list[right];
+    tuple_wrapper_list[right] = tmp;
+}
+
+static inline int
+partition_single_side(vector<TupleWrapper> &tuple_wrapper_list, int left,
+                      int right) {
+    const auto  pivot_idx = right;
+    const auto &pivot     = tuple_wrapper_list[pivot_idx];
+    auto        bar       = left - 1;
+
+    for (auto i = left; i < right; ++i) {
+        if (tuple_wrapper_list[i].compare_to(pivot) < 0) {
+            ++bar;
+            tuple_swap(tuple_wrapper_list, bar, i);
+        }
+    }
+    tuple_swap(tuple_wrapper_list, bar + 1, pivot_idx);
+    return bar + 1;
+}
+
+static inline TupleWrapper
+bfprt_wrapper(vector<TupleWrapper> &tuple_wrapper_list, int i, int left,
+              int right) {
+    if (left == right) {
+        return tuple_wrapper_list[right];
+    }
+
+    const auto p = partition_single_side(tuple_wrapper_list, left, right);
+
+    if (p == i) {
+        return tuple_wrapper_list[p];
+    } else if (p < i) {
+        return bfprt_wrapper(tuple_wrapper_list, i, p + 1, right);
+    } else {
+        return bfprt_wrapper(tuple_wrapper_list, i, left, p - 1);
+    }
+}
+
+static inline Tuple bfprt(const vector<Tuple> &tuples, int i) {
     vector<TupleWrapper> tuple_wrapper_list;
     for (const auto &t : tuples) {
+        tuple_wrapper_list.emplace_back(t, t.score);
     }
+
     return {};
 }
 
