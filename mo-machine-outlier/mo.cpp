@@ -784,7 +784,8 @@ class SinkFunctor {
     unsigned              sampling_rate;
 
     bool is_time_to_sample(unsigned long arrival_time) {
-        const auto time_since_last_sampling = arrival_time - last_sampling_time;
+        const auto time_since_last_sampling =
+            difference(arrival_time, last_sampling_time);
         const auto time_between_samples =
             (1.0 / sampling_rate) * timeunit_scale_factor;
         return sampling_rate == 0
