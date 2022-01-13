@@ -133,6 +133,10 @@ static inline const char *sentiment_to_string(Sentiment sentiment) {
 }
 #endif
 
+unsigned long difference(unsigned long a, unsigned long b) {
+    return max(a, b) - min(a, b);
+}
+
 /*
  * Return a std::vector of std::string_views, obtained from splitting the
  * original string_view. by the delim character.
@@ -523,7 +527,8 @@ class SinkFunctor {
     unsigned              sampling_rate;
 
     bool is_time_to_sample(unsigned long arrival_time) {
-        const auto time_since_last_sampling = arrival_time - last_sampling_time;
+        const auto time_since_last_sampling =
+            difference(arrival_time, last_sampling_time);
         const auto time_between_samples =
             (1.0 / sampling_rate) * timeunit_scale_factor;
         return sampling_rate == 0
@@ -535,9 +540,10 @@ public:
 
     void operator()(optional<Tuple> &input, RuntimeContext &context) {
         if (input) {
-            const auto arrival_time        = current_time();
-            const auto latency             = arrival_time - input->timestamp;
-            const auto interdeparture_time = arrival_time - last_arrival_time;
+            const auto arrival_time = current_time();
+            const auto latency = difference(arrival_time, input->timestamp);
+            const auto interdeparture_time =
+                difference(arrival_time, last_arrival_time);
 
             ++tuples_received;
             last_arrival_time = arrival_time;
@@ -614,7 +620,7 @@ int main(int argc, char *argv[]) {
 
     const auto start_time = current_time();
     graph.run();
-    const auto elapsed_time = current_time() - start_time;
+    const auto elapsed_time = difference(current_time(), start_time);
 
     serialize_to_json(global_latency_metric, global_received_tuples);
     serialize_to_json(global_interdeparture_metric, global_received_tuples);
