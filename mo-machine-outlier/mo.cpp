@@ -135,6 +135,10 @@ const struct option long_opts[] = {
     {"parallelism", 1, 0, 'p'}, {"batch", 1, 0, 'b'}, {"chaining", 1, 0, 'c'},
     {"duration", 1, 0, 'd'},    {0, 0, 0, 0}};
 
+/*
+ * Return difference between a and b, accounting for unsigned arithmetic
+ * wraparound.
+ */
 unsigned long difference(unsigned long a, unsigned long b) {
     return max(a, b) - min(a, b);
 }

@@ -133,6 +133,10 @@ static inline const char *sentiment_to_string(Sentiment sentiment) {
 }
 #endif
 
+/*
+ * Return difference between a and b, accounting for unsigned arithmetic
+ * wraparound.
+ */
 unsigned long difference(unsigned long a, unsigned long b) {
     return max(a, b) - min(a, b);
 }
