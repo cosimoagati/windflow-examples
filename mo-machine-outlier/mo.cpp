@@ -135,6 +135,10 @@ const struct option long_opts[] = {
     {"parallelism", 1, 0, 'p'}, {"batch", 1, 0, 'b'}, {"chaining", 1, 0, 'c'},
     {"duration", 1, 0, 'd'},    {0, 0, 0, 0}};
 
+unsigned long difference(unsigned long a, unsigned long b) {
+    return max(a, b) - min(a, b);
+}
+
 /*
  * Return a std::vector of std::string_views, obtained from splitting the
  * original string_view. by the delim character.
@@ -676,6 +680,7 @@ Tuple bfprt(const vector<Tuple> &tuples, int i) {
     vector<TupleWrapper> tuple_wrapper_list;
     for (const auto &t : tuples) {
     }
+    return {};
 }
 
 class AlertTriggererFunctor {
@@ -710,9 +715,10 @@ public:
 
     void operator()(optional<Tuple> &input, RuntimeContext &context) {
         if (input) {
-            const auto arrival_time        = current_time();
-            const auto latency             = arrival_time - input->timestamp;
-            const auto interdeparture_time = arrival_time - last_arrival_time;
+            const auto arrival_time = current_time();
+            const auto latency = difference(arrival_time, input->timestamp);
+            const auto interdeparture_time =
+                difference(arrival_time, last_arrival_time);
 
             ++tuples_received;
             last_arrival_time = arrival_time;
@@ -811,7 +817,7 @@ int main(int argc, char *argv[]) {
 
     const auto start_time = current_time();
     graph.run();
-    const auto elapsed_time = current_time() - start_time;
+    const auto elapsed_time = difference(current_time(), start_time);
 
     serialize_to_json(global_latency_metric, global_received_tuples);
     serialize_to_json(global_interdeparture_metric, global_received_tuples);
