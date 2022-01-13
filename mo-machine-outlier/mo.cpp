@@ -396,6 +396,7 @@ void validate_args(const Parameters &parameters) {
     if (parameters.source_parallelism == 0
         || parameters.observer_parallelism == 0
         || parameters.anomaly_scorer_parallelism == 0
+        || parameters.alert_triggerer_parallelism == 0
         || parameters.sink_parallelism == 0) {
         cerr << "Error: parallelism degree must be positive\n";
         exit(EXIT_FAILURE);
@@ -412,12 +413,17 @@ void validate_args(const Parameters &parameters) {
     }
 
     if (parameters.anomaly_scorer_parallelism > max_threads) {
-        cerr << "Error: anomaly_scorer parallelism is too high\n";
+        cerr << "Error: anomaly scorer parallelism is too high\n";
         exit(EXIT_FAILURE);
     }
 
-    if (parameters.source_parallelism > max_threads) {
-        cerr << "Error: source parallelism is too high\n";
+    if (parameters.alert_triggerer_parallelism > max_threads) {
+        cerr << "Error: alert triggerer parallelism is too high\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (parameters.sink_parallelism > max_threads) {
+        cerr << "Error: sink parallelism is too high\n";
         exit(EXIT_FAILURE);
     }
 }
