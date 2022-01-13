@@ -78,6 +78,14 @@ struct ObservationResultTuple {
     unsigned long measurement_timestamp;
 };
 
+struct AlertTriggererResultTuple {
+    string        id;
+    double        score;
+    unsigned long timestamp;
+    bool          is_abnormal;
+    unsigned      observation; // XXX This field may not be correct!
+};
+
 template<typename T>
 class Metric {
     vector<T> sorted_samples;
@@ -614,6 +622,7 @@ public:
         if (observation_list.empty()) {
             parent_tuple = tuple;
         }
+        observation_list.push_back(tuple.metadata);
     }
 };
 
@@ -764,10 +773,65 @@ static inline Tuple bfprt(const vector<Tuple> &tuples, int i) {
     return {};
 }
 
+vector<Tuple> identify_abnormal_streams(vector<Tuple> &stream_list) {
+    const size_t median_idx {stream_list.size() / 2};
+    bfprt(stream_list, median_idx);
+    const auto abnormal_stream_list = stream_list;
+    return abnormal_stream_list; // XXX: Is this correct?  Why the copy?
+}
+
 class AlertTriggererFunctor {
+    inline static const auto dupper = sqrt(2);
+    unsigned long            previous_timestamp {0};
+    vector<Tuple>            stream_list;
+    double min_data_instance_score {numeric_limits<double>::max()};
+    double max_data_instance_score {0.0};
+
 public:
-    void operator()(Tuple &tuple) {
-        // TODO
+    void operator()(const Tuple &                       input,
+                    Shipper<AlertTriggererResultTuple> &shipper) {
+        const auto timestamp = input.timestamp;
+
+        if (timestamp > previous_timestamp) {
+            if (!stream_list.empty()) {
+                const auto abnormal_streams =
+                    identify_abnormal_streams(stream_list);
+                const size_t median_idx {stream_list.size() / 2};
+                const auto   min_score    = abnormal_streams[0].score;
+                const auto   median_score = abnormal_streams[median_idx].score;
+
+                for (size_t i {0}; abnormal_streams.size(); ++i) {
+                    const auto &stream_profile = abnormal_streams[i];
+                    const auto  stream_score =
+                        stream_profile.score; // XXX: Should be ANOMALY score!
+                    const auto cur_data_inst_score = stream_profile.score;
+                    auto       is_abnormal =
+                        stream_score > 2 * median_idx - min_score
+                        && stream_score > min_score + 2 * dupper
+                        && cur_data_inst_score > 0.1 + min_data_instance_score;
+
+                    if (is_abnormal) {
+                        shipper.push(
+                            {stream_profile.metadata.id, stream_score, 0});
+                    }
+                }
+                stream_list.clear();
+                min_data_instance_score = numeric_limits<double>::max();
+                max_data_instance_score = 0.0;
+            }
+            previous_timestamp = timestamp;
+        }
+
+        const auto data_inst_score = input.score;
+        if (data_inst_score > max_data_instance_score) {
+            max_data_instance_score = data_inst_score;
+        }
+
+        if (data_inst_score < min_data_instance_score) {
+            min_data_instance_score = data_inst_score;
+        }
+
+        stream_list.push_back(input);
     }
 };
 
@@ -795,7 +859,8 @@ class SinkFunctor {
 public:
     SinkFunctor(unsigned rate = 100) : sampling_rate {rate} {}
 
-    void operator()(optional<Tuple> &input, RuntimeContext &context) {
+    void operator()(optional<AlertTriggererResultTuple> &input,
+                    RuntimeContext &                     context) {
         if (input) {
             const auto arrival_time = current_time();
             const auto latency = difference(arrival_time, input->timestamp);
@@ -860,7 +925,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     AlertTriggererFunctor alert_triggerer_functor;
     auto                  alert_triggerer_node =
-        Map_Builder {alert_triggerer_functor}
+        FlatMap_Builder {alert_triggerer_functor}
             .withParallelism(parameters.alert_triggerer_parallelism)
             .withName("alert triggerer")
             .withOutputBatchSize(parameters.batch_size)
