@@ -26,6 +26,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <unistd.h>
 #include <unordered_map>
 #include <utility>
@@ -332,8 +333,7 @@ static inline vector<MachineMetadata> parse_metadata(const char *filename) {
     return metadata_info;
 }
 
-static inline void parse_and_validate_args(int argc, char **argv,
-                                           Parameters &parameters) {
+static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     int option;
     int index;
 
@@ -382,18 +382,43 @@ static inline void parse_and_validate_args(int argc, char **argv,
                     "(-h) option for usage information.\n";
             exit(EXIT_FAILURE);
         }
+    }
+}
 
-        if (parameters.duration == 0) {
-            cerr << "Error: duration must be positive\n";
-            exit(EXIT_FAILURE);
-        }
-        if (parameters.source_parallelism == 0
-            || parameters.observer_parallelism == 0
-            || parameters.anomaly_scorer_parallelism == 0
-            || parameters.sink_parallelism == 0) {
-            cerr << "Error: parallelism degree must be positive\n";
-            exit(EXIT_FAILURE);
-        }
+void validate_args(const Parameters &parameters) {
+    if (parameters.duration == 0) {
+        cerr << "Error: duration must be positive\n";
+        exit(EXIT_FAILURE);
+    }
+
+    const auto max_threads = thread::hardware_concurrency();
+
+    if (parameters.source_parallelism == 0
+        || parameters.observer_parallelism == 0
+        || parameters.anomaly_scorer_parallelism == 0
+        || parameters.sink_parallelism == 0) {
+        cerr << "Error: parallelism degree must be positive\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (parameters.source_parallelism > max_threads) {
+        cerr << "Error: source parallelism is too high\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (parameters.observer_parallelism > max_threads) {
+        cerr << "Error: observer parallelism is too high\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (parameters.anomaly_scorer_parallelism > max_threads) {
+        cerr << "Error: anomaly_scorer parallelism is too high\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (parameters.source_parallelism > max_threads) {
+        cerr << "Error: source parallelism is too high\n";
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -812,7 +837,8 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
 int main(int argc, char *argv[]) {
     Parameters parameters;
-    parse_and_validate_args(argc, argv, parameters);
+    parse_args(argc, argv, parameters);
+    validate_args(parameters);
     print_initial_parameters(parameters);
 
     PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DEFAULT,

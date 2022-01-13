@@ -22,6 +22,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <unistd.h>
 #include <unordered_map>
 #include <utility>
@@ -229,8 +230,7 @@ static inline Map get_sentiment_map(const char *path) {
     return sentiment_map;
 }
 
-static inline void parse_and_validate_args(int argc, char **argv,
-                                           Parameters &parameters) {
+static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     int option;
     int index;
 
@@ -277,17 +277,45 @@ static inline void parse_and_validate_args(int argc, char **argv,
                     "(-h) option for usage information.\n";
             exit(EXIT_FAILURE);
         }
+    }
+}
 
-        if (parameters.duration == 0) {
-            cerr << "Error: duration must be positive\n";
-            exit(EXIT_FAILURE);
-        }
-        if (parameters.source_parallelism == 0
-            || parameters.map_parallelism == 0
-            || parameters.sink_parallelism == 0) {
-            cerr << "Error: parallelism degree must be positive\n";
-            exit(EXIT_FAILURE);
-        }
+void validate_args(const Parameters &parameters) {
+    if (parameters.duration == 0) {
+        cerr << "Error: duration must be positive\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (parameters.source_parallelism == 0 || parameters.map_parallelism == 0
+        || parameters.sink_parallelism == 0) {
+        cerr << "Error: parallelism degree must be positive\n";
+        exit(EXIT_FAILURE);
+    }
+
+    const auto max_threads = thread::hardware_concurrency();
+
+    if (parameters.source_parallelism > max_threads) {
+        cerr << "Error: source parallelism degree is too large\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (parameters.map_parallelism > max_threads) {
+        cerr << "Error: map parallelism degree is too large\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (parameters.sink_parallelism > max_threads) {
+        cerr << "Error: sink parallelism degree is too large\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if ((parameters.source_parallelism + parameters.map_parallelism
+         + parameters.sink_parallelism)
+            >= max_threads
+        && !parameters.use_chaining) {
+        cerr << "Error: the total number of hardware threads specified is too "
+                "high to be used without chaining.\n";
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -615,7 +643,8 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
 int main(int argc, char *argv[]) {
     Parameters parameters;
-    parse_and_validate_args(argc, argv, parameters);
+    parse_args(argc, argv, parameters);
+    validate_args(parameters);
     print_initial_parameters(parameters);
 
     PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DEFAULT,
