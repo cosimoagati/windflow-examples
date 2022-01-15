@@ -437,11 +437,12 @@ void busy_wait(unsigned long duration) {
 }
 
 /* Global variables */
-atomic_ulong          global_sent_tuples {0};
-atomic_ulong          global_received_tuples {0};
-Metric<unsigned long> global_latency_metric {"latency"};
-Metric<unsigned long> global_interdeparture_metric {"interdeparture-time"};
-Metric<unsigned long> global_service_time_metric {"service-time"};
+static atomic_ulong          global_sent_tuples {0};
+static atomic_ulong          global_received_tuples {0};
+static Metric<unsigned long> global_latency_metric {"latency"};
+static Metric<unsigned long> global_interdeparture_metric {
+    "interdeparture-time"};
+static Metric<unsigned long> global_service_time_metric {"service-time"};
 
 class SourceFunctor {
     static constexpr auto default_path = "tweetstream.jsonl";
