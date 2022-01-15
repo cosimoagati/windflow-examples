@@ -551,8 +551,10 @@ void serialize_to_json(const Metric<unsigned long> &metric,
  */
 void busy_wait(unsigned long duration) {
     const auto start_time = current_time();
-    while (current_time() - start_time < duration)
-        ;
+    auto       now        = start_time;
+    while (now - start_time < duration) {
+        now = current_time();
+    }
 }
 
 /* Global variables */
