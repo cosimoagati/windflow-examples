@@ -140,8 +140,9 @@ public:
 constexpr auto current_time = current_time_nsecs;
 
 const auto timeunit_string = current_time == current_time_usecs ? "microsecond"
-                             : current_time == current_time_nsecs ? "nanosecond"
-                                                                  : "time unit";
+                             : current_time == current_time_nsecs
+                                 ? "nanosecond"
+                                 : "time unit";
 
 const auto timeunit_scale_factor =
     current_time == current_time_usecs   ? 1000000ul
@@ -213,8 +214,8 @@ static inline string &lowercase_in_place(string &s) {
 }
 
 /*
- * Return a std::vector of std::string_views, each representing the "words" in a
- * tweet.  The input string may be modified.
+ * Return a std::vector of std::string_views, each representing the "words" in
+ * a tweet.  The input string may be modified.
  */
 static inline vector<string_view> split_in_words_in_place(string &text) {
     replace_non_alnum_with_spaces_in_place(text);
@@ -692,9 +693,10 @@ public:
                                    data_instance_anomaly_score, tuple.score};
 
         } else {
-            auto &profile                = stream_profiles[id];
-            profile.stream_anomaly_score = profile.stream_anomaly_score * factor
-                                           + data_instance_anomaly_score;
+            auto &profile = stream_profiles[id];
+            profile.stream_anomaly_score =
+                profile.stream_anomaly_score * factor
+                + data_instance_anomaly_score;
             profile.current_data_instance       = tuple.parent_tuple.metadata;
             profile.current_data_instance_score = data_instance_anomaly_score;
 
@@ -977,7 +979,8 @@ int main(int argc, char *argv[]) {
     const auto average_latency =
         accumulate(global_latency_metric.begin(), global_latency_metric.end(),
                    0.0)
-        / (!global_latency_metric.empty() ? global_latency_metric.size() : 1.0);
+        / (!global_latency_metric.empty() ? global_latency_metric.size()
+                                          : 1.0);
     print_statistics(elapsed_time, parameters.duration, global_sent_tuples,
                      average_latency, global_received_tuples);
     return 0;
