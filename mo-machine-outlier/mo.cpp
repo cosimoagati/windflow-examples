@@ -78,6 +78,15 @@ struct ObservationResultTuple {
     unsigned long measurement_timestamp;
 };
 
+template<typename T>
+struct AnomalyResultTuple {
+    string        id;
+    double        stream_anomaly_score;
+    double        current_data_instance_score;
+    unsigned long measurement_timestamp;
+    T             current_data_instance;
+};
+
 struct AlertTriggererResultTuple {
     string        id;
     double        score;
@@ -627,15 +636,6 @@ public:
         }
         observation_list.push_back(tuple.metadata);
     }
-};
-
-template<typename T>
-struct AnomalyResultTuple {
-    string        id;
-    double        stream_anomaly_score;
-    double        current_data_instance_score;
-    unsigned long measurement_timestamp;
-    T             current_data_instance;
 };
 
 // IMPORTANT: Current template parameters are almost certainly wrong, triple
