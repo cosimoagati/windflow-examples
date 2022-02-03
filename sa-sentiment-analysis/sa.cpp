@@ -215,14 +215,16 @@ static inline vector<string> get_tweets_from_file(const char *filename) {
 
 template<typename Map>
 static inline Map get_sentiment_map(const char *path) {
-    const hash<string> gethash;
-    ifstream           input_file {path};
-    Map                sentiment_map;
-    string             word;
-    int                sentiment;
+    const hash<string_view> gethash;
+    ifstream                input_file {path};
+    Map                     sentiment_map;
+    string                  line;
 
-    while (input_file >> word >> sentiment) {
-        sentiment_map[gethash(word)] = sentiment;
+    while (getline(input_file, line)) {
+        const auto line_fields   = string_split(line, '\t');
+        const auto sentiment     = stoi(string {line_fields.back()});
+        const auto word_hash     = gethash(line_fields.front());
+        sentiment_map[word_hash] = sentiment;
     }
     return sentiment_map;
 }
