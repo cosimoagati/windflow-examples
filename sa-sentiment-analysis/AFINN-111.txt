@@ -337,6 +337,7 @@ calm	2
 calmed	2
 calming	2
 calms	2
+can't stand	-3
 cancel	-1
 cancelled	-1
 cancelling	-1
