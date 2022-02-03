@@ -221,7 +221,7 @@ static inline Map get_sentiment_map(const char *path) {
     string                  line;
 
     while (getline(input_file, line)) {
-        const auto line_fields   = string_split(line, '\t');
+        const auto line_fields = string_split(line, '\t');
         const auto sentiment     = stoi(string {line_fields.back()});
         const auto word_hash     = gethash(line_fields.front());
         sentiment_map[word_hash] = sentiment;
