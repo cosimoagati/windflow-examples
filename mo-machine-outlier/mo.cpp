@@ -188,10 +188,6 @@ static inline vector<size_t> get_parallelism_degrees(const char *degrees) {
     return parallelism_degrees;
 }
 
-static inline bool is_punctuation(char c) {
-    return c == '.' || c == ',' || c == '?' || c == '!' || c == ':';
-}
-
 /*
  * Replaces non-alphanumeric characters with a space. The input string s itself
  * is modified. Return a reference to s.
