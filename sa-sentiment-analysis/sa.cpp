@@ -594,13 +594,13 @@ public:
             }
 #ifndef NDEBUG
             const lock_guard lock {print_mutex};
-            cout << input->tweet << " ";
             cout << "arrival time: " << arrival_time
                  << " ts:" << input->timestamp << " latency: " << latency
                  << '\n'
                  << "Received tweet with score " << input->result.score
                  << " and classification "
-                 << sentiment_to_string(input->result.sentiment) << endl;
+                 << sentiment_to_string(input->result.sentiment) << '\n'
+                 << "with contents after trimming: " << input->tweet << " ";
 #endif
         } else {
             global_received_tuples.fetch_add(tuples_received);
