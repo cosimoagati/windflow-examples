@@ -188,37 +188,6 @@ static inline vector<size_t> get_parallelism_degrees(const char *degrees) {
     return parallelism_degrees;
 }
 
-/*
- * Replaces non-alphanumeric characters with a space. The input string s itself
- * is modified. Return a reference to s.
- */
-static inline string &replace_non_alnum_with_spaces_in_place(string &s) {
-    constexpr auto is_not_alnum = [](char c) { return !isalnum(c); };
-    replace_if(s.begin(), s.end(), is_not_alnum, ' ');
-    return s;
-}
-
-/*
- * Convert all characters of string s to lowercase, modifying s in place.
- * Return a reference to s.
- */
-static inline string &lowercase_in_place(string &s) {
-    for (auto &c : s) {
-        c = tolower(c);
-    }
-    return s;
-}
-
-/*
- * Return a std::vector of std::string_views, each representing the "words" in
- * a tweet.  The input string may be modified.
- */
-static inline vector<string_view> split_in_words_in_place(string &text) {
-    replace_non_alnum_with_spaces_in_place(text);
-    lowercase_in_place(text);
-    return string_split(text, ' ');
-}
-
 static inline optional<MachineMetadata>
 parse_google_trace(const string &trace) {
     const auto      values             = string_split(trace, ',');
