@@ -323,12 +323,13 @@ get_scores(const vector<MachineMetadata> &observation_list) {
     return score_package_list;
 }
 
+template<optional<MachineMetadata> parse_trace(const string &)>
 static inline vector<MachineMetadata> parse_metadata(const char *filename) {
     ifstream                metadata_stream {filename};
     vector<MachineMetadata> metadata_info;
 
     for (string line; getline(metadata_stream, line);) {
-        auto metadata = parse_google_trace(line);
+        const auto metadata = parse_trace(line);
         if (metadata) {
             metadata_info.push_back(move(*metadata));
         }
@@ -569,7 +570,7 @@ class SourceFunctor {
 public:
     SourceFunctor(unsigned d = 60, unsigned rate = 60,
                   const char *path = default_path)
-        : machine_metadata {parse_metadata(path)},
+        : machine_metadata {parse_metadata<parse_alibaba_trace>(path)},
           duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {}
 
     void operator()(Source_Shipper<Tuple> &shipper) {
