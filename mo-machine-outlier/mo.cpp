@@ -210,6 +210,26 @@ parse_google_trace(const string &trace) {
     return metadata;
 }
 
+static inline optional<MachineMetadata>
+parse_alibaba_trace(const string &trace) {
+    const auto      values             = string_split(trace, ',');
+    const auto      timestamp_index    = 1;
+    const auto      machine_id_index   = 0;
+    const auto      cpu_usage_index    = 2;
+    const auto      memory_usage_index = 3;
+    MachineMetadata metadata;
+
+    if (values.size() != 7) {
+        return {};
+    }
+
+    metadata.id                    = values[machine_id_index];
+    metadata.measurement_timestamp = stoul(values[timestamp_index].data());
+    metadata.cpu_usage             = stod(values[cpu_usage_index].data()) * 10;
+    metadata.memory_usage = stod(values[memory_usage_index].data()) * 10;
+    return metadata;
+}
+
 double eucledean_norm(const vector<double> &elements) {
     double result {0.0};
     for (const auto &x : elements) {
