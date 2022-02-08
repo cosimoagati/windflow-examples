@@ -335,7 +335,7 @@ static inline vector<MachineMetadata> parse_metadata(const char *filename) {
     vector<MachineMetadata> metadata_info;
 
     for (string line; getline(metadata_stream, line);) {
-        const auto metadata = parse_trace(line);
+        auto metadata = parse_trace(line);
         if (metadata) {
             metadata_info.push_back(move(*metadata));
         }
