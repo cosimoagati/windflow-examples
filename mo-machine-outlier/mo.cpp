@@ -307,7 +307,8 @@ calculate_distance(vector<vector<double>> &matrix) {
 static inline vector<ScorePackage<MachineMetadata>>
 get_scores(const vector<MachineMetadata> &observation_list) {
     vector<ScorePackage<MachineMetadata>> score_package_list;
-    vector<vector<double>>                matrix(observation_list.size(),
+
+    vector<vector<double>> matrix(observation_list.size(),
                                   vector<double>(2, 0.0));
 
     for (unsigned i {0}; i < observation_list.size(); ++i) {
