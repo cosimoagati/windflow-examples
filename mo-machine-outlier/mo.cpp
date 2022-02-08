@@ -241,6 +241,11 @@ double eucledean_norm(const vector<double> &elements) {
 static inline vector<double>
 calculate_distance(vector<vector<double>> &matrix) {
     assert(!matrix.empty());
+#ifndef NDEBUG
+    for (const auto &row : matrix) {
+        assert(!row.empty());
+    }
+#endif
 
     constexpr auto cpu_offset    = 0;
     constexpr auto memory_offset = 1;
