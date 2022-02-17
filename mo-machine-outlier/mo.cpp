@@ -238,97 +238,6 @@ double eucledean_norm(const vector<double> &elements) {
     return sqrt(result);
 }
 
-static inline vector<double>
-calculate_distance(vector<vector<double>> &matrix) {
-    assert(!matrix.empty());
-#ifndef NDEBUG
-    for (const auto &row : matrix) {
-        assert(!row.empty());
-    }
-#endif
-
-    constexpr auto cpu_offset    = 0;
-    constexpr auto memory_offset = 1;
-    vector<double> mins(matrix[0].size());
-    vector<double> maxs(matrix[0].size());
-    const auto     column_number = matrix[0].size();
-
-    for (unsigned col {0}; col < column_number; ++col) {
-        auto min = numeric_limits<double>::min();
-        auto max = numeric_limits<double>::max();
-
-        for (unsigned row {0}; row < matrix.size(); ++row) {
-            const auto &element = matrix[row][col];
-            if (element < min) {
-                min = element;
-            }
-            if (element > min) {
-                max = element;
-            }
-        }
-        mins[col] = min;
-        maxs[col] = max;
-    }
-    mins[cpu_offset] = 0.0;
-    maxs[cpu_offset] = 1.0;
-
-    mins[memory_offset] = 0.0;
-    maxs[memory_offset] = 100.0;
-
-    vector<double> centers(column_number, 0.0);
-    for (unsigned col {0}; col < column_number; ++col) {
-        if (mins[col] == 0 && maxs[col] == 0) {
-            continue;
-        }
-        for (unsigned row {0}; row < matrix.size(); ++row) {
-            matrix[row][col] =
-                (matrix[row][col] - mins[col]) / (maxs[col] - mins[col]);
-            centers[col] += matrix[row][col];
-        }
-        centers[col] /= matrix.size();
-    }
-
-    vector<vector<double>> distances(matrix.size(),
-                                     vector<double>(matrix[0].size(), 0.0));
-
-    for (unsigned row {0}; row < matrix.size(); ++row) {
-        for (unsigned col {0}; col < matrix[row].size(); ++col) {
-            distances[row][col] = abs(matrix[row][col] - centers[col]);
-        }
-    }
-
-    vector<double> l2distances(matrix.size(), 0.0);
-    for (unsigned row {0}; row < l2distances.size(); ++row) {
-        l2distances[row] = eucledean_norm(distances[row]);
-    }
-    return l2distances;
-}
-
-static inline vector<ScorePackage<MachineMetadata>>
-get_scores(const vector<MachineMetadata> &observation_list) {
-    vector<ScorePackage<MachineMetadata>> score_package_list;
-
-    vector<vector<double>> matrix(observation_list.size(),
-                                  vector<double>(2, 0.0));
-
-    for (unsigned i {0}; i < observation_list.size(); ++i) {
-        const auto &metadata = observation_list[i];
-        matrix[i][0]         = metadata.cpu_usage;
-        matrix[i][1]         = metadata.memory_usage;
-    }
-
-    const auto l2distances = calculate_distance(matrix);
-
-    for (unsigned i {0}; i < observation_list.size(); ++i) {
-        const auto &                  metadata = observation_list[i];
-        ScorePackage<MachineMetadata> package {metadata.id,
-                                               1.0 + l2distances[i], metadata};
-        score_package_list.push_back(move(package));
-    }
-
-    return score_package_list;
-}
-
 template<optional<MachineMetadata> parse_trace(const string &)>
 static inline vector<MachineMetadata> parse_metadata(const char *filename) {
     ifstream                metadata_stream {filename};
@@ -601,7 +510,103 @@ public:
     }
 };
 
+class MachineMetadataScorer {
+    static inline vector<double>
+    calculate_distance(vector<vector<double>> &matrix) {
+        assert(!matrix.empty());
+#ifndef NDEBUG
+        for (const auto &row : matrix) {
+            assert(!row.empty());
+        }
+#endif
+
+        constexpr auto cpu_offset    = 0;
+        constexpr auto memory_offset = 1;
+        vector<double> mins(matrix[0].size());
+        vector<double> maxs(matrix[0].size());
+        const auto     column_number = matrix[0].size();
+
+        for (unsigned col {0}; col < column_number; ++col) {
+            auto min = numeric_limits<double>::min();
+            auto max = numeric_limits<double>::max();
+
+            for (unsigned row {0}; row < matrix.size(); ++row) {
+                const auto &element = matrix[row][col];
+                if (element < min) {
+                    min = element;
+                }
+                if (element > min) {
+                    max = element;
+                }
+            }
+            mins[col] = min;
+            maxs[col] = max;
+        }
+        mins[cpu_offset] = 0.0;
+        maxs[cpu_offset] = 1.0;
+
+        mins[memory_offset] = 0.0;
+        maxs[memory_offset] = 100.0;
+
+        vector<double> centers(column_number, 0.0);
+        for (unsigned col {0}; col < column_number; ++col) {
+            if (mins[col] == 0 && maxs[col] == 0) {
+                continue;
+            }
+            for (unsigned row {0}; row < matrix.size(); ++row) {
+                matrix[row][col] =
+                    (matrix[row][col] - mins[col]) / (maxs[col] - mins[col]);
+                centers[col] += matrix[row][col];
+            }
+            centers[col] /= matrix.size();
+        }
+
+        vector<vector<double>> distances(
+            matrix.size(), vector<double>(matrix[0].size(), 0.0));
+
+        for (unsigned row {0}; row < matrix.size(); ++row) {
+            for (unsigned col {0}; col < matrix[row].size(); ++col) {
+                distances[row][col] = abs(matrix[row][col] - centers[col]);
+            }
+        }
+
+        vector<double> l2distances(matrix.size(), 0.0);
+        for (unsigned row {0}; row < l2distances.size(); ++row) {
+            l2distances[row] = eucledean_norm(distances[row]);
+        }
+        return l2distances;
+    }
+
+public:
+    static inline vector<ScorePackage<MachineMetadata>>
+    get_scores(const vector<MachineMetadata> &observation_list) {
+        vector<ScorePackage<MachineMetadata>> score_package_list;
+
+        vector<vector<double>> matrix(observation_list.size(),
+                                      vector<double>(2, 0.0));
+
+        for (unsigned i {0}; i < observation_list.size(); ++i) {
+            const auto &metadata = observation_list[i];
+            matrix[i][0]         = metadata.cpu_usage;
+            matrix[i][1]         = metadata.memory_usage;
+        }
+
+        const auto l2distances = calculate_distance(matrix);
+
+        for (unsigned i {0}; i < observation_list.size(); ++i) {
+            const auto &                  metadata = observation_list[i];
+            ScorePackage<MachineMetadata> package {
+                metadata.id, 1.0 + l2distances[i], metadata};
+            score_package_list.push_back(move(package));
+        }
+
+        return score_package_list;
+    }
+};
+
+template<typename Scorer>
 class ObserverScorerFunctor {
+    Scorer                  scorer {};
     vector<MachineMetadata> observation_list {};
     Tuple                   parent_tuple;
     unsigned long           last_measurement_timestamp {0};
@@ -614,7 +619,8 @@ public:
             tuple.metadata.measurement_timestamp;
         if (current_measurement_timestamp > last_measurement_timestamp) {
             if (!observation_list.empty()) {
-                const auto score_package_list = get_scores(observation_list);
+                const auto score_package_list =
+                    scorer.get_scores(observation_list);
                 for (const auto &package : score_package_list) {
                     shipper.push({parent_tuple, package.id, package.score,
                                   last_measurement_timestamp});
@@ -904,8 +910,8 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
                       .withOutputBatchSize(parameters.batch_size)
                       .build();
 
-    ObserverScorerFunctor observer_functor;
-    auto                  observer_scorer_node =
+    ObserverScorerFunctor<MachineMetadataScorer> observer_functor;
+    auto                                         observer_scorer_node =
         FlatMap_Builder {observer_functor}
             .withParallelism(parameters.observer_parallelism)
             .withName("observation scorer")
