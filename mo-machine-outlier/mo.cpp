@@ -614,7 +614,6 @@ class ObserverScorerFunctor {
 public:
     void operator()(const Tuple &                    tuple,
                     Shipper<ObservationResultTuple> &shipper) {
-        // TODO
         const auto current_measurement_timestamp =
             tuple.metadata.measurement_timestamp;
         if (current_measurement_timestamp > last_measurement_timestamp) {
