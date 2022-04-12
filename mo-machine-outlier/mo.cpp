@@ -477,7 +477,7 @@ static Metric<unsigned long> global_interdeparture_metric {
 static Metric<unsigned long> global_service_time_metric {"service-time"};
 
 class SourceFunctor {
-    static constexpr auto   default_path = "cluster-traces.csv";
+    static constexpr auto   default_path = "machine-usage.csv";
     vector<MachineMetadata> machine_metadata;
     unsigned long           duration;
     unsigned                tuple_rate_per_second;
@@ -486,7 +486,9 @@ public:
     SourceFunctor(unsigned d = 60, unsigned rate = 60,
                   const char *path = default_path)
         : machine_metadata {parse_metadata<parse_alibaba_trace>(path)},
-          duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {}
+          duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {
+        assert(machine_metadata.size() > 0);
+    }
 
     void operator()(Source_Shipper<Tuple> &shipper) {
         const auto end_time    = current_time() + duration;
@@ -766,16 +768,19 @@ bfprt_wrapper(vector<TupleWrapper> &tuple_wrapper_list, int i, int left,
     }
 }
 
-static inline Tuple bfprt(const vector<Tuple> &tuples, int i) {
+static inline Tuple bfprt(const vector<AnomalyResultTuple<Tuple>> &tuples,
+                          int                                      i) {
+    // TODO: This implementation is clearly incomplete and wrong! FIX!!!
     vector<TupleWrapper> tuple_wrapper_list;
     for (const auto &t : tuples) {
-        tuple_wrapper_list.emplace_back(t, t.score);
+        // tuple_wrapper_list.emplace_back(t, t.current_data_instance_score);
     }
 
     return {};
 }
 
-vector<Tuple> identify_abnormal_streams(vector<Tuple> &stream_list) {
+vector<AnomalyResultTuple<Tuple>>
+identify_abnormal_streams(vector<AnomalyResultTuple<Tuple>> &stream_list) {
     const size_t median_idx {stream_list.size() / 2};
     bfprt(stream_list, median_idx);
     const auto abnormal_stream_list = stream_list;
@@ -783,38 +788,42 @@ vector<Tuple> identify_abnormal_streams(vector<Tuple> &stream_list) {
 }
 
 class AlertTriggererFunctor {
-    inline static const auto dupper = sqrt(2);
-    unsigned long            previous_timestamp {0};
-    vector<Tuple>            stream_list;
+    inline static const auto          dupper = sqrt(2);
+    unsigned long                     previous_timestamp {0};
+    vector<AnomalyResultTuple<Tuple>> stream_list;
     double min_data_instance_score {numeric_limits<double>::max()};
     double max_data_instance_score {0.0};
 
 public:
-    void operator()(const Tuple &                       input,
+    void operator()(const AnomalyResultTuple<Tuple> &   input,
                     Shipper<AlertTriggererResultTuple> &shipper) {
-        const auto timestamp = input.timestamp;
+        const auto timestamp = input.measurement_timestamp;
 
         if (timestamp > previous_timestamp) {
             if (!stream_list.empty()) {
                 const auto abnormal_streams =
                     identify_abnormal_streams(stream_list);
                 const size_t median_idx {stream_list.size() / 2};
-                const auto   min_score    = abnormal_streams[0].score;
-                const auto   median_score = abnormal_streams[median_idx].score;
+                const auto   min_score =
+                    abnormal_streams[0].stream_anomaly_score;
+                const auto median_score =
+                    abnormal_streams[median_idx].stream_anomaly_score;
 
-                for (size_t i {0}; abnormal_streams.size(); ++i) {
+                for (size_t i {0}; i < abnormal_streams.size(); ++i) {
                     const auto &stream_profile = abnormal_streams[i];
                     const auto  stream_score =
-                        stream_profile.score; // XXX: Should be ANOMALY score!
-                    const auto cur_data_inst_score = stream_profile.score;
-                    auto       is_abnormal =
+                        stream_profile.stream_anomaly_score;
+                    const auto cur_data_inst_score =
+                        stream_profile.stream_anomaly_score;
+                    auto is_abnormal =
                         stream_score > 2 * median_idx - min_score
                         && stream_score > min_score + 2 * dupper
                         && cur_data_inst_score > 0.1 + min_data_instance_score;
 
                     if (is_abnormal) {
                         shipper.push(
-                            {stream_profile.metadata.id, stream_score, 0});
+                            {stream_profile.current_data_instance.metadata.id,
+                             stream_score, 0});
                     }
                 }
                 stream_list.clear();
@@ -824,7 +833,7 @@ public:
             previous_timestamp = timestamp;
         }
 
-        const auto data_inst_score = input.score;
+        const auto data_inst_score = input.current_data_instance_score;
         if (data_inst_score > max_data_instance_score) {
             max_data_instance_score = data_inst_score;
         }
