@@ -761,6 +761,7 @@ bfprt_wrapper(vector<TupleWrapper> &tuple_wrapper_list, int i, int left,
         return tuple_wrapper_list[right];
     }
 
+    assert(left < right && tuple_wrapper_list.size() < right);
     const auto p = partition_single_side(tuple_wrapper_list, left, right);
 
     if (p == i) {
