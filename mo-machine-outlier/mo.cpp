@@ -923,11 +923,13 @@ public:
                 last_sampling_time = arrival_time;
             }
 #ifndef NDEBUG
-            // const lock_guard lock {print_mutex};
-            // cout << input->id << " ";
-            // cout << "arrival time: " << arrival_time
-            //      << " ts:" << input->timestamp << " latency: " << latency
-            //      << '\n';
+            const lock_guard lock {print_mutex};
+            cout << "id: " << input->id << " "
+                 << " score: " << input->score
+                 << " is_abnormal: " << input->is_abnormal
+                 << " arrival time: " << arrival_time
+                 << " ts:" << input->timestamp << " latency: " << latency
+                 << '\n';
 #endif
         } else {
             global_received_tuples.fetch_add(tuples_received);
