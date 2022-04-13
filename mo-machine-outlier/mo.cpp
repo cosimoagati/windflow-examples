@@ -726,7 +726,7 @@ public:
 };
 
 static inline void tuple_swap(vector<TupleWrapper> &tuple_wrapper_list,
-                              int left, int right) {
+                              size_t left, size_t right) {
     assert(left < right && tuple_wrapper_list.size() > left
            && tuple_wrapper_list.size() > right);
 
@@ -737,27 +737,27 @@ static inline void tuple_swap(vector<TupleWrapper> &tuple_wrapper_list,
 }
 
 static inline int
-partition_single_side(vector<TupleWrapper> &tuple_wrapper_list, int left,
-                      int right) {
+partition_single_side(vector<TupleWrapper> &tuple_wrapper_list, size_t left,
+                      size_t right) {
     assert(left < right && tuple_wrapper_list.size() > left
            && tuple_wrapper_list.size() > right);
 
     const auto  pivot_idx = right;
     const auto &pivot     = tuple_wrapper_list[pivot_idx];
-    auto        bar       = left - 1;
+    auto        bar       = left;
 
     for (auto i = left; i < right; ++i) {
         if (tuple_wrapper_list[i].compare_to(pivot) < 0) {
-            ++bar;
             tuple_swap(tuple_wrapper_list, bar, i);
+            ++bar;
         }
     }
-    tuple_swap(tuple_wrapper_list, bar + 1, pivot_idx);
-    return bar + 1;
+    tuple_swap(tuple_wrapper_list, bar, pivot_idx);
+    return bar;
 }
 
 static inline TupleWrapper
-bfprt_wrapper(vector<TupleWrapper> &tuple_wrapper_list, int i, int left,
+bfprt_wrapper(vector<TupleWrapper> &tuple_wrapper_list, size_t i, size_t left,
               int right) {
     assert(left <= right && left <= i && i <= right
            && tuple_wrapper_list.size() > right);
@@ -773,12 +773,13 @@ bfprt_wrapper(vector<TupleWrapper> &tuple_wrapper_list, int i, int left,
     } else if (p < i) {
         return bfprt_wrapper(tuple_wrapper_list, i, p + 1, right);
     } else {
+        assert(p >= 1);
         return bfprt_wrapper(tuple_wrapper_list, i, left, p - 1);
     }
 }
 
 static inline Tuple bfprt(const vector<AnomalyResultTuple<Tuple>> &tuples,
-                          int                                      i) {
+                          size_t                                   i) {
     // TODO: This implementation is clearly incomplete and wrong! FIX!!!
     vector<TupleWrapper> tuple_wrapper_list;
     for (const auto &t : tuples) {
