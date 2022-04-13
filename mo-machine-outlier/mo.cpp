@@ -759,11 +759,12 @@ partition_single_side(vector<TupleWrapper> &tuple_wrapper_list, int left,
 static inline TupleWrapper
 bfprt_wrapper(vector<TupleWrapper> &tuple_wrapper_list, int i, int left,
               int right) {
+    assert(left <= right && left <= i && i <= right
+           && tuple_wrapper_list.size() > right);
+
     if (left == right) {
         return tuple_wrapper_list[right];
     }
-
-    assert(left < right && tuple_wrapper_list.size() < right);
 
     const auto p = partition_single_side(tuple_wrapper_list, left, right);
 
