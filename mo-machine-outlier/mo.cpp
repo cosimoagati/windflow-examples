@@ -728,13 +728,15 @@ struct TupleWrapper {
 template<typename T>
 static inline void tuple_swap(vector<TupleWrapper<T>> &tuple_wrapper_list,
                               size_t left, size_t right) {
-    assert(left < right && tuple_wrapper_list.size() > left
-           && tuple_wrapper_list.size() > right);
+    assert(left <= right);
+    assert(left < tuple_wrapper_list.size());
+    assert(right < tuple_wrapper_list.size());
 
-    // Using copying for now: should use move semantics here!
-    const auto tmp            = tuple_wrapper_list[left];
-    tuple_wrapper_list[left]  = tuple_wrapper_list[right];
-    tuple_wrapper_list[right] = tmp;
+    if (left != right) {
+        const auto tmp            = move(tuple_wrapper_list[left]);
+        tuple_wrapper_list[left]  = move(tuple_wrapper_list[right]);
+        tuple_wrapper_list[right] = move(tmp);
+    }
 }
 
 template<typename T>
