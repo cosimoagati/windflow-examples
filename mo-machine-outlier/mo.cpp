@@ -743,8 +743,9 @@ template<typename T>
 static inline int
 partition_single_side(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t left,
                       size_t right) {
-    assert(left < right && tuple_wrapper_list.size() > left
-           && tuple_wrapper_list.size() > right);
+    assert(left < right);
+    assert(left < tuple_wrapper_list.size());
+    assert(right < tuple_wrapper_list.size());
 
     const auto  pivot_idx = right;
     const auto &pivot     = tuple_wrapper_list[pivot_idx];
@@ -764,8 +765,10 @@ template<typename T>
 static inline TupleWrapper<T>
 bfprt_wrapper(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t i,
               size_t left, int right) {
-    assert(left <= right && left <= i && i <= right
-           && tuple_wrapper_list.size() > right);
+    assert(left <= right);
+    assert(left <= i);
+    assert(i <= right);
+    assert(right < tuple_wrapper_list.size());
 
     if (left == right) {
         return tuple_wrapper_list[right];
