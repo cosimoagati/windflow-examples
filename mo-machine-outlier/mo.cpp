@@ -727,7 +727,7 @@ public:
 
 static inline void tuple_swap(vector<TupleWrapper> &tuple_wrapper_list,
                               int left, int right) {
-    assert(tuple_wrapper_list.size() > left
+    assert(left < right && tuple_wrapper_list.size() > left
            && tuple_wrapper_list.size() > right);
     // Using copying for now: should use move semantics here!
     const auto tmp            = tuple_wrapper_list[left];
@@ -738,6 +738,8 @@ static inline void tuple_swap(vector<TupleWrapper> &tuple_wrapper_list,
 static inline int
 partition_single_side(vector<TupleWrapper> &tuple_wrapper_list, int left,
                       int right) {
+    assert(left < right && tuple_wrapper_list.size() > left
+           && tuple_wrapper_list.size() > right);
     const auto  pivot_idx = right;
     const auto &pivot     = tuple_wrapper_list[pivot_idx];
     auto        bar       = left - 1;
