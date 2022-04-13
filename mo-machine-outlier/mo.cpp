@@ -706,12 +706,12 @@ public:
     }
 };
 
-class TupleWrapper {
-    Tuple  tuple;
+template<typename T>
+struct TupleWrapper {
+    T      tuple;
     double score;
 
-public:
-    TupleWrapper(const Tuple &tuple, double score)
+    TupleWrapper(const T &tuple, double score)
         : tuple {tuple}, score {score} {}
 
     int compare_to(const TupleWrapper &other) const {
@@ -725,7 +725,8 @@ public:
     }
 };
 
-static inline void tuple_swap(vector<TupleWrapper> &tuple_wrapper_list,
+template<typename T>
+static inline void tuple_swap(vector<TupleWrapper<T>> &tuple_wrapper_list,
                               size_t left, size_t right) {
     assert(left < right && tuple_wrapper_list.size() > left
            && tuple_wrapper_list.size() > right);
@@ -736,8 +737,9 @@ static inline void tuple_swap(vector<TupleWrapper> &tuple_wrapper_list,
     tuple_wrapper_list[right] = tmp;
 }
 
+template<typename T>
 static inline int
-partition_single_side(vector<TupleWrapper> &tuple_wrapper_list, size_t left,
+partition_single_side(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t left,
                       size_t right) {
     assert(left < right && tuple_wrapper_list.size() > left
            && tuple_wrapper_list.size() > right);
@@ -756,9 +758,10 @@ partition_single_side(vector<TupleWrapper> &tuple_wrapper_list, size_t left,
     return bar;
 }
 
-static inline TupleWrapper
-bfprt_wrapper(vector<TupleWrapper> &tuple_wrapper_list, size_t i, size_t left,
-              int right) {
+template<typename T>
+static inline TupleWrapper<T>
+bfprt_wrapper(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t i,
+              size_t left, int right) {
     assert(left <= right && left <= i && i <= right
            && tuple_wrapper_list.size() > right);
 
@@ -778,15 +781,26 @@ bfprt_wrapper(vector<TupleWrapper> &tuple_wrapper_list, size_t i, size_t left,
     }
 }
 
-static inline Tuple bfprt(const vector<AnomalyResultTuple<Tuple>> &tuples,
-                          size_t                                   i) {
-    // TODO: This implementation is clearly incomplete and wrong! FIX!!!
-    vector<TupleWrapper> tuple_wrapper_list;
-    for (const auto &t : tuples) {
-        // tuple_wrapper_list.emplace_back(t, t.current_data_instance_score);
+static inline AnomalyResultTuple<Tuple>
+bfprt(vector<AnomalyResultTuple<Tuple>> &tuples, size_t i) {
+    assert(i < tuples.size());
+
+    vector<TupleWrapper<AnomalyResultTuple<Tuple>>> tuple_wrapper_list;
+    for (const auto &tuple : tuples) {
+        tuple_wrapper_list.emplace_back(tuple,
+                                        tuple.current_data_instance_score);
     }
 
-    return {};
+    const auto median_tuple =
+        bfprt_wrapper(tuple_wrapper_list, i, 0, tuple_wrapper_list.size() - 1)
+            .tuple;
+    tuples.clear();
+
+    for (const auto &wrapper : tuple_wrapper_list) {
+        tuples.push_back(wrapper.tuple);
+    }
+
+    return median_tuple;
 }
 
 vector<AnomalyResultTuple<Tuple>>
