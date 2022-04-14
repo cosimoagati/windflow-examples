@@ -786,9 +786,8 @@ partition_single_side(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t left,
     assert(left < tuple_wrapper_list.size());
     assert(right < tuple_wrapper_list.size());
 
-    const auto  pivot_idx = right;
-    const auto &pivot     = tuple_wrapper_list[pivot_idx];
-    auto        bar       = left;
+    const auto &pivot = tuple_wrapper_list[right];
+    auto        bar   = left;
 
     for (auto i = left; i < right; ++i) {
         if (tuple_wrapper_list[i].compare_to(pivot) < 0) {
@@ -796,7 +795,7 @@ partition_single_side(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t left,
             ++bar;
         }
     }
-    tuple_swap(tuple_wrapper_list, bar, pivot_idx);
+    tuple_swap(tuple_wrapper_list, bar, right);
     return bar;
 }
 
