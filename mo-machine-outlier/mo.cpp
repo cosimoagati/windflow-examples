@@ -781,6 +781,7 @@ template<typename T>
 static inline int
 partition_single_side(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t left,
                       size_t right) {
+    assert(!tuple_wrapper_list.empty());
     assert(left < right);
     assert(left < tuple_wrapper_list.size());
     assert(right < tuple_wrapper_list.size());
