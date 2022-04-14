@@ -578,14 +578,14 @@ class MachineMetadataScorer {
         vector<vector<double>> distances(
             matrix.size(), vector<double>(matrix[0].size(), 0.0));
 
-        for (unsigned row {0}; row < matrix.size(); ++row) {
-            for (unsigned col {0}; col < matrix[row].size(); ++col) {
+        for (size_t row {0}; row < matrix.size(); ++row) {
+            for (size_t col {0}; col < matrix[row].size(); ++col) {
                 distances[row][col] = abs(matrix[row][col] - centers[col]);
             }
         }
 
         vector<double> l2distances(matrix.size(), 0.0);
-        for (unsigned row {0}; row < l2distances.size(); ++row) {
+        for (size_t row {0}; row < l2distances.size(); ++row) {
             l2distances[row] = eucledean_norm(distances[row]);
         }
         return l2distances;
