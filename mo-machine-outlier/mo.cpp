@@ -352,7 +352,7 @@ void print_initial_parameters(const Parameters &parameters) {
     cout << "Running graph with the following parameters:\n"
          << "Source parallelism: " << parameters.source_parallelism << '\n'
          << "Observer parallelism: " << parameters.observer_parallelism << '\n'
-         << "Anomaly scorer parallelism"
+         << "Anomaly scorer parallelism: "
          << parameters.anomaly_scorer_parallelism << '\n'
          << "Sink parallelism: " << parameters.sink_parallelism << '\n'
          << "Batching: ";
