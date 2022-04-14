@@ -638,8 +638,6 @@ public:
     }
 };
 
-// IMPORTANT: Current template parameters are almost certainly wrong, triple
-// check!!!
 class AnomalyScorerFunctor {
     template<typename T>
     struct StreamProfile {
