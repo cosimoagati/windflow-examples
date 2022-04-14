@@ -638,7 +638,7 @@ public:
     }
 };
 
-class AnomalyScorerFunctor {
+class DataStreamAnomalyScorerFunctor {
     template<typename T>
     struct StreamProfile {
         string id;
@@ -955,8 +955,8 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withOutputBatchSize(parameters.batch_size)
             .build();
 
-    AnomalyScorerFunctor anomaly_scorer_functor;
-    auto                 anomaly_scorer_node =
+    DataStreamAnomalyScorerFunctor anomaly_scorer_functor;
+    auto                           anomaly_scorer_node =
         FlatMap_Builder {anomaly_scorer_functor}
             .withParallelism(parameters.anomaly_scorer_parallelism)
             .withName("anomaly scorer")
