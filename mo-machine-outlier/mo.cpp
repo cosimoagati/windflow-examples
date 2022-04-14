@@ -16,6 +16,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
+#include <deque>
 #include <fstream>
 #include <getopt.h>
 #include <iostream>
@@ -704,6 +705,34 @@ public:
     }
 };
 
+class SlidingWindowStreamAnomalyScoreFunctor {
+    unordered_map<string, deque<double>> sliding_window_map;
+    size_t                               window_length;
+    unsigned long                        previous_timestamp;
+
+public:
+    // Window length should be configurable.  For now, we hardcode a value.
+    SlidingWindowStreamAnomalyScoreFunctor()
+        : window_length {10}, previous_timestamp {0} {}
+
+    void operator()(const ObservationResultTuple &      tuple,
+                    Shipper<AnomalyResultTuple<Tuple>> &shipper) {
+        auto &sliding_window = sliding_window_map[tuple.id];
+        sliding_window.push_back(tuple.score);
+        if (sliding_window.size() > window_length) {
+            sliding_window.pop_front();
+        }
+
+        double score_sum {0.0};
+        for (const double score : sliding_window) {
+            score_sum += score;
+        }
+
+        shipper.push({tuple.id, score_sum, tuple.score,
+                      tuple.measurement_timestamp, tuple.parent_tuple});
+    }
+};
+
 template<typename T>
 struct TupleWrapper {
     T      tuple;
@@ -955,8 +984,8 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withOutputBatchSize(parameters.batch_size)
             .build();
 
-    DataStreamAnomalyScorerFunctor anomaly_scorer_functor;
-    auto                           anomaly_scorer_node =
+    SlidingWindowStreamAnomalyScoreFunctor anomaly_scorer_functor;
+    auto                                   anomaly_scorer_node =
         FlatMap_Builder {anomaly_scorer_functor}
             .withParallelism(parameters.anomaly_scorer_parallelism)
             .withName("anomaly scorer")
