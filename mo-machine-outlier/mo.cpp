@@ -826,6 +826,7 @@ bfprt_wrapper(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t i,
 
 static inline AnomalyResultTuple bfprt(vector<AnomalyResultTuple> &tuple_list,
                                        size_t                      i) {
+    assert(!tuple_list.empty());
     assert(i < tuple_list.size());
 
     vector<TupleWrapper<AnomalyResultTuple>> tuple_wrapper_list;
