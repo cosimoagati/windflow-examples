@@ -599,7 +599,7 @@ public:
         valarray<valarray<double>> matrix(valarray<double>(0.0, 2),
                                           observation_list.size());
 
-        for (unsigned i {0}; i < observation_list.size(); ++i) {
+        for (size_t i {0}; i < observation_list.size(); ++i) {
             const auto &metadata = observation_list[i];
             matrix[i][0]         = metadata.cpu_usage;
             matrix[i][1]         = metadata.memory_usage;
@@ -607,7 +607,7 @@ public:
 
         const auto l2distances = calculate_distance(matrix);
 
-        for (unsigned i {0}; i < observation_list.size(); ++i) {
+        for (size_t i {0}; i < observation_list.size(); ++i) {
             const auto &                  metadata = observation_list[i];
             ScorePackage<MachineMetadata> package {
                 metadata.id, 1.0 + l2distances[i], metadata};
