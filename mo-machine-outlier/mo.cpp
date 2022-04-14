@@ -871,8 +871,10 @@ public:
                     identify_abnormal_streams(stream_list);
                 const size_t median_idx {stream_list.size() / 2};
                 const auto   min_score = abnormal_streams[0].anomaly_score;
-                const auto   median_score =
+
                 assert(median_idx < abnormal_streams.size());
+
+                const auto median_score =
                     abnormal_streams[median_idx].anomaly_score;
 
                 for (size_t i {0}; i < abnormal_streams.size(); ++i) {
