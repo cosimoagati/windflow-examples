@@ -879,7 +879,7 @@ public:
                     const auto  stream_score   = stream_profile.anomaly_score;
                     const auto  cur_data_inst_score =
                         stream_profile.anomaly_score;
-                    auto is_abnormal =
+                    const auto is_abnormal =
                         stream_score > 2 * median_score - min_score
                         && stream_score > min_score + 2 * dupper
                         && cur_data_inst_score > 0.1 + min_data_instance_score;
