@@ -66,34 +66,40 @@ struct ScorePackage {
     T      data;
 };
 
-struct Tuple {
-    MachineMetadata metadata;
-    double          score;
-    unsigned long   timestamp;
+struct TupleMetadata {
+    unsigned long id;
+    unsigned long timestamp;
+};
+
+struct SourceTuple {
+    TupleMetadata   metadata;
+    MachineMetadata observation;
 };
 
 struct ObservationResultTuple {
-    Tuple         parent_tuple;
-    string        id;
-    double        score;
-    unsigned long measurement_timestamp;
+    TupleMetadata   metadata;
+    string          id;
+    double          score;
+    unsigned long   timestamp;
+    MachineMetadata observation;
 };
 
-template<typename T>
 struct AnomalyResultTuple {
-    string        id;
-    double        stream_anomaly_score;
-    double        current_data_instance_score;
-    unsigned long measurement_timestamp;
-    T             current_data_instance;
+    TupleMetadata   metadata;
+    string          id;
+    double          anomaly_score;
+    unsigned long   timestamp;
+    MachineMetadata observation;
+    double          individual_score;
 };
 
 struct AlertTriggererResultTuple {
-    string        id;
-    double        score;
-    unsigned long timestamp;
-    bool          is_abnormal;
-    unsigned      observation; // XXX This field may not be correct!
+    TupleMetadata   metadata;
+    string          id;
+    double          anomaly_score;
+    unsigned long   timestamp;
+    bool            is_abnormal;
+    MachineMetadata observation; // XXX This field may not be correct!
 };
 
 template<typename T>
@@ -491,15 +497,18 @@ public:
         assert(machine_metadata.size() > 0);
     }
 
-    void operator()(Source_Shipper<Tuple> &shipper) {
+    void operator()(Source_Shipper<SourceTuple> &shipper) {
         const auto end_time    = current_time() + duration;
         auto       sent_tuples = 0ul;
         size_t     index       = 0;
 
         while (current_time() < end_time) {
-            auto       current_metadata = machine_metadata[index];
-            const auto timestamp        = current_time();
-            shipper.push({move(current_metadata), 0.0, timestamp});
+            const auto          current_observation = machine_metadata[index];
+            const auto          timestamp           = current_time();
+            const TupleMetadata tuple_metadata {
+                timestamp, timestamp}; // Using timestamp as ID
+
+            shipper.push({tuple_metadata, current_observation});
             ++sent_tuples;
             index = (index + 1) % machine_metadata.size();
 
@@ -611,21 +620,21 @@ template<typename Scorer>
 class ObserverScorerFunctor {
     Scorer                  scorer {};
     vector<MachineMetadata> observation_list {};
-    Tuple                   parent_tuple;
+    TupleMetadata           parent_tuple_metadata;
     unsigned long           last_measurement_timestamp {0};
 
 public:
-    void operator()(const Tuple &                    tuple,
+    void operator()(const SourceTuple &              tuple,
                     Shipper<ObservationResultTuple> &shipper) {
-        const auto current_measurement_timestamp =
-            tuple.metadata.measurement_timestamp;
+        const auto current_measurement_timestamp = tuple.metadata.timestamp;
         if (current_measurement_timestamp > last_measurement_timestamp) {
             if (!observation_list.empty()) {
                 const auto score_package_list =
                     scorer.get_scores(observation_list);
                 for (const auto &package : score_package_list) {
-                    shipper.push({parent_tuple, package.id, package.score,
-                                  last_measurement_timestamp});
+                    shipper.push({parent_tuple_metadata, package.id,
+                                  package.score, last_measurement_timestamp,
+                                  package.data});
                 }
                 observation_list.clear();
             }
@@ -633,77 +642,79 @@ public:
         }
 
         if (observation_list.empty()) {
-            parent_tuple = tuple;
+            parent_tuple_metadata = tuple.metadata;
         }
-        observation_list.push_back(tuple.metadata);
+        observation_list.push_back(tuple.observation);
     }
 };
 
-class DataStreamAnomalyScorerFunctor {
-    template<typename T>
-    struct StreamProfile {
-        string id;
-        T      current_data_instance;
-        double stream_anomaly_score;
-        double current_data_instance_score;
-    };
+// class DataStreamAnomalyScorerFunctor {
+//     template<typename T>
+//     struct StreamProfile {
+//         string id;
+//         T      current_data_instance;
+//         double stream_anomaly_score;
+//         double current_data_instance_score;
+//     };
 
-    unordered_map<string, StreamProfile<MachineMetadata>> stream_profiles;
+//     unordered_map<string, StreamProfile<MachineMetadata>> stream_profiles;
 
-    double        lambda {0.017};
-    double        factor {2.71 - lambda};
-    double        threshold {1 / (1 - factor) * 0.5};
-    unsigned long last_measurement_timestamp {0};
-    bool          shrink_next_round {false};
+//     double        lambda {0.017};
+//     double        factor {2.71 - lambda};
+//     double        threshold {1 / (1 - factor) * 0.5};
+//     unsigned long last_measurement_timestamp {0};
+//     bool          shrink_next_round {false};
 
-public:
-    void operator()(const ObservationResultTuple &      tuple,
-                    Shipper<AnomalyResultTuple<Tuple>> &shipper) {
-        const auto current_measurement_timestamp = tuple.measurement_timestamp;
+// public:
+//     void operator()(const ObservationResultTuple &      tuple,
+//                     Shipper<AnomalyResultTuple<Tuple>> &shipper) {
+//         const auto current_measurement_timestamp = tuple.timestamp;
 
-        if (current_measurement_timestamp > last_measurement_timestamp) {
-            for (auto &entry : stream_profiles) {
-                auto &profile = entry.second;
+//         if (current_measurement_timestamp > last_measurement_timestamp) {
+//             for (auto &entry : stream_profiles) {
+//                 auto &profile = entry.second;
 
-                if (shrink_next_round) {
-                    profile.stream_anomaly_score = 0.0;
-                }
+//                 if (shrink_next_round) {
+//                     profile.stream_anomaly_score = 0.0;
+//                 }
 
-                AnomalyResultTuple<Tuple> output {
-                    entry.first, profile.stream_anomaly_score,
-                    profile.current_data_instance_score,
-                    current_measurement_timestamp,
-                    profile.current_data_instance};
-                shipper.push(move(output));
-            }
+//                 AnomalyResultTuple<Tuple> output {
+//                     entry.first, profile.stream_anomaly_score,
+//                     profile.current_data_instance_score,
+//                     current_measurement_timestamp,
+//                     profile.current_data_instance};
+//                 shipper.push(move(output));
+//             }
 
-            if (shrink_next_round) {
-                shrink_next_round = false;
-            }
-            last_measurement_timestamp = current_measurement_timestamp;
-        }
+//             if (shrink_next_round) {
+//                 shrink_next_round = false;
+//             }
+//             last_measurement_timestamp = current_measurement_timestamp;
+//         }
 
-        const auto id                          = tuple.id;
-        const auto data_instance_anomaly_score = tuple.score;
+//         const auto id                          = tuple.id;
+//         const auto data_instance_anomaly_score = tuple.score;
 
-        if (stream_profiles.find(id) != stream_profiles.end()) {
-            stream_profiles[id] = {id, tuple.parent_tuple.metadata,
-                                   data_instance_anomaly_score, tuple.score};
+//         if (stream_profiles.find(id) != stream_profiles.end()) {
+//             stream_profiles[id] = {id, tuple.parent_tuple.metadata,
+//                                    data_instance_anomaly_score,
+//                                    tuple.score};
 
-        } else {
-            auto &profile = stream_profiles[id];
-            profile.stream_anomaly_score =
-                profile.stream_anomaly_score * factor
-                + data_instance_anomaly_score;
-            profile.current_data_instance       = tuple.parent_tuple.metadata;
-            profile.current_data_instance_score = data_instance_anomaly_score;
+//         } else {
+//             auto &profile = stream_profiles[id];
+//             profile.stream_anomaly_score =
+//                 profile.stream_anomaly_score * factor
+//                 + data_instance_anomaly_score;
+//             profile.current_data_instance       =
+//             tuple.parent_tuple.metadata; profile.current_data_instance_score
+//             = data_instance_anomaly_score;
 
-            if (profile.stream_anomaly_score > threshold) {
-                shrink_next_round = true;
-            }
-        }
-    }
-};
+//             if (profile.stream_anomaly_score > threshold) {
+//                 shrink_next_round = true;
+//             }
+//         }
+//     }
+// };
 
 class SlidingWindowStreamAnomalyScoreFunctor {
     unordered_map<string, deque<double>> sliding_window_map;
@@ -715,8 +726,8 @@ public:
     SlidingWindowStreamAnomalyScoreFunctor()
         : window_length {10}, previous_timestamp {0} {}
 
-    void operator()(const ObservationResultTuple &      tuple,
-                    Shipper<AnomalyResultTuple<Tuple>> &shipper) {
+    void operator()(const ObservationResultTuple &tuple,
+                    Shipper<AnomalyResultTuple> & shipper) {
         auto &sliding_window = sliding_window_map[tuple.id];
         sliding_window.push_back(tuple.score);
         if (sliding_window.size() > window_length) {
@@ -727,9 +738,8 @@ public:
         for (const double score : sliding_window) {
             score_sum += score;
         }
-
-        shipper.push({tuple.id, score_sum, tuple.score,
-                      tuple.measurement_timestamp, tuple.parent_tuple});
+        shipper.push({tuple.metadata, tuple.id, score_sum, tuple.timestamp,
+                      tuple.observation, tuple.score});
     }
 };
 
@@ -813,14 +823,13 @@ bfprt_wrapper(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t i,
     }
 }
 
-static inline AnomalyResultTuple<Tuple>
-bfprt(vector<AnomalyResultTuple<Tuple>> &tuples, size_t i) {
+static inline AnomalyResultTuple bfprt(vector<AnomalyResultTuple> &tuples,
+                                       size_t                      i) {
     assert(i < tuples.size());
 
-    vector<TupleWrapper<AnomalyResultTuple<Tuple>>> tuple_wrapper_list;
+    vector<TupleWrapper<AnomalyResultTuple>> tuple_wrapper_list;
     for (const auto &tuple : tuples) {
-        tuple_wrapper_list.emplace_back(tuple,
-                                        tuple.current_data_instance_score);
+        tuple_wrapper_list.emplace_back(tuple, tuple.individual_score);
     }
 
     const auto median_tuple =
@@ -835,8 +844,8 @@ bfprt(vector<AnomalyResultTuple<Tuple>> &tuples, size_t i) {
     return median_tuple;
 }
 
-vector<AnomalyResultTuple<Tuple>>
-identify_abnormal_streams(vector<AnomalyResultTuple<Tuple>> &stream_list) {
+vector<AnomalyResultTuple>
+identify_abnormal_streams(vector<AnomalyResultTuple> &stream_list) {
     const size_t median_idx {stream_list.size() / 2};
     bfprt(stream_list, median_idx);
     const auto abnormal_stream_list = stream_list;
@@ -844,42 +853,40 @@ identify_abnormal_streams(vector<AnomalyResultTuple<Tuple>> &stream_list) {
 }
 
 class AlertTriggererFunctor {
-    inline static const auto          dupper = sqrt(2);
-    unsigned long                     previous_timestamp {0};
-    vector<AnomalyResultTuple<Tuple>> stream_list;
+    inline static const auto   dupper = sqrt(2);
+    unsigned long              previous_timestamp {0};
+    vector<AnomalyResultTuple> stream_list;
     double min_data_instance_score {numeric_limits<double>::max()};
     double max_data_instance_score {0.0};
 
 public:
-    void operator()(const AnomalyResultTuple<Tuple> &   input,
+    void operator()(const AnomalyResultTuple &          input,
                     Shipper<AlertTriggererResultTuple> &shipper) {
-        const auto timestamp = input.measurement_timestamp;
+        const auto timestamp = input.timestamp;
 
         if (timestamp > previous_timestamp) {
             if (!stream_list.empty()) {
                 const auto abnormal_streams =
                     identify_abnormal_streams(stream_list);
                 const size_t median_idx {stream_list.size() / 2};
-                const auto   min_score =
-                    abnormal_streams[0].stream_anomaly_score;
-                const auto median_score =
-                    abnormal_streams[median_idx].stream_anomaly_score;
+                const auto   min_score = abnormal_streams[0].anomaly_score;
+                const auto   median_score =
+                    abnormal_streams[median_idx].anomaly_score;
 
                 for (size_t i {0}; i < abnormal_streams.size(); ++i) {
                     const auto &stream_profile = abnormal_streams[i];
-                    const auto  stream_score =
-                        stream_profile.stream_anomaly_score;
-                    const auto cur_data_inst_score =
-                        stream_profile.stream_anomaly_score;
+                    const auto  stream_score   = stream_profile.anomaly_score;
+                    const auto  cur_data_inst_score =
+                        stream_profile.anomaly_score;
                     auto is_abnormal =
                         stream_score > 2 * median_idx - min_score
                         && stream_score > min_score + 2 * dupper
                         && cur_data_inst_score > 0.1 + min_data_instance_score;
 
                     if (is_abnormal) {
-                        shipper.push(
-                            {stream_profile.current_data_instance.metadata.id,
-                             stream_score, 0});
+                        shipper.push({input.metadata, stream_profile.id,
+                                      stream_score, stream_profile.timestamp,
+                                      is_abnormal, input.observation});
                     }
                 }
                 stream_list.clear();
@@ -889,7 +896,7 @@ public:
             previous_timestamp = timestamp;
         }
 
-        const auto data_inst_score = input.current_data_instance_score;
+        const auto data_inst_score = input.individual_score;
         if (data_inst_score > max_data_instance_score) {
             max_data_instance_score = data_inst_score;
         }
@@ -952,7 +959,7 @@ public:
 #ifndef NDEBUG
             const lock_guard lock {print_mutex};
             cout << "id: " << input->id << " "
-                 << " score: " << input->score
+                 << "anomaly score: " << input->anomaly_score
                  << " is_abnormal: " << input->is_abnormal
                  << " arrival time: " << arrival_time
                  << " ts:" << input->timestamp << " latency: " << latency
