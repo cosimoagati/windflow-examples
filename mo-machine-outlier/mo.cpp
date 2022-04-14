@@ -824,22 +824,22 @@ bfprt_wrapper(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t i,
     }
 }
 
-static inline AnomalyResultTuple bfprt(vector<AnomalyResultTuple> &tuples,
+static inline AnomalyResultTuple bfprt(vector<AnomalyResultTuple> &tuple_list,
                                        size_t                      i) {
-    assert(i < tuples.size());
+    assert(i < tuple_list.size());
 
     vector<TupleWrapper<AnomalyResultTuple>> tuple_wrapper_list;
-    for (const auto &tuple : tuples) {
+    for (const auto &tuple : tuple_list) {
         tuple_wrapper_list.emplace_back(tuple, tuple.individual_score);
     }
 
     const auto median_tuple =
         bfprt_wrapper(tuple_wrapper_list, i, 0, tuple_wrapper_list.size() - 1)
             .tuple;
-    tuples.clear();
+    tuple_list.clear();
 
     for (const auto &wrapper : tuple_wrapper_list) {
-        tuples.push_back(wrapper.tuple);
+        tuple_list.push_back(wrapper.tuple);
     }
 
     return median_tuple;
