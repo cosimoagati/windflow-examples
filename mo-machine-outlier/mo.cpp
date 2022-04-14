@@ -563,11 +563,11 @@ class MachineMetadataScorer {
         maxs[memory_offset] = 100.0;
 
         vector<double> centers(column_number, 0.0);
-        for (unsigned col {0}; col < column_number; ++col) {
+        for (size_t col {0}; col < column_number; ++col) {
             if (mins[col] == 0 && maxs[col] == 0) {
                 continue;
             }
-            for (unsigned row {0}; row < matrix.size(); ++row) {
+            for (size_t row {0}; row < matrix.size(); ++row) {
                 matrix[row][col] =
                     (matrix[row][col] - mins[col]) / (maxs[col] - mins[col]);
                 centers[col] += matrix[row][col];
