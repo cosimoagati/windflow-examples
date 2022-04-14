@@ -900,13 +900,12 @@ public:
             previous_timestamp = timestamp;
         }
 
-        const auto data_inst_score = input.individual_score;
-        if (data_inst_score > max_data_instance_score) {
-            max_data_instance_score = data_inst_score;
+        if (input.individual_score > max_data_instance_score) {
+            max_data_instance_score = input.individual_score;
         }
 
-        if (data_inst_score < min_data_instance_score) {
-            min_data_instance_score = data_inst_score;
+        if (input.individual_score < min_data_instance_score) {
+            min_data_instance_score = input.individual_score;
         }
 
         stream_list.push_back(input);
