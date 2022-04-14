@@ -31,6 +31,7 @@
 #include <unistd.h>
 #include <unordered_map>
 #include <utility>
+#include <valarray>
 #include <vector>
 #include <wf/windflow.hpp>
 
@@ -525,19 +526,19 @@ public:
 
 class MachineMetadataScorer {
     static inline vector<double>
-    calculate_distance(vector<vector<double>> &matrix) {
-        assert(!matrix.empty());
+    calculate_distance(valarray<valarray<double>> &matrix) {
+        assert(matrix.size() > 0);
 #ifndef NDEBUG
         for (const auto &row : matrix) {
-            assert(!row.empty());
+            assert(row.size() > 0);
         }
 #endif
 
-        constexpr auto cpu_offset    = 0;
-        constexpr auto memory_offset = 1;
-        vector<double> mins(matrix[0].size());
-        vector<double> maxs(matrix[0].size());
-        const auto     column_number = matrix[0].size();
+        constexpr auto   cpu_offset    = 0;
+        constexpr auto   memory_offset = 1;
+        valarray<double> mins(matrix[0].size());
+        valarray<double> maxs(matrix[0].size());
+        const auto       column_number = matrix[0].size();
 
         for (unsigned col {0}; col < column_number; ++col) {
             auto min = numeric_limits<double>::min();
@@ -595,8 +596,8 @@ public:
     get_scores(const vector<MachineMetadata> &observation_list) {
         vector<ScorePackage<MachineMetadata>> score_package_list;
 
-        vector<vector<double>> matrix(observation_list.size(),
-                                      vector<double>(2, 0.0));
+        valarray<valarray<double>> matrix(valarray<double>(0.0, 2),
+                                          observation_list.size());
 
         for (unsigned i {0}; i < observation_list.size(); ++i) {
             const auto &metadata = observation_list[i];
