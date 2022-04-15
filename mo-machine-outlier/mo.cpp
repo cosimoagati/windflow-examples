@@ -608,7 +608,7 @@ public:
         for (size_t i {0}; i < observation_list.size(); ++i) {
             const auto &                  metadata = observation_list[i];
             ScorePackage<MachineMetadata> package {
-                metadata.id, 1.0 + l2distances[i], metadata};
+                metadata.machine_ip, 1.0 + l2distances[i], metadata};
             score_package_list.push_back(move(package));
         }
 
