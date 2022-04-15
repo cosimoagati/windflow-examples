@@ -238,7 +238,7 @@ parse_alibaba_trace(const string &trace) {
     return metadata;
 }
 
-double eucledean_norm(const vector<double> &elements) {
+double eucledean_norm(const valarray<double> &elements) {
     double result {0.0};
     for (const auto &x : elements) {
         result += pow(x, 2.0);
@@ -524,9 +524,10 @@ public:
 };
 
 class MachineMetadataScorer {
-    static inline vector<double>
     static constexpr auto cpu_idx    = 0;
     static constexpr auto memory_idx = 1;
+
+    static inline valarray<double>
     calculate_distance(valarray<valarray<double>> &matrix) {
         assert(matrix.size() > 0);
 #ifndef NDEBUG
@@ -573,8 +574,8 @@ class MachineMetadataScorer {
             centers[col] /= matrix.size();
         }
 
-        vector<vector<double>> distances(
-            matrix.size(), vector<double>(matrix[0].size(), 0.0));
+        valarray<valarray<double>> distances(
+            valarray<double>(0.0, matrix[0].size()), matrix.size());
 
         for (size_t row {0}; row < matrix.size(); ++row) {
             for (size_t col {0}; col < matrix[row].size(); ++col) {
@@ -582,7 +583,7 @@ class MachineMetadataScorer {
             }
         }
 
-        vector<double> l2distances(matrix.size(), 0.0);
+        valarray<double> l2distances(matrix.size());
         for (size_t row {0}; row < l2distances.size(); ++row) {
             l2distances[row] = eucledean_norm(distances[row]);
         }
