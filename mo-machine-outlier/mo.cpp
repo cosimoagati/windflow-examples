@@ -52,7 +52,6 @@ struct Parameters {
 };
 
 struct MachineMetadata {
-    string        id;
     string        machine_ip;
     double        cpu_usage;
     double        memory_usage;
@@ -211,7 +210,7 @@ parse_google_trace(const string &trace) {
         return {};
     }
 
-    metadata.id                    = values[machine_id_index];
+    metadata.machine_ip            = values[machine_id_index];
     metadata.measurement_timestamp = stoul(values[timestamp_index].data());
     metadata.cpu_usage             = stod(values[cpu_usage_index].data()) * 10;
     metadata.memory_usage = stod(values[memory_usage_index].data()) * 10;
@@ -231,7 +230,7 @@ parse_alibaba_trace(const string &trace) {
         return {};
     }
 
-    metadata.id = values[machine_id_index];
+    metadata.machine_ip = values[machine_id_index];
     metadata.measurement_timestamp =
         stoul(values[timestamp_index].data()) * 1000;
     metadata.cpu_usage    = stod(values[cpu_usage_index].data()) * 10;
