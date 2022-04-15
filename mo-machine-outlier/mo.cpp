@@ -233,8 +233,8 @@ parse_alibaba_trace(const string &trace) {
     metadata.machine_ip = values[machine_id_index];
     metadata.measurement_timestamp =
         stoul(values[timestamp_index].data()) * 1000;
-    metadata.cpu_usage    = stod(values[cpu_usage_index].data()) * 10;
-    metadata.memory_usage = stod(values[memory_usage_index].data()) * 10;
+    metadata.cpu_usage    = stod(values[cpu_usage_index].data());
+    metadata.memory_usage = stod(values[memory_usage_index].data());
     return metadata;
 }
 
