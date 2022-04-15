@@ -598,9 +598,9 @@ public:
                                           observation_list.size());
 
         for (size_t i {0}; i < observation_list.size(); ++i) {
-            const auto &metadata = observation_list[i];
-            matrix[i][0]         = metadata.cpu_usage;
-            matrix[i][1]         = metadata.memory_usage;
+            const auto &metadata  = observation_list[i];
+            matrix[i][cpu_idx]    = metadata.cpu_usage;
+            matrix[i][memory_idx] = metadata.memory_usage;
         }
 
         const auto l2distances = calculate_distance(matrix);
