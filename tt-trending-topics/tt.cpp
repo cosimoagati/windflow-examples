@@ -13,6 +13,7 @@ using namespace wf;
 struct TupleMetadata {
     unsigned long id;
     unsigned long timestamp;
+    bool          tick;
 };
 
 struct Tweet {
