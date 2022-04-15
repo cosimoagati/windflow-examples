@@ -535,7 +535,6 @@ class MachineMetadataScorer {
             assert(row.size() > 0);
         }
 #endif
-
         valarray<double> mins(matrix[0].size());
         valarray<double> maxs(matrix[0].size());
         const auto       column_number = matrix[0].size();
@@ -605,7 +604,6 @@ public:
         }
 
         const auto l2distances = calculate_distance(matrix);
-
         for (size_t i {0}; i < observation_list.size(); ++i) {
             const auto &                  metadata = observation_list[i];
             ScorePackage<MachineMetadata> package {
@@ -906,11 +904,9 @@ public:
         if (input.individual_score > max_data_instance_score) {
             max_data_instance_score = input.individual_score;
         }
-
         if (input.individual_score < min_data_instance_score) {
             min_data_instance_score = input.individual_score;
         }
-
         stream_list.push_back(input);
     }
 };
