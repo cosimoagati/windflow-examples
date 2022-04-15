@@ -11,3 +11,11 @@
 /sa-sentiment-analysis/metric-individual-sink-interdeparture-time.json
 /sa-sentiment-analysis/metric-service-time.json
 /mo-machine-outlier/*.org
+/gmon.out
+/tt-trending-topics/gmon.out
+/mo-machine-outlier/gmon.out
+/mo-machine-outlier/machine-usage.csv
+/mo-machine-outlier/metric-interdeparture-time.json
+/mo-machine-outlier/metric-latency.json
+/mo-machine-outlier/metric-service-time.json
+/mo-machine-outlier/output.txt
