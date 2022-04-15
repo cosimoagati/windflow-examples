@@ -545,12 +545,11 @@ class MachineMetadataScorer {
             auto max = numeric_limits<double>::max();
 
             for (size_t row {0}; row < matrix.size(); ++row) {
-                const auto &element = matrix[row][col];
-                if (element < min) {
-                    min = element;
+                if (matrix[row][col] < min) {
+                    min = matrix[row][col];
                 }
-                if (element > min) {
-                    max = element;
+                if (matrix[row][col] > min) {
+                    max = matrix[row][col];
                 }
             }
             mins[col] = min;
