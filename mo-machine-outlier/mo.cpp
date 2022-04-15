@@ -561,7 +561,7 @@ class MachineMetadataScorer {
         mins[memory_idx] = 0.0;
         maxs[memory_idx] = 100.0;
 
-        vector<double> centers(column_number, 0.0);
+        valarray<double> centers(column_number);
         for (size_t col {0}; col < column_number; ++col) {
             if (mins[col] == 0 && maxs[col] == 0) {
                 continue;
