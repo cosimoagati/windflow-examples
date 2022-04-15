@@ -540,11 +540,11 @@ class MachineMetadataScorer {
         valarray<double> maxs(matrix[0].size());
         const auto       column_number = matrix[0].size();
 
-        for (unsigned col {0}; col < column_number; ++col) {
+        for (size_t col {0}; col < column_number; ++col) {
             auto min = numeric_limits<double>::min();
             auto max = numeric_limits<double>::max();
 
-            for (unsigned row {0}; row < matrix.size(); ++row) {
+            for (size_t row {0}; row < matrix.size(); ++row) {
                 const auto &element = matrix[row][col];
                 if (element < min) {
                     min = element;
