@@ -534,8 +534,8 @@ class MachineMetadataScorer {
         }
 #endif
 
-        constexpr auto   cpu_offset    = 0;
-        constexpr auto   memory_offset = 1;
+        constexpr auto   cpu_idx    = 0;
+        constexpr auto   memory_idx = 1;
         valarray<double> mins(matrix[0].size());
         valarray<double> maxs(matrix[0].size());
         const auto       column_number = matrix[0].size();
@@ -556,11 +556,11 @@ class MachineMetadataScorer {
             mins[col] = min;
             maxs[col] = max;
         }
-        mins[cpu_offset] = 0.0;
-        maxs[cpu_offset] = 1.0;
+        mins[cpu_idx] = 0.0;
+        maxs[cpu_idx] = 1.0;
 
-        mins[memory_offset] = 0.0;
-        maxs[memory_offset] = 100.0;
+        mins[memory_idx] = 0.0;
+        maxs[memory_idx] = 100.0;
 
         vector<double> centers(column_number, 0.0);
         for (size_t col {0}; col < column_number; ++col) {
