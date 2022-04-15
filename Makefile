@@ -1,4 +1,5 @@
-CPU_EXAMPLES:= example1 example2 sa-sentiment-analysis/sa mo-machine-outlier/mo
+CPU_EXAMPLES:= example1 example2 sa-sentiment-analysis/sa \
+mo-machine-outlier/mo tt-trending-topics/tt
 GPU_EXAMPLES:= example3 example4 example5
 CXX = g++
 CXXFLAGS = -std=c++17 -pedantic -O3 -fno-exceptions -flto -fno-permissive	\
@@ -50,6 +51,7 @@ gpu: $(GPU_EXAMPLES)
 
 sa: sa-sentiment-analysis/sa
 mo: mo-machine-outlier/mo
+tt: tt-trending-topics/tt
 
 clean:
 	rm -f $(CPU_EXAMPLES) $(GPU_EXAMPLES) $(CPU_OBJS) $(GPU_OBJS)
