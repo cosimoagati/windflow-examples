@@ -525,6 +525,8 @@ public:
 
 class MachineMetadataScorer {
     static inline vector<double>
+    static constexpr auto cpu_idx    = 0;
+    static constexpr auto memory_idx = 1;
     calculate_distance(valarray<valarray<double>> &matrix) {
         assert(matrix.size() > 0);
 #ifndef NDEBUG
@@ -533,8 +535,6 @@ class MachineMetadataScorer {
         }
 #endif
 
-        constexpr auto   cpu_idx    = 0;
-        constexpr auto   memory_idx = 1;
         valarray<double> mins(matrix[0].size());
         valarray<double> maxs(matrix[0].size());
         const auto       column_number = matrix[0].size();
