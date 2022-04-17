@@ -1,6 +1,9 @@
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <cstdlib>
+#include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -9,6 +12,20 @@
 
 using namespace std;
 using namespace wf;
+
+struct Parameters {
+    unsigned source_parallelism {1};
+    unsigned topic_extractor_parallelism {1};
+    unsigned rolling_counter_parallelism {1};
+    unsigned intermediate_ranking_parallelism {1};
+    unsigned total_ranker_parallelism {1};
+    unsigned sink_parallelism {1};
+    unsigned batch_size {0};
+    unsigned duration {60};
+    unsigned tuple_rate {1000};
+    unsigned sampling_rate {100};
+    bool     use_chaining {false};
+};
 
 struct TupleMetadata {
     unsigned long id;
@@ -31,24 +48,126 @@ struct Topic {
 struct Counts {
     TupleMetadata metadata;
     string        word;
+    unsigned long count;
     size_t        window_length;
 };
 
-struct IRankings {
-    TupleMetadata  metadata;
-    vector<double> rankings;
+template<typename T>
+class Rankable {
+    T      object;
+    size_t count;
+
+public:
+    Rankable(const T &object, size_t count) : object {object}, count {count} {}
+
+    const T &get_object() const {
+        return object;
+    }
+
+    size_t get_count() const {
+        return count;
+    }
 };
 
-struct TRankings {
-    TupleMetadata  metadata;
-    vector<double> rankings;
+template<typename T>
+class Rankings {
+    static constexpr auto default_count = 10u;
+
+    size_t              max_size_field;
+    vector<Rankable<T>> ranked_items;
+
+    optional<size_t> find_rank_of(Rankable<T> r) {
+        const auto &tag = r.get_object();
+        for (size_t rank {0}; rank < ranked_items.size(); ++rank) {
+            const auto &current_obj = ranked_items[rank].get_object();
+
+            if (current_obj == tag) {
+                return rank;
+            }
+        }
+        return {};
+    }
+
+    void rerank() {
+        sort(ranked_items.begin(), ranked_items.end());
+        reverse(ranked_items.begin(), ranked_items.end());
+    }
+
+    void shrink_rankings_if_needed() {
+        if (ranked_items.size() > max_size_field) {
+            ranked_items.erase(ranked_items.begin() + max_size_field);
+        }
+    }
+
+    void add_or_replace(const Rankable<T> &rankable) {
+        const auto rank = find_rank_of(rankable);
+        if (rank) {
+            assert(*rank < ranked_items.size());
+            ranked_items[*rank] = rankable;
+        } else {
+            ranked_items.push_back(rankable);
+        }
+    }
+
+public:
+    Rankings(size_t top_n = default_count) : max_size_field {top_n} {
+        if (top_n < 1) {
+            cerr << "Error initializing Rankings object: top_n must be >= 1\n";
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    size_t max_size() const {
+        return max_size_field;
+    }
+
+    unsigned size() const {
+        return ranked_items.size();
+    }
+
+    vector<Rankable<T>> get_rankings() const {
+        vector<Rankable<T>> result;
+        for (const auto &item : ranked_items) {
+            result.push_back(item);
+        }
+        return result;
+    }
+
+    void update_with(Rankable<T> r) {
+        // XXX: THIS SHOULD BE THREAD SAFE!!!
+        add_or_replace(r);
+        rerank();
+        shrink_rankings_if_needed();
+    }
+
+    void update_with(const Rankings<T> &other) {
+        for (const auto &r : other.get_rankings()) {
+            update_with(r);
+        }
+    }
+
+    void prune_zero_counts() {
+        size_t i {0};
+        while (i < ranked_items.size()) {
+            if (ranked_items[i].get_count() == 0) {
+                ranked_items.erase(ranked_items.begin() + i);
+            } else {
+                ++i;
+            }
+        }
+    }
+};
+
+struct RankingsTuple {
+    TupleMetadata    metadata;
+    Rankings<string> rankings;
 };
 
 inline uint64_t current_time_msecs() __attribute__((always_inline));
 inline uint64_t current_time_msecs() {
     struct timespec t;
     clock_gettime(CLOCK_REALTIME, &t);
-    return (t.tv_sec) * 1000L + t.tv_nsec;
+    return (t.tv_sec) * 1000UL + (t.tv_nsec / 1000000UL);
 }
 
 static inline vector<string_view> string_split(const string_view &s,
@@ -274,16 +393,35 @@ public:
 };
 
 class RollingCounterFunctor {
-    unsigned                     window_length_in_seconds {300};
-    unsigned                     emit_frequency_in_seconds {60};
+    unsigned                     window_length_in_seconds;
+    unsigned                     emit_frequency_in_milliseconds;
+    unsigned long                last_shipping_time;
     SlidingWindowCounter<string> counter;
     NthLastModifiedTimeTracker   last_modified_tracker;
 
     TupleMetadata first_parent {0};
 
+    void ship_all(Shipper<Counts> &shipper) {
+        const auto counts = counter.get_counts_then_advance_window();
+        const auto actual_window_length_in_seconds =
+            last_modified_tracker.seconds_since_oldest_modification();
+
+        for (const auto &kv : counts) {
+            const auto &word  = kv.first;
+            const auto  count = kv.second;
+            shipper.push(
+                {first_parent, word, count, actual_window_length_in_seconds});
+        }
+        first_parent = {0};
+    }
+
 public:
-    RollingCounterFunctor()
-        : counter {window_length_in_seconds / emit_frequency_in_seconds},
+    RollingCounterFunctor(unsigned window_length_in_seconds  = 300,
+                          unsigned emit_frequency_in_seconds = 60)
+        : window_length_in_seconds {window_length_in_seconds},
+          emit_frequency_in_milliseconds {emit_frequency_in_seconds * 1000u},
+          last_shipping_time {current_time_msecs()},
+          counter {window_length_in_seconds / emit_frequency_in_seconds},
           last_modified_tracker {window_length_in_seconds
                                  / emit_frequency_in_seconds} {}
 
@@ -295,14 +433,68 @@ public:
             first_parent = topic.metadata;
         }
 
-        // TODO: Need to actually send tuples!!!
+        auto time_diff = current_time_msecs() - last_shipping_time;
+        while (time_diff >= emit_frequency_in_milliseconds) {
+            ship_all(shipper);
+            last_shipping_time = current_time_msecs();
+            time_diff -= emit_frequency_in_milliseconds;
+        }
     }
 };
 
-class IntermediateRankerFunctor {
-    // TODO
+template<typename InputType,
+         void update_rankings(const InputType &, Rankings<string> &)>
+class RankerFunctor {
+    static constexpr auto DEFAULT_COUNT = 10u;
+
+    unsigned         emit_frequency_in_milliseconds;
+    unsigned long    last_shipping_time;
+    unsigned         count;
+    Rankings<string> rankings;
+    TupleMetadata    first_parent {0};
+
+public:
+    RankerFunctor(unsigned count                          = DEFAULT_COUNT,
+                  unsigned emit_frequency_in_milliseconds = 60)
+        : count {count}, emit_frequency_in_milliseconds {
+                             emit_frequency_in_milliseconds} {}
+
+    void operator()(const InputType &counts, Shipper<RankingsTuple> &shipper) {
+        update_rankings(counts, rankings);
+
+        if (first_parent.id == 0 && first_parent.timestamp == 0) {
+            first_parent = counts.metadata;
+        }
+
+        auto time_diff = current_time_msecs() - last_shipping_time;
+        while (time_diff >= emit_frequency_in_milliseconds) {
+            shipper.push({counts.metadata, rankings});
+            last_shipping_time = current_time_msecs();
+            time_diff -= emit_frequency_in_milliseconds;
+        }
+        first_parent = {0};
+    }
 };
 
-class TotalRankerFunctor {
+void update_intermediate_rankings(const Counts &    counts,
+                                  Rankings<string> &rankings) {
+    // XXX: Is this field relevant?
+    // const auto  window_length = counts.window_length;
+    Rankable<string> rankable {counts.word, counts.count};
+    rankings.update_with(rankable);
+}
+
+using IntermediateRankerFunctor =
+    RankerFunctor<Counts, update_intermediate_rankings>;
+
+void update_total_rankings(const RankingsTuple &partial_rankings,
+                           Rankings<string> &   total_rankings) {
+    total_rankings.update_with(partial_rankings.rankings);
+}
+
+using TotalRankerFunctor = RankerFunctor<RankingsTuple, update_total_rankings>;
+
+int main(int argc, char *argv[]) {
     // TODO
-};
+    return 0;
+}
