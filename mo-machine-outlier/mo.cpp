@@ -1037,7 +1037,7 @@ int main(int argc, char *argv[]) {
     validate_args(parameters);
     print_initial_parameters(parameters);
 
-    PipeGraph graph {"sa-sentiment-analysis", Execution_Mode_t::DETERMINISTIC,
+    PipeGraph graph {"mo-machine-outlier", Execution_Mode_t::DETERMINISTIC,
                      Time_Policy_t::INGRESS_TIME};
     build_graph(parameters, graph);
 
