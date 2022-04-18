@@ -315,11 +315,11 @@ class SlidingWindowCounter {
     SlotBasedCounter<T> obj_counter;
     size_t              head_slot;
     size_t              tail_slot;
-    size_t              windw_length_in_slots;
+    size_t              window_length_in_slots;
 
     size_t slot_after(size_t slot) {
-        assert(slot < windw_length_in_slots);
-        return (slot + 1) % windw_length_in_slots;
+        assert(slot < window_length_in_slots);
+        return (slot + 1) % window_length_in_slots;
     }
 
     void advance_head() {
@@ -328,11 +328,11 @@ class SlidingWindowCounter {
     }
 
 public:
-    SlidingWindowCounter(size_t windw_length_in_slots)
-        : obj_counter {windw_length_in_slots}, head_slot {0},
-          tail_slot {slot_after(head_slot)}, windw_length_in_slots {
-                                                 windw_length_in_slots} {
-        if (windw_length_in_slots < 2) {
+    SlidingWindowCounter(size_t window_length_in_slots)
+        : obj_counter {window_length_in_slots}, head_slot {0},
+          tail_slot {slot_after(head_slot)}, window_length_in_slots {
+                                                 window_length_in_slots} {
+        if (window_length_in_slots < 2) {
             cerr << "Error: Window length for sliding window counter must be "
                     "at least two\n";
             exit(EXIT_FAILURE);
