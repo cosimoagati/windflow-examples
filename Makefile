@@ -1,13 +1,13 @@
 CPU_EXAMPLES:= example1 example2 sa-sentiment-analysis/sa \
-mo-machine-outlier/mo tt-trending-topics/tt
+mo-machine-outlier/mo tt-trending-topics/tt rl-reinforcement-learner/rl
 
 GPU_EXAMPLES:= example3 example4 example5
 CXX = g++
 CXXFLAGS = -std=c++17 -pedantic -O3 -fno-exceptions -flto -fno-permissive	\
 -DNDEBUG -DFF_BOUNDED_BUFFER -DDEFAULT_BUFFER_CAPACITY=32786
 
-INCLUDE_FLAGS = -I$(HOME)/.local/include -I$(HOME)/fastflow	\
--I$(HOME)/.local/include/wf
+INCLUDE_FLAGS = -I$(HOME)/.local/include -I$(HOME)/.local/include/gsl \
+-I$(HOME)/fastflow -I$(HOME)/.local/include/wf
 LIBS = -pthread
 GPULIBS = -ltbb
 
@@ -54,6 +54,7 @@ gpu: $(GPU_EXAMPLES)
 sa: sa-sentiment-analysis/sa
 mo: mo-machine-outlier/mo
 tt: tt-trending-topics/tt
+rl: rl-reinforcement-learner/rl
 
 clean:
 	rm -f $(CPU_EXAMPLES) $(GPU_EXAMPLES) $(CPU_OBJS) $(GPU_OBJS)
