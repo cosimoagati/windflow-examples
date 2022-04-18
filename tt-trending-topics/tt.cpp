@@ -927,6 +927,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withParallelism(parameters.rolling_counter_parallelism)
             .withName("rolling counter")
             .withOutputBatchSize(parameters.batch_size)
+            .withKeyBy([](const Topic &topic) -> string { return topic.word; })
             .build();
 
     IntermediateRankerFunctor intermediate_ranker_functor;
@@ -935,6 +936,8 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withParallelism(parameters.intermediate_ranker_parallelism)
             .withName("intermediate ranker")
             .withOutputBatchSize(parameters.batch_size)
+            .withKeyBy(
+                [](const Counts &count) -> string { return count.word; })
             .build();
 
     TotalRankerFunctor total_ranker_functor;
