@@ -933,7 +933,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     auto                      intermediate_ranker_node =
         FlatMap_Builder {intermediate_ranker_functor}
             .withParallelism(parameters.intermediate_ranker_parallelism)
-            .withName("intermediate ranker parallelism")
+            .withName("intermediate ranker")
             .withOutputBatchSize(parameters.batch_size)
             .build();
 
@@ -941,7 +941,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     auto               total_ranker_node =
         FlatMap_Builder {total_ranker_functor}
             .withParallelism(parameters.total_ranker_parallelism)
-            .withName("alert triggerer")
+            .withName("total ranker")
             .withOutputBatchSize(parameters.batch_size)
             .build();
 
