@@ -180,6 +180,14 @@ public:
             }
         }
     }
+
+    typename vector<Rankable<T>>::const_iterator begin() const {
+        return ranked_items.begin();
+    }
+
+    typename vector<Rankable<T>>::const_iterator end() const {
+        return ranked_items.end();
+    }
 };
 
 struct RankingsTuple {
@@ -228,6 +236,7 @@ public:
         return metric_name.c_str();
     }
 };
+
 template<typename T>
 class SlotBasedCounter {
     unordered_map<T, vector<unsigned long>> counts_map;
@@ -238,9 +247,8 @@ class SlotBasedCounter {
             return 0;
         }
 
-        const auto &  curr_obj_counts = counts_map[obj];
         unsigned long total {0};
-        for (const auto count : curr_obj_counts) {
+        for (const auto count : counts_map[obj]) {
             total += count;
         }
         return total;
@@ -257,21 +265,20 @@ class SlotBasedCounter {
 public:
     SlotBasedCounter(size_t num_slots) : num_slots {num_slots} {}
 
-    void increment_count(T obj, size_t slot, unsigned long increment) {
+    void increment_count(const T &obj, size_t slot, unsigned long increment) {
         assert(slot < num_slots);
 
-        // XXX: this should work as expected, but double check!
         if (counts_map.find(obj) == counts_map.end()) {
-            counts_map[obj].reserve(num_slots);
+            counts_map[obj] = vector<unsigned long>(num_slots, 0);
         }
         counts_map[obj][slot] += increment;
     }
 
-    void increment_count(T obj, size_t slot) {
+    void increment_count(const T &obj, size_t slot) {
         increment_count(obj, slot, 1);
     }
 
-    unsigned long get_count(T obj, size_t slot) {
+    unsigned long get_count(const T &obj, size_t slot) {
         assert(slot < num_slots);
 
         if (counts_map.find(obj) == counts_map.end()) {
@@ -282,7 +289,6 @@ public:
 
     unordered_map<T, unsigned long> get_counts() {
         unordered_map<T, unsigned long> result;
-
         for (const auto &kv : counts_map) {
             result[kv.first] = compute_total_count(kv.first);
         }
@@ -313,9 +319,9 @@ public:
 template<typename T>
 class SlidingWindowCounter {
     SlotBasedCounter<T> obj_counter;
+    size_t              window_length_in_slots;
     size_t              head_slot;
     size_t              tail_slot;
-    size_t              window_length_in_slots;
 
     size_t slot_after(size_t slot) {
         assert(slot < window_length_in_slots);
@@ -329,21 +335,21 @@ class SlidingWindowCounter {
 
 public:
     SlidingWindowCounter(size_t window_length_in_slots)
-        : obj_counter {window_length_in_slots}, head_slot {0},
-          tail_slot {slot_after(head_slot)}, window_length_in_slots {
-                                                 window_length_in_slots} {
+        : obj_counter {window_length_in_slots},
+          window_length_in_slots {window_length_in_slots}, head_slot {0} {
         if (window_length_in_slots < 2) {
             cerr << "Error: Window length for sliding window counter must be "
                     "at least two\n";
             exit(EXIT_FAILURE);
         }
+        tail_slot = slot_after(head_slot);
     }
 
-    void increment_count(T obj) {
+    void increment_count(const T &obj) {
         obj_counter.increment_count(obj, head_slot);
     }
 
-    void increment_count(T obj, unsigned long increment) {
+    void increment_count(const T &obj, unsigned long increment) {
         obj_counter.increment_count(obj, head_slot, increment);
     }
 
@@ -779,6 +785,8 @@ class RollingCounterFunctor {
         for (const auto &kv : counts) {
             const auto &word  = kv.first;
             const auto  count = kv.second;
+            cout << "Sending word: " << word << " with count: " << count
+                 << '\n';
             shipper.push(
                 {first_parent, word, count, actual_window_length_in_seconds});
         }
@@ -913,9 +921,15 @@ public:
             }
 #ifndef NDEBUG
             const lock_guard lock {print_mutex};
-            cout << "arrival time: " << arrival_time
-                 << " ts:" << input->metadata.timestamp
-                 << " latency: " << latency << '\n';
+            cout << "Received tuple containing the following rankings: ";
+            for (const auto &rankable : input->rankings) {
+                cout << rankable.get_object() << ": " << rankable.get_count()
+                     << ", ";
+            }
+            cout << "\b\b\n";
+            // cout << "arrival time: " << arrival_time
+            //      << " ts:" << input->metadata.timestamp
+            //      << " latency: " << latency << '\n';
 #endif
         } else {
             global_received_tuples.fetch_add(tuples_received);
