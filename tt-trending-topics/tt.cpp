@@ -901,7 +901,7 @@ public:
             const lock_guard lock {print_mutex};
             cout << "arrival time: " << arrival_time
                  << " ts:" << input->metadata.timestamp
-                 << " latency: " << latency << '\n'
+                 << " latency: " << latency << '\n';
 #endif
         } else {
             global_received_tuples.fetch_add(tuples_received);
