@@ -5,7 +5,6 @@
 using namespace std;
 using namespace wf;
 
-struct TupleMetadata {
 struct Parameters {
     unsigned ctr_generator_parallelism {1};
     unsigned reward_source_parallelism {1};
@@ -17,23 +16,48 @@ struct Parameters {
     unsigned sampling_rate {100};
     bool     use_chaining {false};
 };
+
+enum class TupleType { Event, Reward };
+
+struct Tuple {
+    TupleType     tuple_type;
     unsigned long id;
     unsigned long timestamp;
 };
 
-struct Event {
-    TupleMetadata metadata;
+class CTRGeneratorFunctor {
+    static constexpr unsigned long default_max_rounds {10000};
+
+    unsigned long round_num {1};
+    unsigned long event_count {0};
+    unsigned long max_rounds;
+
+public:
+    CTRGeneratorFunctor(unsigned long max_rounds = default_max_rounds)
+        : max_rounds {max_rounds} {}
+
+    bool has_next() {
+        return round_num <= max_rounds;
+    }
+
+    void operator()(Source_Shipper<Tuple> &shipper) {}
 };
 
-struct Reward {
-    TupleMetadata metadata;
+class RewardSourceFunctor {
+public:
+    void operator()(Source_Shipper<Tuple> &shipper) {}
 };
 
-class CTRGeneratorFunctor {};
+class ReinforcementLearnerFunctor {
+public:
+    void operator()(const Tuple &tuple, Shipper<Tuple> &shipper) {}
+};
 
-class RewardSourceFunctor {};
+class SinkFunctor {
+public:
+    void operator()(optional<Tuple> &input);
+};
 
-class ReinforcementLearnerFunctor {};
 
 int main(int argc, char *argv[]) {
     // TODO
