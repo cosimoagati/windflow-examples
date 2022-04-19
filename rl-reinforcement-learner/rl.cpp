@@ -94,12 +94,12 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     MultiPipe &ctr_generator_pipe = graph.add_source(ctr_generator_node);
     MultiPipe &reward_source_pipe = graph.add_source(reward_source_node);
     MultiPipe &reinforcement_learner_pipe =
-        ctr_generator_node.merge(reward_source_pipe);
+        ctr_generator_pipe.merge(reward_source_pipe);
 
     if (parameters.use_chaining) {
         reinforcement_learner_pipe.chain(reinforcement_learner_node);
     } else {
-        reinforcement_learner_node.add(reinforcement_learner_node);
+        reinforcement_learner_pipe.add(reinforcement_learner_node);
     }
     return graph;
 }
