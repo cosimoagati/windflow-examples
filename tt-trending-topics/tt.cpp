@@ -775,7 +775,7 @@ class RollingCounterFunctor {
     SlidingWindowCounter<string> counter;
     NthLastModifiedTimeTracker   last_modified_tracker;
 
-    TupleMetadata first_parent {0};
+    TupleMetadata first_parent {0, 0};
 
     void ship_all(Shipper<Counts> &shipper) {
         const auto counts = counter.get_counts_then_advance_window();
@@ -790,7 +790,7 @@ class RollingCounterFunctor {
             shipper.push(
                 {first_parent, word, count, actual_window_length_in_seconds});
         }
-        first_parent = {0};
+        first_parent = {0, 0};
     }
 
 public:
@@ -829,13 +829,13 @@ class RankerFunctor {
     unsigned long    last_shipping_time;
     unsigned         count;
     Rankings<string> rankings;
-    TupleMetadata    first_parent {0};
+    TupleMetadata    first_parent {0, 0};
 
 public:
-    RankerFunctor(unsigned count                          = DEFAULT_COUNT,
-                  unsigned emit_frequency_in_milliseconds = 60)
-        : count {count}, emit_frequency_in_milliseconds {
-                             emit_frequency_in_milliseconds} {}
+    RankerFunctor(unsigned emit_frequency_in_milliseconds = 60,
+                  unsigned count                          = DEFAULT_COUNT)
+        : emit_frequency_in_milliseconds {emit_frequency_in_milliseconds},
+          count {count} {}
 
     void operator()(const InputType &counts, Shipper<RankingsTuple> &shipper) {
         update_rankings(counts, rankings);
@@ -850,7 +850,7 @@ public:
             last_shipping_time = current_time_msecs();
             time_diff -= emit_frequency_in_milliseconds;
         }
-        first_parent = {0};
+        first_parent = {0, 0};
     }
 };
 
