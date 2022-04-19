@@ -1,3 +1,5 @@
+#include <stduuid/uuid.h>
+#include <utility>
 #include <wf/windflow.hpp>
 
 using namespace std;
