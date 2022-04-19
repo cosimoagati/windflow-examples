@@ -777,7 +777,7 @@ static inline void tuple_swap(vector<TupleWrapper<T>> &tuple_wrapper_list,
 }
 
 template<typename T>
-static inline int
+static inline size_t
 partition_single_side(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t left,
                       size_t right) {
     assert(!tuple_wrapper_list.empty());
