@@ -91,9 +91,9 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
                     .withName("sink")
                     .build();
 
-    MultiPipe &ctr_generator_pipe = graph.add_source(ctr_generator_node);
-    MultiPipe &reward_source_pipe = graph.add_source(reward_source_node);
-    MultiPipe &reinforcement_learner_pipe =
+    auto &ctr_generator_pipe = graph.add_source(ctr_generator_node);
+    auto &reward_source_pipe = graph.add_source(reward_source_node);
+    auto &reinforcement_learner_pipe =
         ctr_generator_pipe.merge(reward_source_pipe);
 
     if (parameters.use_chaining) {
