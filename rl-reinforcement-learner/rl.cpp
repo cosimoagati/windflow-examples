@@ -58,6 +58,51 @@ public:
     void operator()(optional<Tuple> &input);
 };
 
+static inline PipeGraph &build_graph(const Parameters &parameters,
+                                     PipeGraph &       graph) {
+    CTRGeneratorFunctor ctr_generator_functor;
+
+    auto ctr_generator_node =
+        Source_Builder {ctr_generator_functor}
+            .withParallelism(parameters.ctr_generator_parallelism)
+            .withName("ctr generator")
+            .withOutputBatchSize(parameters.batch_size)
+            .build();
+
+    RewardSourceFunctor reward_source_functor;
+    auto                reward_source_node =
+        Source_Builder {reward_source_functor}
+            .withParallelism(parameters.reward_source_parallelism)
+            .withName("reward source")
+            .withOutputBatchSize(parameters.batch_size)
+            .build();
+
+    ReinforcementLearnerFunctor reinforcement_learner_functor;
+    auto                        reinforcement_learner_node =
+        FlatMap_Builder {reinforcement_learner_functor}
+            .withParallelism(parameters.reinforcement_learner_parallelism)
+            .withName("reinforcement learner")
+            .withOutputBatchSize(parameters.batch_size)
+            .build();
+
+    SinkFunctor sink_functor;
+    auto        sink = Sink_Builder {sink_functor}
+                    .withParallelism(parameters.sink_parallelism)
+                    .withName("sink")
+                    .build();
+
+    MultiPipe &ctr_generator_pipe = graph.add_source(ctr_generator_node);
+    MultiPipe &reward_source_pipe = graph.add_source(reward_source_node);
+    MultiPipe &reinforcement_learner_pipe =
+        ctr_generator_node.merge(reward_source_pipe);
+
+    if (parameters.use_chaining) {
+        reinforcement_learner_pipe.chain(reinforcement_learner_node);
+    } else {
+        reinforcement_learner_node.add(reinforcement_learner_node);
+    }
+    return graph;
+}
 
 int main(int argc, char *argv[]) {
     // TODO
