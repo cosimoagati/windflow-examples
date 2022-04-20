@@ -244,19 +244,22 @@ class SlotBasedCounter {
     size_t                                  num_slots;
 
     unsigned long compute_total_count(T obj) {
-        if (counts_map.find(obj) == counts_map.end()) {
-            return 0;
-        }
+        const auto counts_entry = counts_map.find(obj);
+
+        assert(counts_entry != counts_map.end());
 
         unsigned long total {0};
-        for (const auto count : counts_map[obj]) {
+        for (const auto count : counts_entry->second) {
             total += count;
         }
         return total;
     }
 
     void reset_slot_count_to_zero(T obj, unsigned slot) {
-        counts_map[obj][slot] = 0;
+        const auto counts_entry = counts_map.find(obj);
+
+        assert(counts_entry != counts_map.end());
+        counts_entry->second[slot] = 0;
     }
 
     bool should_be_removed_from_counter(T obj) {
@@ -269,10 +272,11 @@ public:
     void increment_count(const T &obj, size_t slot, unsigned long increment) {
         assert(slot < num_slots);
 
-        if (counts_map.find(obj) == counts_map.end()) {
-            counts_map[obj] = vector<unsigned long>(num_slots, 0);
+        const auto counts_entry = counts_map.find(obj);
+        if (counts_entry == counts_map.end()) {
+            counts_map.insert_or_assign(obj, vector<unsigned long>(num_slots));
         }
-        counts_map[obj][slot] += increment;
+        counts_map.find(obj)->second[slot] += increment;
     }
 
     void increment_count(const T &obj, size_t slot) {
@@ -282,16 +286,18 @@ public:
     unsigned long get_count(const T &obj, size_t slot) {
         assert(slot < num_slots);
 
-        if (counts_map.find(obj) == counts_map.end()) {
+        const auto counts_entry = counts_map.find(obj);
+        if (counts_entry == counts_map.end()) {
             return 0;
+        } else {
+            return counts_entry->second[slot];
         }
-        return counts_map[obj][slot];
     }
 
     unordered_map<T, unsigned long> get_counts() {
         unordered_map<T, unsigned long> result;
         for (const auto &kv : counts_map) {
-            result[kv.first] = compute_total_count(kv.first);
+            result.insert_or_assign(kv.first, compute_total_count(kv.first));
         }
         return result;
     }

@@ -496,9 +496,10 @@ public:
         auto       current_tweet_sentiment = 0;
 
         for (const auto &word : words) {
-            const auto word_hash = gethash(word);
-            if (sentiment_map.find(word_hash) != sentiment_map.end()) {
-                current_tweet_sentiment += sentiment_map[word_hash];
+            const auto word_hash       = gethash(word);
+            const auto sentiment_entry = sentiment_map.find(word_hash);
+            if (sentiment_entry != sentiment_map.end()) {
+                current_tweet_sentiment += sentiment_entry->second;
             }
         }
         return {score_to_sentiment(current_tweet_sentiment),
@@ -527,9 +528,10 @@ public:
         auto       current_tweet_sentiment = 0;
 
         for (const auto &word : words) {
-            const auto word_hash = gethash(word);
-            if (sentiment_map.find(word_hash) != sentiment_map.end()) {
-                current_tweet_sentiment += sentiment_map[word_hash];
+            const auto word_hash       = gethash(word);
+            const auto sentiment_entry = sentiment_map.find(word_hash);
+            if (sentiment_entry != sentiment_map.end()) {
+                current_tweet_sentiment += sentiment_entry->second;
             }
         }
         result_cache_entry = {score_to_sentiment(current_tweet_sentiment),
