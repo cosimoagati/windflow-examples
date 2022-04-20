@@ -455,8 +455,7 @@ class SourceFunctor {
     unsigned              tuple_rate_per_second;
 
 public:
-    SourceFunctor(unsigned d = 60, unsigned rate = 60,
-                  const char *path = default_path)
+    SourceFunctor(unsigned d, unsigned rate, const char *path = default_path)
         : tweets {get_tweets_from_file(path)},
           duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {}
 
@@ -575,7 +574,7 @@ class SinkFunctor {
     }
 
 public:
-    SinkFunctor(unsigned rate = 100) : sampling_rate {rate} {}
+    SinkFunctor(unsigned rate) : sampling_rate {rate} {}
 
     void operator()(optional<Tuple> &input, RuntimeContext &context) {
         if (input) {
