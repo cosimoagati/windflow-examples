@@ -13,7 +13,7 @@ LIBS = -pthread
 GPULIBS = -ltbb
 
 ifneq (, $(shell which clang++))
-	DEBUG_CXX = clang++
+	DEBUG_CXX = g++
 else
 	DEBUG_CXX = g++
 endif
