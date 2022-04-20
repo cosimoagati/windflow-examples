@@ -491,8 +491,7 @@ class SourceFunctor {
     unsigned                tuple_rate_per_second;
 
 public:
-    SourceFunctor(unsigned d = 60, unsigned rate = 60,
-                  const char *path = default_path)
+    SourceFunctor(unsigned d, unsigned rate, const char *path = default_path)
         : machine_metadata {parse_metadata<parse_alibaba_trace>(path)},
           duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {
         assert(machine_metadata.size() > 0);
@@ -933,7 +932,7 @@ class SinkFunctor {
     }
 
 public:
-    SinkFunctor(unsigned rate = 100) : sampling_rate {rate} {}
+    SinkFunctor(unsigned rate) : sampling_rate {rate} {}
 
     void operator()(optional<AlertTriggererResultTuple> &input,
                     RuntimeContext &                     context) {
