@@ -3,8 +3,10 @@ mo-machine-outlier/mo tt-trending-topics/tt rl-reinforcement-learner/rl
 
 GPU_EXAMPLES:= example3 example4 example5
 CXX = g++
-CXXFLAGS = -std=c++17 -pedantic -O3 -fno-exceptions -flto -fno-permissive \
--DNDEBUG -DFF_BOUNDED_BUFFER -DDEFAULT_BUFFER_CAPACITY=32786
+
+CXXFLAGS = -std=c++17 -Wall -Wextra -Wpedantic -pedantic -O3 -g3 \
+-fno-exceptions -flto -fno-permissive -DNDEBUG -DFF_BOUNDED_BUFFER \
+-DDEFAULT_BUFFER_CAPACITY=32786
 
 INCLUDE_FLAGS = -I$(HOME)/.local/include -I$(HOME)/.local/include/gsl \
 -I$(HOME)/fastflow -I$(HOME)/.local/include/wf
@@ -40,11 +42,13 @@ GPU_OBJS:=$(GPU_SRCS:.cu=.o)
 
 all: cpu gpu
 
-debug-cpu: CXXFLAGS := $(CXXFLAGS) -fno-lto -Og -g -fno-inline -Wall -Wextra \
--UNDEBUG -Wpedantic
+debug-cpu: CXXFLAGS := $(CXXFLAGS) -fno-lto -Og -g3 -fno-inline -UNDEBUG
 
 debug-cpu: CXX := $(DEBUG_CXX)
 debug-cpu: cpu
+
+debug-cpu-optimized: CXXFLAGS := $(CXXFLAGS) -fno-lto -g3 -UNDEBUG
+debug-cpu-optimized: cpu
 
 debug-gpu: NVOPTFLAGS := $(NVOPTFLAGS) -g -G -O0
 debug-gpu: gpu
