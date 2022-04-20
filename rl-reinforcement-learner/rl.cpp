@@ -4,6 +4,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <getopt.h>
+#include <initializer_list>
 #include <mutex>
 #include <nlohmann/json.hpp>
 #include <random>
@@ -96,6 +97,8 @@ private:
     queue<T>           internal_queue;
 
 public:
+    BlockingQueue(initializer_list<T> init) : internal_queue {init} {}
+
     void push(T const &value) {
         {
             unique_lock<mutex> lock {internal_mutex};
@@ -129,6 +132,8 @@ const struct option long_opts[] = {
     {"help", 0, 0, 'h'},        {"rate", 1, 0, 'r'},  {"sampling", 1, 0, 's'},
     {"parallelism", 1, 0, 'p'}, {"batch", 1, 0, 'b'}, {"chaining", 1, 0, 'c'},
     {"duration", 1, 0, 'd'},    {0, 0, 0, 0}};
+
+const vector<string> default_available_actions = {"page1", "page2", "page3"};
 
 /*
  * Return difference between a and b, accounting for unsigned arithmetic
@@ -395,7 +400,7 @@ static Metric<unsigned long> global_latency_metric {"latency"};
 static Metric<unsigned long> global_interdeparture_metric {
     "interdeparture-time"};
 static Metric<unsigned long> global_service_time_metric {"service-time"};
-static BlockingQueue<string> global_action_queue;
+static BlockingQueue<string> global_action_queue {"page1", "page2", "page3"};
 
 class CTRGeneratorFunctor {
     unsigned long round_num {1};
@@ -405,15 +410,10 @@ class CTRGeneratorFunctor {
     mt19937                      mt {random_device {}()};
     uuids::uuid_random_generator uuid_gen {mt};
 
-public:
-    CTRGeneratorFunctor(unsigned long max_rounds = 10000)
-        : max_rounds {max_rounds} {}
+    unsigned long duration;
+    unsigned      tuple_rate_per_second;
 
-    bool has_next() {
-        return round_num <= max_rounds;
-    }
-
-    void operator()(Source_Shipper<InputTuple> &shipper) {
+    InputTuple get_new_tuple() {
         const auto session_id = uuids::to_string(uuid_gen());
 
         ++round_num;
@@ -424,17 +424,39 @@ public:
         }
 
         const auto timestamp = current_time();
-        InputTuple tuple {TupleType::Event, session_id, round_num, 0,
-                          timestamp};
-        shipper.push(move(tuple));
+        return {TupleType::Event, session_id, round_num, 0, timestamp};
+    }
+
+public:
+    CTRGeneratorFunctor(unsigned long d, unsigned rate,
+                        unsigned long max_rounds = 10000)
+        : duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate},
+          max_rounds {max_rounds} {}
+
+    // bool has_next() {
+    //     return round_num <= max_rounds;
+    // }
+
+    void operator()(Source_Shipper<InputTuple> &shipper) {
+        const auto end_time    = current_time() + duration;
+        auto       sent_tuples = 0ul;
+
+        while (current_time() < end_time) {
+            shipper.push(get_new_tuple());
+            ++sent_tuples;
+            if (tuple_rate_per_second > 0) {
+                const unsigned long delay =
+                    (1.0 / tuple_rate_per_second) * timeunit_scale_factor;
+                busy_wait(delay);
+            }
+        }
+        global_sent_tuples.fetch_add(sent_tuples);
     }
 };
 
 class RewardSourceFunctor {
-    unordered_map<string, int> action_selection_map;
-    int                        action_selection_count_threshold {50};
-    // action_ctr_distr = {'page1' : (30, 12), 'page2' : (60, 30), 'page3' :
-    // (80, 10)}
+    unordered_map<string, int>         action_selection_map;
+    int                                action_selection_count_threshold {50};
     unordered_map<string, vector<int>> action_ctr_distr {
         {"page1", {30, 12}}, {"page2", {60, 30}}, {"page3", {80, 10}}};
     mt19937                       mt {random_device {}()};
@@ -476,7 +498,7 @@ class RewardSourceFunctor {
     }
 
 public:
-    RewardSourceFunctor(unsigned d = 60, unsigned rate = 60)
+    RewardSourceFunctor(unsigned d, unsigned rate)
         : duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {}
 
     void operator()(Source_Shipper<InputTuple> &shipper) {
@@ -643,13 +665,13 @@ class IntervalEstimator {
     }
 
 public:
-    IntervalEstimator(const vector<string> &actions = {},
+    IntervalEstimator(const vector<string> &actions, unsigned batch_size = 1,
                       unsigned bin_width = 1, unsigned confidence_limit = 95,
                       unsigned min_confidence_limit                      = 50,
                       unsigned confidence_limit_reduction_step           = 5,
                       unsigned confidence_limit_reduction_round_interval = 50,
                       unsigned min_distribution_sample                   = 30)
-        : actions {actions}, bin_width {bin_width},
+        : actions {actions}, batch_size {batch_size}, bin_width {bin_width},
           confidence_limit {confidence_limit},
           min_confidence_limit {min_confidence_limit},
           confidence_limit_reduction_step {confidence_limit_reduction_step},
@@ -659,11 +681,11 @@ public:
         for (const auto &action : actions) {
             reward_distr.insert({action, HistogramStat {bin_width}});
         }
-
         init_selected_actions();
     }
 
     IntervalEstimator &with_batch_size(unsigned batch_size) {
+
         this->batch_size = batch_size;
         return *this;
     }
@@ -747,6 +769,7 @@ public:
         }
 
         assert(!selected_actions.empty());
+        assert(selected_action != "");
         selected_actions[0] = selected_action;
         return selected_actions;
     }
@@ -783,7 +806,7 @@ class SampsonSampler {
     }
 
 public:
-    SampsonSampler(const vector<string> &actions = {},
+    SampsonSampler(const vector<string> &actions,
                    unsigned min_sample_size = 10, unsigned max_reward = 100)
         : actions {actions}, min_sample_size {min_sample_size},
           max_reward {max_reward} {}
@@ -845,7 +868,7 @@ class ReinforcementLearnerFunctor {
     ReinforcementLearner reinforcement_learner;
 
 public:
-    ReinforcementLearnerFunctor(const vector<string> &actions = {})
+    ReinforcementLearnerFunctor(const vector<string> &actions)
         : reinforcement_learner {actions} {}
 
     void operator()(const InputTuple &tuple, Shipper<OutputTuple> &shipper) {
@@ -868,13 +891,71 @@ public:
 };
 
 class SinkFunctor {
+    vector<unsigned long> latency_samples {};
+    vector<unsigned long> interdeparture_samples {};
+    vector<unsigned long> service_time_samples {};
+    unsigned long         tuples_received {0};
+    unsigned long         last_sampling_time {current_time()};
+    unsigned long         last_arrival_time {last_arrival_time};
+    unsigned              sampling_rate;
+
+    bool is_time_to_sample(unsigned long arrival_time) {
+        if (sampling_rate == 0) {
+            return true;
+        }
+        const auto time_since_last_sampling =
+            difference(arrival_time, last_sampling_time);
+        const auto time_between_samples =
+            (1.0 / sampling_rate) * timeunit_scale_factor;
+        return time_since_last_sampling >= time_between_samples;
+    }
+
 public:
-    void operator()(optional<OutputTuple> &input) {}
+    SinkFunctor(unsigned rate) : sampling_rate {rate} {}
+
+    void operator()(optional<OutputTuple> &input, RuntimeContext &context) {
+        if (input) {
+#ifndef NDEBUG
+            for (const auto &action : input->actions) {
+                cout << "Received action: " << action;
+            }
+            cout << " for event: " << input->event_id << '\n';
+#endif
+            // log
+            // log
+            global_action_queue.push(input->actions[0]);
+
+            const auto arrival_time = current_time();
+            const auto latency = difference(arrival_time, input->timestamp);
+            const auto interdeparture_time =
+                difference(arrival_time, last_arrival_time);
+
+            ++tuples_received;
+            last_arrival_time = arrival_time;
+
+            if (is_time_to_sample(arrival_time)) {
+                latency_samples.push_back(latency);
+                interdeparture_samples.push_back(interdeparture_time);
+
+                const auto service_time =
+                    interdeparture_time
+                    / static_cast<double>(context.getParallelism());
+                service_time_samples.push_back(service_time);
+                last_sampling_time = arrival_time;
+            }
+        } else {
+            global_received_tuples.fetch_add(tuples_received);
+            global_latency_metric.merge(latency_samples);
+            global_interdeparture_metric.merge(interdeparture_samples);
+            global_service_time_metric.merge(service_time_samples);
+        }
+    }
 };
 
 static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
-    CTRGeneratorFunctor ctr_generator_functor;
+    CTRGeneratorFunctor ctr_generator_functor {parameters.duration,
+                                               parameters.tuple_rate};
 
     auto ctr_generator_node =
         Source_Builder {ctr_generator_functor}
@@ -883,7 +964,8 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withOutputBatchSize(parameters.batch_size)
             .build();
 
-    RewardSourceFunctor reward_source_functor;
+    RewardSourceFunctor reward_source_functor {parameters.duration,
+                                               parameters.tuple_rate};
     auto                reward_source_node =
         Source_Builder {reward_source_functor}
             .withParallelism(parameters.reward_source_parallelism)
@@ -892,7 +974,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .build();
 
     ReinforcementLearnerFunctor<IntervalEstimator>
-         reinforcement_learner_functor;
+         reinforcement_learner_functor {default_available_actions};
     auto reinforcement_learner_node =
         FlatMap_Builder {reinforcement_learner_functor}
             .withParallelism(parameters.reinforcement_learner_parallelism)
@@ -900,7 +982,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withOutputBatchSize(parameters.batch_size)
             .build();
 
-    SinkFunctor sink_functor;
+    SinkFunctor sink_functor {parameters.sampling_rate};
     auto        sink = Sink_Builder {sink_functor}
                     .withParallelism(parameters.sink_parallelism)
                     .withName("sink")
