@@ -133,7 +133,7 @@ const struct option long_opts[] = {
     {"parallelism", 1, 0, 'p'}, {"batch", 1, 0, 'b'}, {"chaining", 1, 0, 'c'},
     {"duration", 1, 0, 'd'},    {0, 0, 0, 0}};
 
-const vector<string> default_available_actions = {"page1", "page2", "page3"};
+const vector<string> default_available_actions {"page1", "page2", "page3"};
 
 /*
  * Return difference between a and b, accounting for unsigned arithmetic
