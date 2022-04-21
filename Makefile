@@ -63,6 +63,7 @@ sa: sa-sentiment-analysis/sa
 mo: mo-machine-outlier/mo
 tt: tt-trending-topics/tt
 rl: rl-reinforcement-learner/rl
+lp: lp-log-processing/lp
 
 clean:
 	rm -f $(CPU_EXAMPLES) $(GPU_EXAMPLES) $(CPU_OBJS) $(GPU_OBJS)
