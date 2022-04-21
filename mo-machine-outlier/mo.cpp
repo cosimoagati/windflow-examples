@@ -64,16 +64,16 @@ using namespace std;
 using namespace wf;
 
 struct Parameters {
-    unsigned source_parallelism {1};
-    unsigned observer_parallelism {1};
-    unsigned anomaly_scorer_parallelism {1};
-    unsigned alert_triggerer_parallelism {1};
-    unsigned sink_parallelism {1};
-    unsigned batch_size {0};
-    unsigned duration {60};
-    unsigned tuple_rate {1000};
-    unsigned sampling_rate {100};
-    bool     use_chaining {false};
+    unsigned source_parallelism          = 1;
+    unsigned observer_parallelism        = 1;
+    unsigned anomaly_scorer_parallelism  = 1;
+    unsigned alert_triggerer_parallelism = 1;
+    unsigned sink_parallelism            = 1;
+    unsigned batch_size                  = 0;
+    unsigned duration                    = 60;
+    unsigned tuple_rate                  = 1000;
+    unsigned sampling_rate               = 100;
+    bool     use_chaining                = false;
 };
 
 struct MachineMetadata {
@@ -176,10 +176,10 @@ const auto timeunit_string = current_time == current_time_usecs ? "microsecond"
                                  ? "nanosecond"
                                  : "time unit";
 
-const auto timeunit_scale_factor =
-    current_time == current_time_usecs   ? 1000000ul
-    : current_time == current_time_nsecs ? 1000000000ul
-                                         : 1ul;
+const unsigned long timeunit_scale_factor =
+    current_time == current_time_usecs   ? 1000000
+    : current_time == current_time_nsecs ? 1000000000
+                                         : 1;
 
 const struct option long_opts[] = {
     {"help", 0, 0, 'h'},        {"rate", 1, 0, 'r'},  {"sampling", 1, 0, 's'},
@@ -548,8 +548,8 @@ public:
 };
 
 class MachineMetadataScorer {
-    static constexpr auto cpu_idx    = 0;
-    static constexpr auto memory_idx = 1;
+    static constexpr size_t cpu_idx    = 0;
+    static constexpr size_t memory_idx = 1;
 
     static inline valarray<double>
     calculate_distance(valarray<valarray<double>> &matrix) {
@@ -563,7 +563,7 @@ class MachineMetadataScorer {
         valarray<double> maxs(matrix[0].size());
         const auto       column_number = matrix[0].size();
 
-        for (size_t col {0}; col < column_number; ++col) {
+        for (size_t col = 0; col < column_number; ++col) {
             auto min = numeric_limits<double>::min();
             auto max = numeric_limits<double>::max();
 
@@ -585,11 +585,11 @@ class MachineMetadataScorer {
         maxs[memory_idx] = 100.0;
 
         valarray<double> centers(0.0, column_number);
-        for (size_t col {0}; col < column_number; ++col) {
+        for (size_t col = 0; col < column_number; ++col) {
             if (mins[col] == 0 && maxs[col] == 0) {
                 continue;
             }
-            for (size_t row {0}; row < matrix.size(); ++row) {
+            for (size_t row = 0; row < matrix.size(); ++row) {
                 matrix[row][col] =
                     (matrix[row][col] - mins[col]) / (maxs[col] - mins[col]);
                 centers[col] += matrix[row][col];
@@ -600,14 +600,14 @@ class MachineMetadataScorer {
         valarray<valarray<double>> distances(
             valarray<double>(0.0, matrix[0].size()), matrix.size());
 
-        for (size_t row {0}; row < matrix.size(); ++row) {
+        for (size_t row = 0; row < matrix.size(); ++row) {
             for (size_t col {0}; col < matrix[row].size(); ++col) {
                 distances[row][col] = abs(matrix[row][col] - centers[col]);
             }
         }
 
         valarray<double> l2distances(matrix.size());
-        for (size_t row {0}; row < l2distances.size(); ++row) {
+        for (size_t row = 0; row < l2distances.size(); ++row) {
             l2distances[row] = eucledean_norm(distances[row]);
         }
         return l2distances;
@@ -621,14 +621,14 @@ public:
         valarray<valarray<double>> matrix(valarray<double>(0.0, 2),
                                           observation_list.size());
 
-        for (size_t i {0}; i < observation_list.size(); ++i) {
+        for (size_t i = 0; i < observation_list.size(); ++i) {
             const auto &metadata  = observation_list[i];
             matrix[i][cpu_idx]    = metadata.cpu_usage;
             matrix[i][memory_idx] = metadata.memory_usage;
         }
 
         const auto l2distances = calculate_distance(matrix);
-        for (size_t i {0}; i < observation_list.size(); ++i) {
+        for (size_t i = 0; i < observation_list.size(); ++i) {
             const auto &                  metadata = observation_list[i];
             ScorePackage<MachineMetadata> package {
                 metadata.machine_ip, 1.0 + l2distances[i], metadata};
@@ -743,12 +743,12 @@ public:
 class SlidingWindowStreamAnomalyScoreFunctor {
     unordered_map<string, deque<double>> sliding_window_map;
     size_t                               window_length;
-    unsigned long                        previous_timestamp;
+    unsigned long                        previous_timestamp = 0;
 
 public:
     // Window length should be configurable.  For now, we hardcode a value.
-    SlidingWindowStreamAnomalyScoreFunctor()
-        : window_length {10}, previous_timestamp {0} {}
+    SlidingWindowStreamAnomalyScoreFunctor(size_t length = 10)
+        : window_length {length} {}
 
     void operator()(const ObservationResultTuple &tuple,
                     Shipper<AnomalyResultTuple> & shipper) {
@@ -758,7 +758,7 @@ public:
             sliding_window.pop_front();
         }
 
-        double score_sum {0.0};
+        double score_sum = 0;
         for (const double score : sliding_window) {
             score_sum += score;
         }
@@ -879,11 +879,12 @@ identify_abnormal_streams(vector<AnomalyResultTuple> &stream_list) {
 }
 
 class AlertTriggererFunctor {
-    inline static const auto   dupper = sqrt(2);
-    unsigned long              previous_timestamp {0};
+    inline static const double dupper = sqrt(2);
+
+    unsigned long              previous_timestamp = 0;
     vector<AnomalyResultTuple> stream_list;
-    double min_data_instance_score {numeric_limits<double>::max()};
-    double max_data_instance_score {0.0};
+    double min_data_instance_score = numeric_limits<double>::max();
+    double max_data_instance_score = 0.0;
 
 public:
     void operator()(const AnomalyResultTuple &          input,
@@ -902,7 +903,7 @@ public:
                 const auto median_score =
                     abnormal_streams[median_idx].anomaly_score;
 
-                for (size_t i {0}; i < abnormal_streams.size(); ++i) {
+                for (size_t i = 0; i < abnormal_streams.size(); ++i) {
                     const auto &stream_profile = abnormal_streams[i];
                     const auto  stream_score   = stream_profile.anomaly_score;
                     const auto  cur_data_inst_score =
@@ -937,14 +938,14 @@ public:
 
 class SinkFunctor {
 #ifndef NDEBUG
-    inline static mutex print_mutex {};
+    inline static mutex print_mutex;
 #endif
-    vector<unsigned long> latency_samples {};
-    vector<unsigned long> interdeparture_samples {};
-    vector<unsigned long> service_time_samples {};
-    unsigned long         tuples_received {0};
-    unsigned long         last_sampling_time {current_time()};
-    unsigned long         last_arrival_time {last_sampling_time};
+    vector<unsigned long> latency_samples;
+    vector<unsigned long> interdeparture_samples;
+    vector<unsigned long> service_time_samples;
+    unsigned long         tuples_received    = 0;
+    unsigned long         last_sampling_time = current_time();
+    unsigned long         last_arrival_time  = last_sampling_time;
     unsigned              sampling_rate;
 
     bool is_time_to_sample(unsigned long arrival_time) {

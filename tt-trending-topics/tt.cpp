@@ -49,10 +49,10 @@ const auto timeunit_string = current_time == current_time_usecs ? "microsecond"
                                  ? "nanosecond"
                                  : "time unit";
 
-const auto timeunit_scale_factor =
-    current_time == current_time_usecs   ? 1000000ul
-    : current_time == current_time_nsecs ? 1000000000ul
-                                         : 1ul;
+const unsigned long timeunit_scale_factor =
+    current_time == current_time_usecs   ? 1000000
+    : current_time == current_time_nsecs ? 1000000000
+                                         : 1;
 
 const struct option long_opts[] = {
     {"help", 0, 0, 'h'},        {"rate", 1, 0, 'r'},  {"sampling", 1, 0, 's'},
@@ -60,17 +60,17 @@ const struct option long_opts[] = {
     {"duration", 1, 0, 'd'},    {0, 0, 0, 0}};
 
 struct Parameters {
-    unsigned source_parallelism {1};
-    unsigned topic_extractor_parallelism {1};
-    unsigned rolling_counter_parallelism {1};
-    unsigned intermediate_ranker_parallelism {1};
-    unsigned total_ranker_parallelism {1};
-    unsigned sink_parallelism {1};
-    unsigned batch_size {0};
-    unsigned duration {60};
-    unsigned tuple_rate {1000};
-    unsigned sampling_rate {100};
-    bool     use_chaining {false};
+    unsigned source_parallelism              = 1;
+    unsigned topic_extractor_parallelism     = 1;
+    unsigned rolling_counter_parallelism     = 1;
+    unsigned intermediate_ranker_parallelism = 1;
+    unsigned total_ranker_parallelism        = 1;
+    unsigned sink_parallelism                = 1;
+    unsigned batch_size                      = 0;
+    unsigned duration                        = 60;
+    unsigned tuple_rate                      = 1000;
+    unsigned sampling_rate                   = 100;
+    bool     use_chaining                    = false;
 };
 
 struct TupleMetadata {
@@ -273,7 +273,7 @@ class SlotBasedCounter {
 
         assert(counts_entry != counts_map.end());
 
-        unsigned long total {0};
+        unsigned long total = 0;
         for (const auto count : counts_entry->second) {
             total += count;
         }
@@ -434,12 +434,13 @@ inline uint64_t current_time_msecs() {
 }
 
 class NthLastModifiedTimeTracker {
-    static constexpr auto             millis_in_sec = 1000u;
+    static constexpr unsigned millis_in_sec = 1000;
+
     CircularFifoBuffer<unsigned long> last_modified_times_millis;
 
     void init_last_modified_times_millis() {
         const auto now_cached = current_time_msecs();
-        for (size_t i {0}; i < last_modified_times_millis.max_size(); ++i) {
+        for (size_t i = 0; i < last_modified_times_millis.max_size(); ++i) {
             last_modified_times_millis.add(now_cached);
         }
     }
@@ -763,9 +764,9 @@ public:
           duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {}
 
     void operator()(Source_Shipper<Tweet> &shipper) {
-        const auto end_time    = current_time() + duration;
-        auto       sent_tuples = 0ul;
-        size_t     index       = 0;
+        const auto    end_time    = current_time() + duration;
+        unsigned long sent_tuples = 0;
+        size_t        index       = 0;
 
         while (current_time() < end_time) {
             auto       tweet     = tweets[index];
@@ -854,8 +855,6 @@ public:
 template<typename InputType,
          void update_rankings(const InputType &, Rankings<string> &)>
 class RankerFunctor {
-    static constexpr auto DEFAULT_COUNT = 10u;
-
     unsigned         emit_frequency_in_milliseconds;
     unsigned long    last_shipping_time;
     unsigned         count;
@@ -864,7 +863,7 @@ class RankerFunctor {
 
 public:
     RankerFunctor(unsigned emit_frequency_in_milliseconds = 60,
-                  unsigned count                          = DEFAULT_COUNT)
+                  unsigned count                          = 10)
         : emit_frequency_in_milliseconds {emit_frequency_in_milliseconds},
           count {count} {}
 
@@ -905,14 +904,14 @@ using TotalRankerFunctor = RankerFunctor<RankingsTuple, update_total_rankings>;
 
 class SinkFunctor {
 #ifndef NDEBUG
-    inline static mutex print_mutex {};
+    inline static mutex print_mutex;
 #endif
-    vector<unsigned long> latency_samples {};
-    vector<unsigned long> interdeparture_samples {};
-    vector<unsigned long> service_time_samples {};
-    unsigned long         tuples_received {0};
-    unsigned long         last_sampling_time {current_time()};
-    unsigned long         last_arrival_time {last_sampling_time};
+    vector<unsigned long> latency_samples;
+    vector<unsigned long> interdeparture_samples;
+    vector<unsigned long> service_time_samples;
+    unsigned long         tuples_received    = 0;
+    unsigned long         last_sampling_time = current_time();
+    unsigned long         last_arrival_time  = last_sampling_time;
     unsigned              sampling_rate;
 
     bool is_time_to_sample(unsigned long arrival_time) {

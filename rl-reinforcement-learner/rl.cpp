@@ -44,15 +44,15 @@ using namespace std;
 using namespace wf;
 
 struct Parameters {
-    unsigned ctr_generator_parallelism {1};
-    unsigned reward_source_parallelism {1};
-    unsigned reinforcement_learner_parallelism {1};
-    unsigned sink_parallelism {1};
-    unsigned batch_size {0};
-    unsigned duration {60};
-    unsigned tuple_rate {1000};
-    unsigned sampling_rate {100};
-    bool     use_chaining {false};
+    unsigned ctr_generator_parallelism         = 1;
+    unsigned reward_source_parallelism         = 1;
+    unsigned reinforcement_learner_parallelism = 1;
+    unsigned sink_parallelism                  = 1;
+    unsigned batch_size                        = 0;
+    unsigned duration                          = 60;
+    unsigned tuple_rate                        = 1000;
+    unsigned sampling_rate                     = 100;
+    bool     use_chaining                      = false;
 };
 
 enum class TupleType { Event, Reward };
@@ -149,10 +149,10 @@ const auto timeunit_string = current_time == current_time_usecs ? "microsecond"
                              : current_time == current_time_nsecs
                                  ? "nanosecond"
                                  : "time unit";
-const auto timeunit_scale_factor =
-    current_time == current_time_usecs   ? 1000000ul
-    : current_time == current_time_nsecs ? 1000000000ul
-                                         : 1ul;
+const unsigned long timeunit_scale_factor =
+    current_time == current_time_usecs   ? 1000000
+    : current_time == current_time_nsecs ? 1000000000
+                                         : 1;
 const struct option long_opts[] = {
     {"help", 0, 0, 'h'},        {"rate", 1, 0, 'r'},  {"sampling", 1, 0, 's'},
     {"parallelism", 1, 0, 'p'}, {"batch", 1, 0, 'b'}, {"chaining", 1, 0, 'c'},
@@ -431,8 +431,8 @@ class CTRGeneratorFunctor {
     unsigned long duration;
     unsigned      tuple_rate_per_second;
 
-    unsigned long round_num {1};
-    unsigned long event_count {0};
+    unsigned long round_num   = 1;
+    unsigned long event_count = 0;
     unsigned long max_rounds;
 
     mt19937                      mt {random_device {}()};
@@ -463,8 +463,8 @@ public:
     // }
 
     void operator()(Source_Shipper<InputTuple> &shipper) {
-        const auto end_time    = current_time() + duration;
-        auto       sent_tuples = 0ul;
+        const auto    end_time    = current_time() + duration;
+        unsigned long sent_tuples = 0;
 
         while (current_time() < end_time) {
             shipper.push(get_new_tuple());
@@ -481,7 +481,7 @@ public:
 
 class RewardSourceFunctor {
     unordered_map<string, int>         action_selection_map;
-    int                                action_selection_count_threshold {50};
+    int                                action_selection_count_threshold = 50;
     unordered_map<string, vector<int>> action_ctr_distr {
         {"page1", {30, 12}}, {"page2", {60, 30}}, {"page3", {80, 10}}};
     mt19937                       mt {random_device {}()};
@@ -527,8 +527,8 @@ public:
         : duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {}
 
     void operator()(Source_Shipper<InputTuple> &shipper) {
-        const auto end_time    = current_time() + duration;
-        auto       sent_tuples = 0ul;
+        const auto    end_time    = current_time() + duration;
+        unsigned long sent_tuples = 0;
 
         while (current_time() < end_time) {
             send_new_reward(shipper);
@@ -570,8 +570,8 @@ public:
 class HistogramStat {
     unsigned                     bin_width;
     unordered_map<unsigned, Bin> bin_map;
-    unsigned                     count {0};
-    double                       sum {0.0};
+    unsigned                     count = 0;
+    double                       sum   = 0;
 
 public:
     HistogramStat(unsigned bin_width) : bin_width {bin_width} {}
@@ -605,11 +605,11 @@ public:
         const unsigned mean = get_mean();
         const unsigned mean_index {mean / bin_width};
 
-        const unsigned confidence_limit {(count * confidence_limit_percent)
-                                         / 100};
-        unsigned       conf_cont {0};
-        unsigned       bin_count {0};
-        auto           bin_entry = bin_map.find(mean_index);
+        const unsigned confidence_limit =
+            (count * confidence_limit_percent) / 100;
+        unsigned conf_cont = 0;
+        unsigned bin_count = 0;
+        auto     bin_entry = bin_map.find(mean_index);
 
         if (bin_entry != bin_map.end()) {
             conf_cont += bin_entry->second.get_count();
@@ -634,7 +634,7 @@ public:
             }
         }
 
-        double av_bin_width {bin_width > 1 ? 0.5 : 0.0};
+        double av_bin_width = bin_width > 1 ? 0.5 : 0.0;
 
         assert(confidence_bounds.size() >= 2);
         confidence_bounds[0] = static_cast<unsigned>(
@@ -671,7 +671,7 @@ class IntervalEstimator {
     unsigned min_distribution_sample;
 
     unordered_map<string, HistogramStat> reward_distr;
-    unsigned long                        last_round_num {1};
+    unsigned long                        last_round_num = 1;
     unsigned long                        random_select_count;
     unsigned long                        intv_est_select_count;
     bool                                 is_debug_on;
@@ -679,7 +679,7 @@ class IntervalEstimator {
     unsigned long                        round_counter;
     bool                                 is_low_sample {true};
     mt19937                              mt {random_device {}()};
-    uniform_real_distribution<double>    rand {};
+    uniform_real_distribution<double>    rand;
 
     void init_selected_actions() {
         if (batch_size == 0) {
@@ -820,7 +820,7 @@ class SampsonSampler {
     unsigned                                min_sample_size;
     unsigned                                max_reward;
     mt19937                                 mt {random_device {}()};
-    uniform_real_distribution<double>       rand {};
+    uniform_real_distribution<double>       rand;
 
     void init_selected_actions() {
         if (batch_size == 0) {
@@ -848,9 +848,9 @@ public:
 
     const vector<string> &next_actions(unsigned long) {
         string   selected_action_id;
-        unsigned max_reward_current {0};
-        unsigned index {0};
-        unsigned reward {0};
+        unsigned max_reward_current = 0;
+        unsigned index              = 0;
+        unsigned reward             = 0;
 
         for (const auto &kv : reward_distr) {
             const auto &action_id = kv.first;
@@ -916,12 +916,12 @@ public:
 };
 
 class SinkFunctor {
-    vector<unsigned long> latency_samples {};
-    vector<unsigned long> interdeparture_samples {};
-    vector<unsigned long> service_time_samples {};
-    unsigned long         tuples_received {0};
-    unsigned long         last_sampling_time {current_time()};
-    unsigned long         last_arrival_time {last_sampling_time};
+    vector<unsigned long> latency_samples;
+    vector<unsigned long> interdeparture_samples;
+    vector<unsigned long> service_time_samples;
+    unsigned long         tuples_received    = 0;
+    unsigned long         last_sampling_time = current_time();
+    unsigned long         last_arrival_time  = last_sampling_time;
     unsigned              sampling_rate;
 
     bool is_time_to_sample(unsigned long arrival_time) {
@@ -962,7 +962,7 @@ public:
                 latency_samples.push_back(latency);
                 interdeparture_samples.push_back(interdeparture_time);
 
-                const auto service_time =
+                const double service_time =
                     interdeparture_time
                     / static_cast<double>(context.getParallelism());
                 service_time_samples.push_back(service_time);

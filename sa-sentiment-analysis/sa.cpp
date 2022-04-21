@@ -59,14 +59,14 @@ using namespace std;
 using namespace wf;
 
 struct Parameters {
-    unsigned source_parallelism {1};
-    unsigned map_parallelism {1};
-    unsigned sink_parallelism {1};
-    unsigned batch_size {0};
-    unsigned duration {60};
-    unsigned tuple_rate {1000};
-    unsigned sampling_rate {100};
-    bool     use_chaining {false};
+    unsigned source_parallelism = 1;
+    unsigned map_parallelism    = 1;
+    unsigned sink_parallelism   = 1;
+    unsigned batch_size         = 0;
+    unsigned duration           = 60;
+    unsigned tuple_rate         = 1000;
+    unsigned sampling_rate      = 100;
+    bool     use_chaining       = false;
 };
 
 enum class Sentiment { Positive, Negative, Neutral };
@@ -131,10 +131,10 @@ const auto timeunit_string = current_time == current_time_usecs ? "microsecond"
                                  ? "nanosecond"
                                  : "time unit";
 
-const auto timeunit_scale_factor =
-    current_time == current_time_usecs   ? 1000000ul
-    : current_time == current_time_nsecs ? 1000000000ul
-                                         : 1ul;
+const unsigned long timeunit_scale_factor =
+    current_time == current_time_usecs   ? 1000000
+    : current_time == current_time_nsecs ? 1000000000
+                                         : 1;
 
 const struct option long_opts[] = {
     {"help", 0, 0, 'h'},        {"rate", 1, 0, 'r'},  {"sampling", 1, 0, 's'},
@@ -485,9 +485,9 @@ public:
           duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {}
 
     void operator()(Source_Shipper<Tuple> &shipper) {
-        const auto end_time    = current_time() + duration;
-        auto       sent_tuples = 0ul;
-        size_t     index       = 0;
+        const auto    end_time    = current_time() + duration;
+        unsigned long sent_tuples = 0;
+        size_t        index       = 0;
 
         while (current_time() < end_time) {
             auto       tweet     = tweets[index];
@@ -581,12 +581,12 @@ class SinkFunctor {
 #ifndef NDEBUG
     inline static mutex print_mutex {};
 #endif
-    vector<unsigned long> latency_samples {};
-    vector<unsigned long> interdeparture_samples {};
-    vector<unsigned long> service_time_samples {};
-    unsigned long         tuples_received {0};
-    unsigned long         last_sampling_time {current_time()};
-    unsigned long         last_arrival_time {last_sampling_time};
+    vector<unsigned long> latency_samples;
+    vector<unsigned long> interdeparture_samples;
+    vector<unsigned long> service_time_samples;
+    unsigned long         tuples_received    = 0;
+    unsigned long         last_sampling_time = current_time();
+    unsigned long         last_arrival_time  = last_sampling_time;
     unsigned              sampling_rate;
 
     bool is_time_to_sample(unsigned long arrival_time) {
