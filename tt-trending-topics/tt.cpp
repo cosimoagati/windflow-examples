@@ -21,7 +21,9 @@
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#if defined(__clang__) || !defined(__GNUC__)
 #pragma GCC diagnostic ignored "-Wmismatched-tags"
+#endif
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
 #endif
 
