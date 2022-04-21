@@ -761,7 +761,13 @@ class SourceFunctor {
 public:
     SourceFunctor(unsigned d, unsigned rate, const char *path = default_path)
         : tweets {get_tweets_from_file(path)},
-          duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {}
+          duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {
+        if (tweets.empty()) {
+            cerr << "Error: empty tweet stream.  Check whether dataset file "
+                    "exists and is readable\n";
+            exit(EXIT_FAILURE);
+        }
+    }
 
     void operator()(Source_Shipper<Tweet> &shipper) {
         const auto    end_time    = current_time() + duration;

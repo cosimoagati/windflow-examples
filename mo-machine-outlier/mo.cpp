@@ -519,7 +519,11 @@ public:
     SourceFunctor(unsigned d, unsigned rate, const char *path = default_path)
         : machine_metadata {parse_metadata<parse_alibaba_trace>(path)},
           duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {
-        assert(machine_metadata.size() > 0);
+        if (machine_metadata.empty()) {
+            cerr << "Error: empty machine reading stream.  Check whether "
+                    "dataset file exists and is readable\n";
+            exit(EXIT_FAILURE);
+        }
     }
 
     void operator()(Source_Shipper<SourceTuple> &shipper) {
