@@ -527,9 +527,9 @@ public:
     }
 
     void operator()(Source_Shipper<SourceTuple> &shipper) {
-        const auto end_time    = current_time() + duration;
-        auto       sent_tuples = 0ul;
-        size_t     index       = 0;
+        const auto    end_time    = current_time() + duration;
+        unsigned long sent_tuples = 0;
+        size_t        index       = 0;
 
         while (current_time() < end_time) {
             const auto          current_observation = machine_metadata[index];
