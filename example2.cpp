@@ -8,7 +8,32 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wreorder"
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpedantic"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wall"
+#endif
+
 #include <wf/windflow.hpp>
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 using namespace std;
 using namespace wf;
@@ -115,8 +140,10 @@ int main(const int argc, const char *const argv[]) {
                         .withOutputBatchSize(10)
                         .build();
 
-    auto filter =
-        Filter_Builder(do_filter).withParallelism(1).withName("filter").build();
+    auto filter = Filter_Builder(do_filter)
+                      .withParallelism(1)
+                      .withName("filter")
+                      .build();
 
     CounterFunctor counter_functor;
     auto           counter = Map_Builder(counter_functor)
