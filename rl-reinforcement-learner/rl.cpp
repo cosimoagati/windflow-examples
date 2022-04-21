@@ -422,15 +422,15 @@ static Metric<unsigned long> global_service_time_metric {"service-time"};
 static BlockingQueue<string> global_action_queue {"page1", "page2", "page3"};
 
 class CTRGeneratorFunctor {
+    unsigned long duration;
+    unsigned      tuple_rate_per_second;
+
     unsigned long round_num {1};
     unsigned long event_count {0};
     unsigned long max_rounds;
 
     mt19937                      mt {random_device {}()};
     uuids::uuid_random_generator uuid_gen {mt};
-
-    unsigned long duration;
-    unsigned      tuple_rate_per_second;
 
     InputTuple get_new_tuple() {
         const auto session_id = uuids::to_string(uuid_gen());
