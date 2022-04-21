@@ -12,7 +12,24 @@
 #include <string_view>
 #include <unordered_map>
 #include <vector>
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wreorder"
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wpedantic"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wmismatched-tags"
+#pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#endif
+
 #include <wf/windflow.hpp>
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 using namespace std;
 using namespace wf;
