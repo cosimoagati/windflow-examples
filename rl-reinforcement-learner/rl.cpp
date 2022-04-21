@@ -915,7 +915,7 @@ class SinkFunctor {
     vector<unsigned long> service_time_samples {};
     unsigned long         tuples_received {0};
     unsigned long         last_sampling_time {current_time()};
-    unsigned long         last_arrival_time {last_arrival_time};
+    unsigned long         last_arrival_time {last_sampling_time};
     unsigned              sampling_rate;
 
     bool is_time_to_sample(unsigned long arrival_time) {
