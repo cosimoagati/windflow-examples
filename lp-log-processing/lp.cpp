@@ -178,6 +178,7 @@ optional<SourceTuple> build_source_tuple(const string &line) {
     if (tokens.size() != 9) {
         return {};
     }
+    // TODO: Obtain minutes!
     SourceTuple tuple;
     tuple.ip            = tokens[1];
     tuple.log_timestamp = tokens[4];
