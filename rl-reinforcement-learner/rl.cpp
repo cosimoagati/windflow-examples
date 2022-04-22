@@ -55,14 +55,13 @@ struct Parameters {
     bool     use_chaining                      = false;
 };
 
-enum class TupleType { Event, Reward };
-
-// XXX: A union would probably be more fitting...
 struct InputTuple {
-    TupleType     tuple_type;
-    string        id;
-    unsigned long round_num;
-    unsigned long reward;
+    enum { EVENT, REWARD } kind;
+    string id;
+    union {
+        unsigned long round_num;
+        unsigned long reward;
+    };
     unsigned long timestamp;
 };
 
@@ -448,8 +447,12 @@ class CTRGeneratorFunctor {
             // log
         }
 
-        const auto timestamp = current_time();
-        return {TupleType::Event, session_id, round_num, 0, timestamp};
+        InputTuple tuple;
+        tuple.kind      = InputTuple::EVENT;
+        tuple.id        = session_id;
+        tuple.round_num = round_num;
+        tuple.timestamp = current_time();
+        return tuple;
     }
 
 public:
@@ -515,9 +518,12 @@ class RewardSourceFunctor {
                 }
                 action_selection_map[action] = 0;
                 // log
-                const auto timestamp = current_time();
-                shipper.push({TupleType::Reward, action, 0,
-                              static_cast<unsigned>(r2), timestamp});
+                InputTuple tuple;
+                tuple.kind      = InputTuple::REWARD;
+                tuple.id        = action;
+                tuple.reward    = static_cast<unsigned>(r2);
+                tuple.timestamp = current_time();
+                shipper.push(move(tuple));
             }
         }
     }
@@ -897,17 +903,16 @@ public:
         : reinforcement_learner {actions} {}
 
     void operator()(const InputTuple &tuple, Shipper<OutputTuple> &shipper) {
-        switch (tuple.tuple_type) {
-        case TupleType::Event: {
-            const auto &event_id  = tuple.id;
-            const auto  round_num = tuple.round_num;
-            const auto actions = reinforcement_learner.next_actions(round_num);
+        switch (tuple.kind) {
+        case InputTuple::EVENT: {
+            const auto &event_id = tuple.id;
+            const auto  actions =
+                reinforcement_learner.next_actions(tuple.round_num);
             shipper.push({actions, event_id, tuple.timestamp});
         } break;
-        case TupleType::Reward: {
-            const auto &action = tuple.id;
-            const auto  reward = tuple.reward;
-            reinforcement_learner.set_reward(action, reward);
+        case InputTuple::REWARD: {
+            const auto &action_id = tuple.id;
+            reinforcement_learner.set_reward(action_id, tuple.reward);
         } break;
         default:
             assert(false);
