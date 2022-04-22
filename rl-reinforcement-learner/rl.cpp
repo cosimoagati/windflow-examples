@@ -504,9 +504,9 @@ class RewardSourceFunctor {
             const auto distr = action_ctr_distr[action];
             auto       sum   = 0;
 
-            for (auto i = 0; i < 12; ++i) {
+            for (int i = 0; i < 12; ++i) {
                 sum += rand(mt);
-                const auto r = (sum - 100) / 100.0;
+                const double r = (sum - 100) / 100.0;
 
                 assert(distr.size() >= 2);
                 auto r2 = static_cast<int>(r * distr[1] + distr[0]);
