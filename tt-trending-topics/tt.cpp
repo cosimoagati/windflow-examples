@@ -397,7 +397,7 @@ public:
 template<typename T>
 class CircularFifoBuffer {
     vector<T> buffer;
-    size_t    head {0};
+    size_t    head = 0;
 
 public:
     CircularFifoBuffer(size_t size) : buffer(size) {
