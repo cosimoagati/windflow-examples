@@ -56,7 +56,7 @@ struct Parameters {
 };
 
 struct InputTuple {
-    enum { EVENT, REWARD } kind;
+    enum { EVENT, REWARD } tag;
     string        id;
     unsigned long value;
     unsigned long timestamp;
@@ -895,7 +895,7 @@ public:
         : reinforcement_learner {actions} {}
 
     void operator()(const InputTuple &tuple, Shipper<OutputTuple> &shipper) {
-        switch (tuple.kind) {
+        switch (tuple.tag) {
         case InputTuple::EVENT: {
             const auto &event_id = tuple.id;
             const auto  actions =
