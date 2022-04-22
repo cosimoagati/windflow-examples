@@ -694,7 +694,7 @@ static inline void print_statistics(unsigned long elapsed_time,
 
 static inline string get_datetime_string() {
     const auto current_date = time(nullptr);
-    string     date_string {asctime(localtime(&current_date))};
+    string     date_string  = asctime(localtime(&current_date));
     if (!date_string.empty()) {
         date_string.pop_back(); // needed to remove trailing newline
     }
