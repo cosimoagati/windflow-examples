@@ -57,11 +57,8 @@ struct Parameters {
 
 struct InputTuple {
     enum { EVENT, REWARD } kind;
-    string id;
-    union {
-        unsigned long round_num;
-        unsigned long reward;
-    };
+    string        id;
+    unsigned long value;
     unsigned long timestamp;
 };
 
@@ -447,12 +444,8 @@ class CTRGeneratorFunctor {
             // log
         }
 
-        InputTuple tuple;
-        tuple.kind      = InputTuple::EVENT;
-        tuple.id        = session_id;
-        tuple.round_num = round_num;
-        tuple.timestamp = current_time();
-        return tuple;
+        const auto timestamp = current_time();
+        return {InputTuple::EVENT, session_id, round_num, timestamp};
     }
 
 public:
@@ -518,12 +511,10 @@ class RewardSourceFunctor {
                 }
                 action_selection_map[action] = 0;
                 // log
-                InputTuple tuple;
-                tuple.kind      = InputTuple::REWARD;
-                tuple.id        = action;
-                tuple.reward    = static_cast<unsigned>(r2);
-                tuple.timestamp = current_time();
-                shipper.push(move(tuple));
+
+                const auto timestamp = current_time();
+                shipper.push({InputTuple::REWARD, action,
+                              static_cast<unsigned>(r2), timestamp});
             }
         }
     }
@@ -907,12 +898,12 @@ public:
         case InputTuple::EVENT: {
             const auto &event_id = tuple.id;
             const auto  actions =
-                reinforcement_learner.next_actions(tuple.round_num);
+                reinforcement_learner.next_actions(tuple.value);
             shipper.push({actions, event_id, tuple.timestamp});
         } break;
         case InputTuple::REWARD: {
             const auto &action_id = tuple.id;
-            reinforcement_learner.set_reward(action_id, tuple.reward);
+            reinforcement_learner.set_reward(action_id, tuple.value);
         } break;
         default:
             assert(false);
