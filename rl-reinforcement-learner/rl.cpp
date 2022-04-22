@@ -792,6 +792,7 @@ public:
 
         assert(!selected_actions.empty());
         assert(selected_action != "");
+
         selected_actions[0] = selected_action;
         return selected_actions;
     }
