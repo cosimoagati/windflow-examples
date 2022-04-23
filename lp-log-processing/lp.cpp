@@ -253,6 +253,20 @@ static inline optional<SourceTuple> build_source_tuple(const string &line) {
     return tuple;
 }
 
+static inline vector<SourceTuple> parse_logs(const char *path) {
+    ifstream            log_stream {path};
+    vector<SourceTuple> logs;
+
+    string line;
+    while (getline(log_stream, line)) {
+        auto log = build_source_tuple(line);
+        if (log) {
+            logs.push_back(move(*log));
+        }
+    }
+    return logs;
+}
+
 static inline vector<size_t> get_parallelism_degrees(const char *degrees) {
     vector<size_t> parallelism_degrees;
     for (const auto &s : string_split(degrees, ',')) {
