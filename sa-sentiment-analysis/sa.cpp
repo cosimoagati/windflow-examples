@@ -498,7 +498,7 @@ public:
         while (current_time() < end_time) {
             auto       tweet     = tweets[index];
             const auto timestamp = current_time();
-            shipper.push({move(tweet), SentimentResult {}, timestamp});
+            shipper.push({tweet, SentimentResult {}, timestamp});
             ++sent_tuples;
             index = (index + 1) % tweets.size();
 
