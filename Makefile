@@ -13,7 +13,7 @@ INCLUDE_FLAGS = -I$(HOME)/.local/include -I$(HOME)/.local/include/gsl \
 -I$(HOME)/fastflow -I$(HOME)/.local/include/wf
 LIB_PATH_FLAGS = -L$(HOME)/.local/lib
 
-LIBS = -pthread
+LIBS = -pthread -lmaxminddb
 GPULIBS = -ltbb
 
 ifneq (, $(shell which clang++))
