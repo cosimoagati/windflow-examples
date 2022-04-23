@@ -258,7 +258,7 @@ static inline vector<SourceTuple> parse_logs(const char *path) {
     vector<SourceTuple> logs;
 
     string line;
-    while (getline(log_stream, line)) {
+    while (log_stream.good() && getline(log_stream, line)) {
         auto log = build_source_tuple(line);
         if (log) {
             logs.push_back(move(*log));

@@ -246,7 +246,7 @@ static inline Map get_sentiment_map(const char *path) {
     Map                     sentiment_map;
     string                  line;
 
-    while (getline(input_file, line)) {
+    while (input_file.good() && getline(input_file, line)) {
         const auto line_fields = string_split(line, '\t');
         assert(line_fields.size() == 2);
 
