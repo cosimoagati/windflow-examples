@@ -1,6 +1,7 @@
 #include <atomic>
 #include <cassert>
 #include <getopt.h>
+#include <maxminddb.h>
 #include <mutex>
 #include <nlohmann/json.hpp>
 #include <optional>
