@@ -117,6 +117,36 @@ public:
     }
 };
 
+class MMDB_handle {
+    MMDB_s mmdb;
+    bool   is_db_valid = false;
+
+public:
+    MMDB_handle(const char *path) {
+        const int status = MMDB_open(path, MMDB_MODE_MMAP, &mmdb);
+        if (status != MMDB_SUCCESS) {
+            cerr << "Error opening MaxMind database file\n";
+            exit(EXIT_FAILURE);
+        }
+        is_db_valid = true;
+    }
+
+    const MMDB_s &db() const {
+        return mmdb;
+    }
+
+    MMDB_handle(const MMDB_handle &other) = delete;
+    MMDB_handle(MMDB_handle &&other)      = delete;
+    MMDB_handle &operator=(const MMDB_handle &other) = delete;
+    MMDB_handle &operator=(MMDB_handle &&other) = delete;
+
+    ~MMDB_handle() {
+        if (is_db_valid) {
+            MMDB_close(&mmdb);
+        }
+    }
+};
+
 constexpr auto current_time = current_time_nsecs;
 
 const auto timeunit_string = current_time == current_time_usecs ? "microsecond"
@@ -170,6 +200,29 @@ vector<string> split_log_fields(const string &line) {
             result.push_back(m);
         }
     }
+    return result;
+}
+
+optional<string> lookup_country(const MMDB_s *mmdb, const char *ip_string) {
+    int  gai_error;
+    int  mmdb_error;
+    auto db_node =
+        MMDB_lookup_string(mmdb, ip_string, &gai_error, &mmdb_error);
+    if (gai_error != 0 || mmdb_error != MMDB_SUCCESS || !db_node.found_entry) {
+        return {};
+    }
+    MMDB_entry_data_s entry_data;
+    const int status = MMDB_get_value(&db_node.entry, &entry_data, "country",
+                                      "names", "en", NULL);
+    if (status != MMDB_SUCCESS || !entry_data.has_data
+        || entry_data.type != MMDB_DATA_TYPE_UTF8_STRING) {
+        return {};
+    }
+    string result;
+    for (unsigned i = 0; i < entry_data.data_size; ++i) {
+        result.push_back(entry_data.utf8_string[i]);
+    }
+    result.shrink_to_fit();
     return result;
 }
 
