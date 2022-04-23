@@ -1,5 +1,7 @@
 #include <atomic>
 #include <cassert>
+#include <cstddef>
+#include <fstream>
 #include <getopt.h>
 #include <maxminddb.h>
 #include <mutex>
