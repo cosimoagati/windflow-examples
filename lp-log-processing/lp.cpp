@@ -648,6 +648,26 @@ public:
     }
 };
 
+class GeoFinderFunctor {
+    MMDB_handle mmdb;
+
+public:
+    void operator()(const SourceTuple &            input,
+                    Shipper<GeoFinderOutputTuple> &shipper) {
+        const auto ip = input.ip.c_str();
+
+        // TODO: Check if string is a valid ip address string;
+
+        // TODO: inefficient, executing two DB lookups for two fields, it
+        // should be done in one lookup.
+        const auto           country = lookup_country(&mmdb.db(), ip);
+        const auto           city    = lookup_city(&mmdb.db(), ip);
+        GeoFinderOutputTuple output {country ? *country : "null",
+                                     city ? *city : "null", input.timestamp};
+        shipper.push(move(output));
+    }
+};
+
 class GeoStatsFunctor {
     unordered_map<string, CountryStats> stats;
 
