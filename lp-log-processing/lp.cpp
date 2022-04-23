@@ -123,7 +123,7 @@ class MMDB_handle {
     bool   is_db_valid = false;
 
 public:
-    MMDB_handle(const char *path) {
+    MMDB_handle(const char *path = "GeoLite2-City.mmdb") {
         const int status = MMDB_open(path, MMDB_MODE_MMAP, &mmdb);
         if (status != MMDB_SUCCESS) {
             cerr << "Error opening MaxMind database file\n";
