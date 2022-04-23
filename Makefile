@@ -11,6 +11,7 @@ CXXFLAGS = -std=c++17 -Wall -Wextra -Wpedantic -pedantic -O3 -g3 \
 
 INCLUDE_FLAGS = -I$(HOME)/.local/include -I$(HOME)/.local/include/gsl \
 -I$(HOME)/fastflow -I$(HOME)/.local/include/wf
+LIB_PATH_FLAGS = -L$(HOME)/.local/lib
 
 LIBS = -pthread
 GPULIBS = -ltbb
@@ -76,7 +77,7 @@ $(GPU_OBJS): %.o: %.cu
 	$(USER_DEFINES) -c $< -o $@
 
 $(CPU_EXAMPLES): %: %.o
-	$(CXX) $< $(LIBS) -o $@
+	$(CXX) $< $(LIB_PATH_FLAGS) $(LIBS) -o $@
 
 $(GPU_EXAMPLES): %: %.o
 	$(NVXX) $(GPULIBS) $< -o $@
