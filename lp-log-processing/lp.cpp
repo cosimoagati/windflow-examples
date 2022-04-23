@@ -204,7 +204,8 @@ vector<string> split_log_fields(const string &line) {
     return result;
 }
 
-optional<string> lookup_country(const MMDB_s *mmdb, const char *ip_string) {
+static inline optional<string> lookup_country(const MMDB_s *mmdb,
+                                              const char *  ip_string) {
     int  gai_error;
     int  mmdb_error;
     auto db_node =
@@ -227,7 +228,7 @@ optional<string> lookup_country(const MMDB_s *mmdb, const char *ip_string) {
     return result;
 }
 
-optional<SourceTuple> build_source_tuple(const string &line) {
+static inline optional<SourceTuple> build_source_tuple(const string &line) {
     const auto tokens = split_log_fields(line);
     if (tokens.size() != 9) {
         return {};
