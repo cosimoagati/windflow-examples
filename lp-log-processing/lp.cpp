@@ -540,7 +540,7 @@ public:
         while (current_time() < end_time) {
             auto log      = logs[index];
             log.timestamp = current_time();
-            shipper.push(log);
+            shipper.push(move(log));
             ++sent_tuples;
             index = (index + 1) % logs.size();
 
