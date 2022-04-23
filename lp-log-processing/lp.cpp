@@ -516,10 +516,43 @@ static Metric<unsigned long> global_interdeparture_metric {
     "interdeparture-time"};
 static Metric<unsigned long> global_service_time_metric {"service-time"};
 
-// class SourceFunctor {
-// public:
-//     operator()(Source_Shipper<Tuple> &shipper) {}
-// };
+class SourceFunctor {
+    vector<SourceTuple> logs;
+    unsigned long       duration;
+    unsigned            tuple_rate_per_second;
+
+public:
+    SourceFunctor(unsigned d, unsigned rate,
+                  const char *path = "http-server.log")
+        : logs {parse_logs(path)}, duration {d}, tuple_rate_per_second {rate} {
+        if (logs.empty()) {
+            cerr << "Error: empty log stream.  Check whether log file exists "
+                    "and is readable\n";
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    void operator()(Source_Shipper<SourceTuple> &shipper) {
+        const auto    end_time    = current_time() + duration;
+        unsigned long sent_tuples = 0;
+        size_t        index       = 0;
+
+        while (current_time() < end_time) {
+            auto log      = logs[index];
+            log.timestamp = current_time();
+            shipper.push(log);
+            ++sent_tuples;
+            index = (index + 1) % logs.size();
+
+            if (tuple_rate_per_second > 0) {
+                const unsigned long delay =
+                    (1.0 / tuple_rate_per_second) * timeunit_scale_factor;
+                busy_wait(delay);
+            }
+        }
+        global_sent_tuples.fetch_add(sent_tuples);
+    }
+};
 
 template<typename T>
 class CircularFifoQueue {
