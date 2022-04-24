@@ -157,11 +157,11 @@ const auto timeunit_string = current_time == current_time_usecs ? "microsecond"
                                  ? "nanosecond"
                                  : "time unit";
 
-const unsigned long timeunit_scale_factor =
+static const unsigned long timeunit_scale_factor =
     current_time == current_time_usecs   ? 1000000
     : current_time == current_time_nsecs ? 1000000000
                                          : 1;
-const struct option long_opts[] = {
+static const struct option long_opts[] = {
     {"help", 0, 0, 'h'},        {"rate", 1, 0, 'r'},  {"sampling", 1, 0, 's'},
     {"parallelism", 1, 0, 'p'}, {"batch", 1, 0, 'b'}, {"chaining", 1, 0, 'c'},
     {"duration", 1, 0, 'd'},    {0, 0, 0, 0}};
@@ -170,7 +170,7 @@ const struct option long_opts[] = {
  * Return difference between a and b, accounting for unsigned arithmetic
  * wraparound.
  */
-unsigned long difference(unsigned long a, unsigned long b) {
+static unsigned long difference(unsigned long a, unsigned long b) {
     return max(a, b) - min(a, b);
 }
 
@@ -192,7 +192,7 @@ static inline vector<string_view> string_split(const string_view &s,
     return words;
 }
 
-vector<string> split_log_fields(const string &line) {
+static vector<string> split_log_fields(const string &line) {
     const regex log_regex {
         "^(\\S+) (\\S+) (\\S+) \\[([\\w:/]+\\s[+\\-]\\d{4})\\] "
         "\"(.+?)\" (\\d{3}) (\\S+)(.*?)"};
@@ -206,8 +206,8 @@ vector<string> split_log_fields(const string &line) {
     return result;
 }
 
-optional<string> lookup_ip(const MMDB_s *mmdb, const char *ip_string,
-                           const char *lookup_field) {
+static optional<string> lookup_ip(const MMDB_s &mmdb, const char *ip_string,
+                                  const char *lookup_field) {
     int  gai_error;
     int  mmdb_error;
     auto db_node =
@@ -500,7 +500,7 @@ void serialize_to_json(const Metric<unsigned long> &metric,
 /*
  * Suspend execution for an amount of time units specified by duration.
  */
-void busy_wait(unsigned long duration) {
+static void busy_wait(unsigned long duration) {
     const auto start_time = current_time();
     auto       now        = start_time;
     while (now - start_time < duration) {
