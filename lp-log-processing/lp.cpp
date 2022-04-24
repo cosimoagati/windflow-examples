@@ -867,34 +867,71 @@ public:
 
 static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
-    // SourceFunctor source_functor {parameters.duration,
-    // parameters.tuple_rate}; auto          source = Source_Builder
-    // {source_functor}
-    //                   .withParallelism(parameters.source_parallelism)
-    //                   .withName("source")
-    //                   .withOutputBatchSize(parameters.batch_size)
-    //                   .build();
+    SourceFunctor source_functor {parameters.duration, parameters.tuple_rate};
+    auto          source_node = Source_Builder {source_functor}
+                           .withParallelism(parameters.source_parallelism)
+                           .withName("source")
+                           .withOutputBatchSize(parameters.batch_size)
+                           .build();
 
-    // MapFunctor<BasicClassifier> map_functor;
-    // auto                        classifier_node = Map_Builder
-    // {map_functor}
-    //                            .withParallelism(parameters.map_parallelism)
-    //                            .withName("classifier")
-    //                            .withOutputBatchSize(parameters.batch_size)
-    //                            .build();
+    VolumeCounterFunctor volume_counter_functor;
+    auto                 volume_counter_node =
+        FlatMap_Builder {volume_counter_functor}
+            .withParallelism(parameters.volume_counter_parallelism)
+            .withName("volume counter")
+            .withOutputBatchSize(parameters.batch_size)
+            .build();
 
-    // SinkFunctor sink_functor {parameters.sampling_rate};
-    // auto        sink = Sink_Builder {sink_functor}
-    //                 .withParallelism(parameters.sink_parallelism)
-    //                 .withName("sink")
-    //                 .build();
+    StatusCounterFunctor status_counter_functor;
+    auto                 status_counter_node =
+        FlatMap_Builder {status_counter_functor}
+            .withParallelism(parameters.status_counter_parallelism)
+            .withName("status counter")
+            .withOutputBatchSize(parameters.batch_size)
+            .build();
 
-    // if (parameters.use_chaining) {
-    //     graph.add_source(source).chain(classifier_node).chain_sink(sink);
-    // } else {
-    //     graph.add_source(source).add(classifier_node).add_sink(sink);
-    // }
-    // return graph;
+    GeoFinderFunctor geo_finder_functor;
+    auto             geo_finder_node =
+        FlatMap_Builder {status_counter_functor}
+            .withParallelism(parameters.geo_finder_parallelism)
+            .withName("geo finder")
+            .withOutputBatchSize(parameters.batch_size)
+            .build();
+
+    GeoStatsFunctor geo_stats_functor;
+    auto            geo_stats_node =
+        FlatMap_Builder {geo_stats_functor}
+            .withParallelism(parameters.geo_finder_parallelism)
+            .withName("geo stats")
+            .withOutputBatchSize(parameters.batch_size)
+            .build();
+
+    SinkFunctor sink_functor {parameters.sampling_rate};
+    auto        sink_node = Sink_Builder {sink_functor}
+                         .withParallelism(parameters.sink_parallelism)
+                         .withName("sink")
+                         .build();
+
+    auto &source_pipe = graph.add_source(source_node);
+
+    if (parameters.use_chaining) {
+        auto &volume_counter_pipe = source_pipe.chain(volume_counter_node);
+        auto &status_counter_pipe = source_pipe.chain(status_counter_node);
+        auto &geo_finder_pipe     = source_pipe.chain(geo_finder_node);
+        auto &geo_stats_pipe      = geo_finder_pipe.chain(geo_stats_node);
+        volume_counter_pipe.chain_sink(sink_node);
+        status_counter_pipe.chain_sink(sink_node);
+        geo_stats_pipe.chain_sink(sink_node);
+    } else {
+        auto &volume_counter_pipe = source_pipe.add(volume_counter_node);
+        auto &status_counter_pipe = source_pipe.add(status_counter_node);
+        auto &geo_finder_pipe     = source_pipe.add(geo_finder_node);
+        auto &geo_stats_pipe      = geo_finder_pipe.add(geo_stats_node);
+        volume_counter_pipe.add_sink(sink_node);
+        status_counter_pipe.add_sink(sink_node);
+        geo_stats_pipe.add_sink(sink_node);
+    }
+    return graph;
 }
 
 int main(int argc, char *argv[]) {
