@@ -41,7 +41,8 @@ struct Parameters {
     unsigned volume_counter_parallelism = 1;
     unsigned status_counter_parallelism = 1;
     unsigned geo_finder_parallelism     = 1;
-    unsigned geo_stats_sink_parallelism = 1;
+    unsigned geo_stats_parallelism      = 1;
+    unsigned sink_parallelism           = 1;
     unsigned batch_size                 = 0;
     unsigned duration                   = 60;
     unsigned tuple_rate                 = 1000;
@@ -348,7 +349,8 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
                 parameters.volume_counter_parallelism = degrees[1];
                 parameters.status_counter_parallelism = degrees[2];
                 parameters.geo_finder_parallelism     = degrees[3];
-                parameters.geo_stats_sink_parallelism = degrees[4];
+                parameters.geo_stats_parallelism      = degrees[4];
+                parameters.sink_parallelism           = degrees[5];
             }
             break;
         }
@@ -383,7 +385,8 @@ static void validate_args(const Parameters &parameters) {
         || parameters.volume_counter_parallelism == 0
         || parameters.status_counter_parallelism == 0
         || parameters.geo_finder_parallelism == 0
-        || parameters.geo_stats_sink_parallelism == 0) {
+        || parameters.geo_stats_parallelism == 0
+        || parameters.sink_parallelism == 0) {
         cerr << "Error: parallelism degree must be positive\n";
         exit(EXIT_FAILURE);
     }
@@ -411,15 +414,21 @@ static void validate_args(const Parameters &parameters) {
         exit(EXIT_FAILURE);
     }
 
-    if (parameters.geo_stats_sink_parallelism > max_threads) {
-        cerr << "Error: geo stats (sink) parallelism is too large\n";
+    if (parameters.geo_stats_parallelism > max_threads) {
+        cerr << "Error: geo stats parallelism is too large\n";
+        exit(EXIT_FAILURE);
+    }
+
+    if (parameters.sink_parallelism > max_threads) {
+        cerr << "Error: sink parallelism is too large\n";
         exit(EXIT_FAILURE);
     }
 
     if (parameters.source_parallelism + parameters.volume_counter_parallelism
                 + parameters.status_counter_parallelism
                 + parameters.geo_finder_parallelism
-                + parameters.geo_stats_sink_parallelism
+                + parameters.geo_stats_parallelism
+                + parameters.sink_parallelism
             >= max_threads
         && !parameters.use_chaining) {
         cerr << "Error: the total number of hardware threads specified is too "
@@ -437,8 +446,9 @@ static void print_initial_parameters(const Parameters &parameters) {
          << parameters.status_counter_parallelism << '\n'
          << "Geo finder parallelism: " << parameters.geo_finder_parallelism
          << '\n'
-         << "Geo stats (sink) parallelism: "
-         << parameters.geo_stats_sink_parallelism << '\n'
+         << "Geo stats parallelism: " << parameters.geo_stats_parallelism
+         << '\n'
+         << "Sink parallelism: " << parameters.sink_parallelism << '\n'
          << "Batching: ";
     if (parameters.batch_size > 0) {
         cout << parameters.batch_size << '\n';
