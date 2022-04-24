@@ -42,19 +42,19 @@
 using namespace std;
 using namespace wf;
 
-constexpr auto current_time = current_time_nsecs;
+static constexpr auto current_time = current_time_nsecs;
 
-const auto timeunit_string = current_time == current_time_usecs ? "microsecond"
-                             : current_time == current_time_nsecs
-                                 ? "nanosecond"
-                                 : "time unit";
+static const auto timeunit_string =
+    current_time == current_time_usecs   ? "microsecond"
+    : current_time == current_time_nsecs ? "nanosecond"
+                                         : "time unit";
 
-const unsigned long timeunit_scale_factor =
+static const unsigned long timeunit_scale_factor =
     current_time == current_time_usecs   ? 1000000
     : current_time == current_time_nsecs ? 1000000000
                                          : 1;
 
-const struct option long_opts[] = {
+static const struct option long_opts[] = {
     {"help", 0, 0, 'h'},        {"rate", 1, 0, 'r'},  {"sampling", 1, 0, 's'},
     {"parallelism", 1, 0, 'p'}, {"batch", 1, 0, 'b'}, {"chaining", 1, 0, 'c'},
     {"duration", 1, 0, 'd'},    {0, 0, 0, 0}};
@@ -426,8 +426,8 @@ public:
     }
 };
 
-inline uint64_t current_time_msecs() __attribute__((always_inline));
-inline uint64_t current_time_msecs() {
+static inline uint64_t current_time_msecs() __attribute__((always_inline));
+static inline uint64_t current_time_msecs() {
     struct timespec t;
     clock_gettime(CLOCK_REALTIME, &t);
     return (t.tv_sec) * 1000UL + (t.tv_nsec / 1000000UL);
@@ -473,7 +473,7 @@ public:
  * Return difference between a and b, accounting for unsigned arithmetic
  * wraparound.
  */
-unsigned long difference(unsigned long a, unsigned long b) {
+static unsigned long difference(unsigned long a, unsigned long b) {
     return max(a, b) - min(a, b);
 }
 
@@ -569,7 +569,7 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     }
 }
 
-void validate_args(const Parameters &parameters) {
+static void validate_args(const Parameters &parameters) {
     if (parameters.duration == 0) {
         cerr << "Error: duration must be positive\n";
         exit(EXIT_FAILURE);
@@ -618,7 +618,7 @@ void validate_args(const Parameters &parameters) {
     }
 }
 
-void print_initial_parameters(const Parameters &parameters) {
+static void print_initial_parameters(const Parameters &parameters) {
     cout << "Running graph with the following parameters:\n"
          << "Source parallelism: " << parameters.source_parallelism << '\n'
          << "Topic extractor parallelism: "
@@ -701,8 +701,8 @@ static inline string get_datetime_string() {
     return date_string;
 }
 
-void serialize_to_json(const Metric<unsigned long> &metric,
-                       unsigned long                total_measurements) {
+static void serialize_to_json(const Metric<unsigned long> &metric,
+                              unsigned long total_measurements) {
     nlohmann::ordered_json json_stats;
     json_stats["date"]                 = get_datetime_string();
     json_stats["name"]                 = metric.name();
@@ -736,7 +736,7 @@ void serialize_to_json(const Metric<unsigned long> &metric,
 /*
  * Suspend execution for an amount of time units specified by duration.
  */
-void busy_wait(unsigned long duration) {
+static void busy_wait(unsigned long duration) {
     const auto start_time = current_time();
     auto       now        = start_time;
     while (now - start_time < duration) {
