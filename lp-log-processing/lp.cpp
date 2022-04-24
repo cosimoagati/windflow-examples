@@ -211,7 +211,7 @@ static optional<string> lookup_ip(const MMDB_s &mmdb, const char *ip_string,
     int  gai_error;
     int  mmdb_error;
     auto db_node =
-        MMDB_lookup_string(mmdb, ip_string, &gai_error, &mmdb_error);
+        MMDB_lookup_string(&mmdb, ip_string, &gai_error, &mmdb_error);
     if (gai_error != 0 || mmdb_error != MMDB_SUCCESS || !db_node.found_entry) {
         return {};
     }
@@ -230,11 +230,56 @@ static optional<string> lookup_ip(const MMDB_s &mmdb, const char *ip_string,
     return result;
 }
 
-optional<string> lookup_country(const MMDB_s *mmdb, const char *ip_string) {
+static string char_buf_to_string(const char *buf, size_t size) {
+    string result;
+    for (size_t i = 0; i < size; ++i) {
+        result.push_back(buf[i]);
+    }
+    result.shrink_to_fit();
+    return result;
+}
+
+static pair<optional<string>, optional<string>>
+lookup_country_and_city(const MMDB_s &mmdb, const char *ip_string) {
+    int  gai_error;
+    int  mmdb_error;
+    auto db_node =
+        MMDB_lookup_string(&mmdb, ip_string, &gai_error, &mmdb_error);
+    if (gai_error != 0 || mmdb_error != MMDB_SUCCESS || !db_node.found_entry) {
+        return {{}, {}};
+    }
+    MMDB_entry_data_s                        entry_data;
+    pair<optional<string>, optional<string>> result;
+
+    int status = MMDB_get_value(&db_node.entry, &entry_data, "country",
+                                "names", "en", NULL);
+    if (status != MMDB_SUCCESS || !entry_data.has_data
+        || entry_data.type != MMDB_DATA_TYPE_UTF8_STRING) {
+        result.first = {};
+    } else {
+        result.first =
+            char_buf_to_string(entry_data.utf8_string, entry_data.data_size);
+    }
+
+    status = MMDB_get_value(&db_node.entry, &entry_data, "city", "names", "en",
+                            NULL);
+    if (status != MMDB_SUCCESS || !entry_data.has_data
+        || entry_data.type != MMDB_DATA_TYPE_UTF8_STRING) {
+        result.second = {};
+    } else {
+        result.second =
+            char_buf_to_string(entry_data.utf8_string, entry_data.data_size);
+    }
+    return result;
+}
+
+static optional<string> lookup_country(const MMDB_s &mmdb,
+                                       const char *  ip_string) {
     return lookup_ip(mmdb, ip_string, "country");
 }
 
-optional<string> lookup_city(const MMDB_s *mmdb, const char *ip_string) {
+static optional<string> lookup_city(const MMDB_s &mmdb,
+                                    const char *  ip_string) {
     return lookup_ip(mmdb, ip_string, "city");
 }
 
@@ -328,7 +373,7 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     }
 }
 
-void validate_args(const Parameters &parameters) {
+static void validate_args(const Parameters &parameters) {
     if (parameters.duration == 0) {
         cerr << "Error: duration must be positive\n";
         exit(EXIT_FAILURE);
@@ -383,7 +428,7 @@ void validate_args(const Parameters &parameters) {
     }
 }
 
-void print_initial_parameters(const Parameters &parameters) {
+static void print_initial_parameters(const Parameters &parameters) {
     cout << "Running graph with the following parameters:\n"
          << "Source parallelism: " << parameters.source_parallelism << '\n'
          << "Volume counter parallelism: "
@@ -465,8 +510,8 @@ static inline string get_datetime_string() {
     return date_string;
 }
 
-void serialize_to_json(const Metric<unsigned long> &metric,
-                       unsigned long                total_measurements) {
+static void serialize_to_json(const Metric<unsigned long> &metric,
+                              unsigned long total_measurements) {
     nlohmann::ordered_json json_stats;
     json_stats["date"]                 = get_datetime_string();
     json_stats["name"]                 = metric.name();
@@ -704,11 +749,9 @@ public:
         const auto ip = input.ip.c_str();
 
         // TODO: Check if string is a valid ip address string;
-
-        // TODO: inefficient, executing two DB lookups for two fields, it
-        // should be done in one lookup.
-        const auto           country = lookup_country(&mmdb.db(), ip);
-        const auto           city    = lookup_city(&mmdb.db(), ip);
+        const auto           ip_info = lookup_country_and_city(mmdb.db(), ip);
+        const auto &         country = ip_info.first;
+        const auto &         city    = ip_info.second;
         GeoFinderOutputTuple output {country ? *country : "null",
                                      city ? *city : "null", input.timestamp};
         shipper.push(move(output));
