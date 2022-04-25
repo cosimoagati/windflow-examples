@@ -603,7 +603,8 @@ class SourceFunctor {
 public:
     SourceFunctor(unsigned d, unsigned rate,
                   const char *path = "http-server.log")
-        : logs {parse_logs(path)}, duration {d}, tuple_rate_per_second {rate} {
+        : logs {parse_logs(path)}, duration {d * timeunit_scale_factor},
+          tuple_rate_per_second {rate} {
         if (logs.empty()) {
             cerr << "Error: empty log stream.  Check whether log file exists "
                     "and is readable\n";
