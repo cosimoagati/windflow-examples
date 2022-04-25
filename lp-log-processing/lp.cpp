@@ -934,7 +934,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     GeoFinderFunctor geo_finder_functor;
     auto             geo_finder_node =
-        FlatMap_Builder {status_counter_functor}
+        FlatMap_Builder {geo_finder_functor}
             .withParallelism(parameters.geo_finder_parallelism)
             .withName("geo finder")
             .withOutputBatchSize(parameters.batch_size)
