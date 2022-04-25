@@ -44,7 +44,7 @@ GPU_OBJS:=$(GPU_SRCS:.cu=.o)
 
 all: cpu gpu
 
-debug-cpu: CXXFLAGS := $(CXXFLAGS) -fno-lto -Og -g3 -fno-inline -UNDEBUG
+debug-cpu: CXXFLAGS := $(CXXFLAGS) -fno-lto -Og -ggdb3 -fno-inline -UNDEBUG
 
 debug-cpu: CXX := $(DEBUG_CXX)
 debug-cpu: cpu
