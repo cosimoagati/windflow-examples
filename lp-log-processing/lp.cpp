@@ -139,9 +139,32 @@ public:
         return mmdb;
     }
 
-    MMDB_handle(const MMDB_handle &other) = delete;
-    MMDB_handle(MMDB_handle &&other)      = delete;
-    MMDB_handle &operator=(const MMDB_handle &other) = delete;
+    MMDB_handle(const MMDB_handle &other) {
+        const int status =
+            MMDB_open(other.mmdb.filename, MMDB_MODE_MMAP, &mmdb);
+        if (status != MMDB_SUCCESS) {
+            cerr << "Error opening MaxMind database file\n";
+            exit(EXIT_FAILURE);
+        }
+        is_db_valid = true;
+    }
+
+    MMDB_handle &operator=(const MMDB_handle &other) {
+        if (is_db_valid) {
+            MMDB_close(&mmdb);
+            is_db_valid = false;
+        }
+        const int status =
+            MMDB_open(other.mmdb.filename, MMDB_MODE_MMAP, &mmdb);
+        if (status != MMDB_SUCCESS) {
+            cerr << "Error opening MaxMind database file\n";
+            exit(EXIT_FAILURE);
+        }
+        is_db_valid = true;
+        return *this;
+    }
+
+    MMDB_handle(MMDB_handle &&other) = delete;
     MMDB_handle &operator=(MMDB_handle &&other) = delete;
 
     ~MMDB_handle() {
