@@ -955,6 +955,24 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
                          .build();
 
     auto &source_pipe = graph.add_source(source_node);
+    source_pipe.split(
+        [](const SourceTuple &t) {
+            switch (t.tag) {
+            case SourceTuple::Volume:
+                return 0;
+                break;
+            case SourceTuple::Status:
+                return 1;
+                break;
+            case SourceTuple::Geo:
+                return 2;
+                break;
+            default:
+                assert(false);
+                break;
+            }
+        },
+        3);
 
     if (parameters.use_chaining) {
         auto &volume_counter_pipe = source_pipe.chain(volume_counter_node);
