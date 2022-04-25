@@ -975,21 +975,19 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         3);
 
     if (parameters.use_chaining) {
-        auto &volume_counter_pipe = source_pipe.chain(volume_counter_node);
-        auto &status_counter_pipe = source_pipe.chain(status_counter_node);
-        auto &geo_finder_pipe     = source_pipe.chain(geo_finder_node);
-        auto &geo_stats_pipe      = geo_finder_pipe.chain(geo_stats_node);
-        volume_counter_pipe.chain_sink(sink_node);
-        status_counter_pipe.chain_sink(sink_node);
-        geo_stats_pipe.chain_sink(sink_node);
+        source_pipe.select(0).chain(volume_counter_node).chain_sink(sink_node);
+        source_pipe.select(1).chain(status_counter_node).chain_sink(sink_node);
+        source_pipe.select(2)
+            .chain(geo_finder_node)
+            .chain(geo_stats_node)
+            .chain_sink(sink_node);
     } else {
-        auto &volume_counter_pipe = source_pipe.add(volume_counter_node);
-        auto &status_counter_pipe = source_pipe.add(status_counter_node);
-        auto &geo_finder_pipe     = source_pipe.add(geo_finder_node);
-        auto &geo_stats_pipe      = geo_finder_pipe.add(geo_stats_node);
-        volume_counter_pipe.add_sink(sink_node);
-        status_counter_pipe.add_sink(sink_node);
-        geo_stats_pipe.add_sink(sink_node);
+        source_pipe.select(0).add(volume_counter_node).add_sink(sink_node);
+        source_pipe.select(1).add(status_counter_node).add_sink(sink_node);
+        source_pipe.select(2)
+            .add(geo_finder_node)
+            .add(geo_stats_node)
+            .add_sink(sink_node);
     }
     return graph;
 }
