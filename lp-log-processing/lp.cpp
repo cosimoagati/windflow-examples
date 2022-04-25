@@ -893,6 +893,9 @@ public:
             case OutputTuple::Geo:
                 cout << "Received geo\n";
                 break;
+            default:
+                assert(false);
+                break;
             }
 #endif
         } else {
