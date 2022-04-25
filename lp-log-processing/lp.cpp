@@ -716,6 +716,7 @@ public:
             counts_entry->second += 1;
         }
         OutputTuple output;
+        output.tag       = OutputTuple::Volume;
         output.minute    = minute;
         output.count     = counts.find(minute)->second;
         output.timestamp = input.timestamp;
