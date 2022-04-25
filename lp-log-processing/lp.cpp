@@ -51,6 +51,7 @@ struct Parameters {
 };
 
 struct SourceTuple {
+    enum { Volume, Status, Geo } tag;
     string        ip;
     string        request;
     string        log_timestamp;
@@ -616,10 +617,24 @@ public:
         size_t        index       = 0;
 
         while (current_time() < end_time) {
-            auto log      = logs[index];
-            log.timestamp = current_time();
-            shipper.push(move(log));
-            ++sent_tuples;
+            auto volume_source_tuple     = logs[index];
+            auto status_source_tuple     = logs[index];
+            auto geo_finder_source_tuple = logs[index];
+
+            volume_source_tuple.tag     = SourceTuple::Volume;
+            status_source_tuple.tag     = SourceTuple::Status;
+            geo_finder_source_tuple.tag = SourceTuple::Geo;
+
+            const auto timestamp              = current_time();
+            volume_source_tuple.timestamp     = timestamp;
+            status_source_tuple.timestamp     = timestamp;
+            geo_finder_source_tuple.timestamp = timestamp;
+
+            shipper.push(move(volume_source_tuple));
+            shipper.push(move(status_source_tuple));
+            shipper.push(move(geo_finder_source_tuple));
+
+            sent_tuples += 3;
             index = (index + 1) % logs.size();
 
             if (tuple_rate_per_second > 0) {
