@@ -231,30 +231,6 @@ static vector<string> split_log_fields(const string &line) {
     return result;
 }
 
-static optional<string> lookup_ip(const MMDB_s &mmdb, const char *ip_string,
-                                  const char *lookup_field) {
-    int  gai_error;
-    int  mmdb_error;
-    auto db_node =
-        MMDB_lookup_string(&mmdb, ip_string, &gai_error, &mmdb_error);
-    if (gai_error != 0 || mmdb_error != MMDB_SUCCESS || !db_node.found_entry) {
-        return {};
-    }
-    MMDB_entry_data_s entry_data;
-    const int         status = MMDB_get_value(&db_node.entry, &entry_data,
-                                      lookup_field, "names", "en", NULL);
-    if (status != MMDB_SUCCESS || !entry_data.has_data
-        || entry_data.type != MMDB_DATA_TYPE_UTF8_STRING) {
-        return {};
-    }
-    string result;
-    for (unsigned i = 0; i < entry_data.data_size; ++i) {
-        result.push_back(entry_data.utf8_string[i]);
-    }
-    result.shrink_to_fit();
-    return result;
-}
-
 static string char_buf_to_string(const char *buf, size_t size) {
     string result;
     for (size_t i = 0; i < size; ++i) {
@@ -296,16 +272,6 @@ lookup_country_and_city(const MMDB_s &mmdb, const char *ip_string) {
             char_buf_to_string(entry_data.utf8_string, entry_data.data_size);
     }
     return result;
-}
-
-static optional<string> lookup_country(const MMDB_s &mmdb,
-                                       const char *  ip_string) {
-    return lookup_ip(mmdb, ip_string, "country");
-}
-
-static optional<string> lookup_city(const MMDB_s &mmdb,
-                                    const char *  ip_string) {
-    return lookup_ip(mmdb, ip_string, "city");
 }
 
 static inline optional<SourceTuple> build_source_tuple(const string &line) {
