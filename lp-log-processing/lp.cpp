@@ -1,3 +1,4 @@
+#include <arpa/inet.h>
 #include <atomic>
 #include <cassert>
 #include <cstddef>
@@ -198,6 +199,12 @@ static const struct option long_opts[] = {
  */
 static unsigned long difference(unsigned long a, unsigned long b) {
     return max(a, b) - min(a, b);
+}
+
+bool is_valid_ip_address(const char *ip) {
+    sockaddr_in sa;
+    const int   result = inet_pton(AF_INET, ip, &(sa.sin_addr));
+    return result != 0;
 }
 
 /*
@@ -763,8 +770,11 @@ class GeoFinderFunctor {
 public:
     GeoFinderOutputTuple operator()(const SourceTuple &input) {
         const auto ip = input.ip.c_str();
-
-        // TODO: Check if string is a valid ip address string;
+        if (!is_valid_ip_address(ip)) {
+            cerr << "Error: GeoFinderFunctor received invalid IP address "
+                    "string\n";
+            exit(EXIT_FAILURE);
+        }
         const auto  ip_info = lookup_country_and_city(mmdb.db(), ip);
         const auto &country = ip_info.first;
         const auto &city    = ip_info.second;
