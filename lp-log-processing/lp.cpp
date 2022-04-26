@@ -668,7 +668,7 @@ public:
     VolumeCounterFunctor(size_t window_size = 60)
         : buffer {window_size}, counts {window_size} {}
 
-    void operator()(const SourceTuple &input, Shipper<OutputTuple> &shipper) {
+    OutputTuple operator()(const SourceTuple &input) {
         const unsigned long minute       = input.minute_timestamp;
         const auto          counts_entry = counts.find(minute);
 
@@ -688,7 +688,7 @@ public:
         output.minute    = minute;
         output.count     = counts.find(minute)->second;
         output.timestamp = input.timestamp;
-        shipper.push(move(output));
+        return output;
     }
 };
 
@@ -697,7 +697,7 @@ class StatusCounterFunctor {
     unordered_map<unsigned, unsigned long> counts;
 
 public:
-    void operator()(const SourceTuple &input, Shipper<OutputTuple> &shipper) {
+    OutputTuple operator()(const SourceTuple &input) {
         const auto status_code  = input.response;
         const auto counts_entry = counts.find(status_code);
         if (counts_entry == counts.end()) {
@@ -710,7 +710,7 @@ public:
         output.status_code = status_code;
         output.count       = counts.find(status_code)->second;
         output.timestamp   = input.timestamp;
-        shipper.push(move(output));
+        return output;
     }
 };
 
@@ -761,17 +761,15 @@ class GeoFinderFunctor {
     MMDB_handle mmdb;
 
 public:
-    void operator()(const SourceTuple &            input,
-                    Shipper<GeoFinderOutputTuple> &shipper) {
+    GeoFinderOutputTuple operator()(const SourceTuple &input) {
         const auto ip = input.ip.c_str();
 
         // TODO: Check if string is a valid ip address string;
-        const auto           ip_info = lookup_country_and_city(mmdb.db(), ip);
-        const auto &         country = ip_info.first;
-        const auto &         city    = ip_info.second;
-        GeoFinderOutputTuple output {country ? *country : "null",
-                                     city ? *city : "null", input.timestamp};
-        shipper.push(move(output));
+        const auto  ip_info = lookup_country_and_city(mmdb.db(), ip);
+        const auto &country = ip_info.first;
+        const auto &city    = ip_info.second;
+        return {country ? *country : "null", city ? *city : "null",
+                input.timestamp};
     }
 };
 
@@ -779,8 +777,7 @@ class GeoStatsFunctor {
     unordered_map<string, CountryStats> stats;
 
 public:
-    void operator()(const GeoFinderOutputTuple &input,
-                    Shipper<OutputTuple> &      shipper) {
+    OutputTuple operator()(const GeoFinderOutputTuple &input) {
         if (stats.find(input.country) == stats.end()) {
             stats.insert({input.country, {input.country}});
         }
@@ -795,7 +792,7 @@ public:
         output.city          = input.city;
         output.city_total    = current_stats.get_city_total(input.city);
         output.timestamp     = input.timestamp;
-        shipper.push(move(output));
+        return output;
     }
 };
 
@@ -892,7 +889,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     VolumeCounterFunctor volume_counter_functor;
     auto                 volume_counter_node =
-        FlatMap_Builder {volume_counter_functor}
+        Map_Builder {volume_counter_functor}
             .withParallelism(parameters.volume_counter_parallelism)
             .withName("volume counter")
             .withOutputBatchSize(parameters.batch_size)
@@ -903,7 +900,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     StatusCounterFunctor status_counter_functor;
     auto                 status_counter_node =
-        FlatMap_Builder {status_counter_functor}
+        Map_Builder {status_counter_functor}
             .withParallelism(parameters.status_counter_parallelism)
             .withName("status counter")
             .withOutputBatchSize(parameters.batch_size)
@@ -913,7 +910,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     GeoFinderFunctor geo_finder_functor;
     auto             geo_finder_node =
-        FlatMap_Builder {geo_finder_functor}
+        Map_Builder {geo_finder_functor}
             .withParallelism(parameters.geo_finder_parallelism)
             .withName("geo finder")
             .withOutputBatchSize(parameters.batch_size)
@@ -921,7 +918,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     GeoStatsFunctor geo_stats_functor;
     auto            geo_stats_node =
-        FlatMap_Builder {geo_stats_functor}
+        Map_Builder {geo_stats_functor}
             .withParallelism(parameters.geo_finder_parallelism)
             .withName("geo stats")
             .withOutputBatchSize(parameters.batch_size)
