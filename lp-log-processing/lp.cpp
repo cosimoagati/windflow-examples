@@ -848,23 +848,28 @@ public:
             }
 #ifndef NDEBUG
             const lock_guard lock {print_mutex};
-            cout << "arrival time: " << arrival_time
-                 << " ts:" << input->timestamp << " latency: " << latency
-                 << '\n';
             switch (input->tag) {
             case OutputTuple::Volume:
-                cout << "Received volume\n";
+                cout << "Received volume - count: " << input->count
+                     << ", timestampMinutes: " << input->minute;
                 break;
             case OutputTuple::Status:
-                cout << "Received status\n";
+                cout << "Received status - response: " << input->status_code
+                     << ", count: " << input->count;
                 break;
             case OutputTuple::Geo:
-                cout << "Received geo\n";
+                cout << "Received Geo stats - country: " << input->country
+                     << ", city: " << input->city
+                     << ", cityTotal: " << input->city_total
+                     << ", countryTotal: " << input->country_total;
                 break;
             default:
                 assert(false);
                 break;
             }
+            cout << " arrival time: " << arrival_time
+                 << " ts:" << input->timestamp << " latency: " << latency
+                 << '\n';
 #endif
         } else {
             global_received_tuples.fetch_add(tuples_received);
