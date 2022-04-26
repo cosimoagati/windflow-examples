@@ -889,6 +889,9 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withParallelism(parameters.volume_counter_parallelism)
             .withName("volume counter")
             .withOutputBatchSize(parameters.batch_size)
+            .withKeyBy([](const SourceTuple &t) -> unsigned long {
+                return t.minute_timestamp;
+            })
             .build();
 
     StatusCounterFunctor status_counter_functor;
@@ -897,6 +900,8 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withParallelism(parameters.status_counter_parallelism)
             .withName("status counter")
             .withOutputBatchSize(parameters.batch_size)
+            .withKeyBy(
+                [](const SourceTuple &t) -> unsigned { return t.response; })
             .build();
 
     GeoFinderFunctor geo_finder_functor;
@@ -913,6 +918,9 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withParallelism(parameters.geo_finder_parallelism)
             .withName("geo stats")
             .withOutputBatchSize(parameters.batch_size)
+            .withKeyBy([](const GeoFinderOutputTuple &t) -> string {
+                return t.country;
+            })
             .build();
 
     SinkFunctor sink_functor {parameters.sampling_rate};
