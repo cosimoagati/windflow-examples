@@ -1,7 +1,10 @@
+#define _XOPEN_SOURCE
 #include <arpa/inet.h>
 #include <atomic>
 #include <cassert>
 #include <cstddef>
+#include <cstring>
+#include <ctime>
 #include <fstream>
 #include <getopt.h>
 #include <maxminddb.h>
@@ -201,6 +204,21 @@ static unsigned long difference(unsigned long a, unsigned long b) {
     return max(a, b) - min(a, b);
 }
 
+unsigned long get_millis_date_truncated_by_minute(const char *date_string) {
+    tm time;
+    memset(&time, 0, sizeof(time));
+    const char *ptr = strptime(date_string, "%d/%b/%Y:%H:%M:%S %z", &time);
+    if (!ptr) {
+        exit(EXIT_FAILURE);
+    }
+    time.tm_sec   = 0;
+    time_t result = mktime(&time);
+    if (result == (time_t) -1) {
+        exit(EXIT_FAILURE);
+    }
+    return (unsigned long) result * 1000;
+}
+
 bool is_valid_ip_address(const char *ip) {
     sockaddr_in sa;
     const int   result = inet_pton(AF_INET, ip, &(sa.sin_addr));
@@ -291,9 +309,11 @@ static inline optional<SourceTuple> build_source_tuple(const string &line) {
     SourceTuple tuple;
     tuple.ip            = tokens[1];
     tuple.log_timestamp = tokens[4];
-    tuple.request       = tokens[5];
-    tuple.response      = stoul(tokens[6]);
-    tuple.byte_size     = tokens[7] == string {"-"} ? 0 : stoul(tokens[7]);
+    tuple.minute_timestamp =
+        get_millis_date_truncated_by_minute(tuple.log_timestamp.c_str());
+    tuple.request   = tokens[5];
+    tuple.response  = stoul(tokens[6]);
+    tuple.byte_size = tokens[7] == string {"-"} ? 0 : stoul(tokens[7]);
     return tuple;
 }
 
