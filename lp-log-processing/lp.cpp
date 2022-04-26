@@ -779,22 +779,22 @@ class GeoStatsFunctor {
     unordered_map<string, CountryStats> stats;
 
 public:
-    void operator()(const GeoFinderOutputTuple &tuple,
+    void operator()(const GeoFinderOutputTuple &input,
                     Shipper<OutputTuple> &      shipper) {
-        if (stats.find(tuple.country) == stats.end()) {
-            stats.insert({tuple.country, {tuple.country}});
+        if (stats.find(input.country) == stats.end()) {
+            stats.insert({input.country, {input.country}});
         }
 
-        auto &current_stats = stats.find(tuple.country)->second;
-        current_stats.city_found(tuple.city);
+        auto &current_stats = stats.find(input.country)->second;
+        current_stats.city_found(input.city);
 
         OutputTuple output;
         output.tag           = OutputTuple::Geo;
-        output.country       = tuple.country;
+        output.country       = input.country;
         output.country_total = current_stats.get_country_total();
-        output.city          = tuple.city;
-        output.city_total    = current_stats.get_city_total(tuple.city);
-        output.timestamp     = tuple.timestamp;
+        output.city          = input.city;
+        output.city_total    = current_stats.get_city_total(input.city);
+        output.timestamp     = input.timestamp;
         shipper.push(move(output));
     }
 };
