@@ -876,7 +876,7 @@ public:
                 break;
             }
             cout << " arrival time: " << arrival_time
-                 << " ts:" << input->timestamp << " latency: " << latency
+                 << " ts: " << input->timestamp << " latency: " << latency
                  << '\n';
 #endif
         } else {
