@@ -704,7 +704,6 @@ public:
                 const unsigned long old_minute = buffer.remove();
                 counts.erase(old_minute);
             }
-
             counts.insert({minute, 1});
             buffer.add(minute);
         } else {
