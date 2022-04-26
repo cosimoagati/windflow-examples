@@ -768,18 +768,18 @@ class GeoFinderFunctor {
     MMDB_handle mmdb;
 
 public:
-    GeoFinderOutputTuple operator()(const SourceTuple &input) {
+    void operator()(const SourceTuple &            input,
+                    Shipper<GeoFinderOutputTuple> &shipper) {
         const auto ip = input.ip.c_str();
-        if (!is_valid_ip_address(ip)) {
-            cerr << "Error: GeoFinderFunctor received invalid IP address "
-                    "string\n";
-            exit(EXIT_FAILURE);
+        if (is_valid_ip_address(ip)) {
+            const auto  ip_info = lookup_country_and_city(mmdb.db(), ip);
+            const auto &country = ip_info.first;
+            const auto &city    = ip_info.second;
+            GeoFinderOutputTuple output {country ? *country : "null",
+                                         city ? *city : "null",
+                                         input.timestamp};
+            shipper.push(move(output));
         }
-        const auto  ip_info = lookup_country_and_city(mmdb.db(), ip);
-        const auto &country = ip_info.first;
-        const auto &city    = ip_info.second;
-        return {country ? *country : "null", city ? *city : "null",
-                input.timestamp};
     }
 };
 
@@ -920,7 +920,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     GeoFinderFunctor geo_finder_functor;
     auto             geo_finder_node =
-        Map_Builder {geo_finder_functor}
+        FlatMap_Builder {geo_finder_functor}
             .withParallelism(parameters.geo_finder_parallelism)
             .withName("geo finder")
             .withOutputBatchSize(parameters.batch_size)
