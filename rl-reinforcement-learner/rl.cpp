@@ -56,7 +56,7 @@ struct Parameters {
 };
 
 struct InputTuple {
-    enum { EVENT, REWARD } tag;
+    enum { Event, Reward } tag;
     string        id;
     unsigned long value;
     unsigned long timestamp;
@@ -446,7 +446,7 @@ class CTRGeneratorFunctor {
         }
 
         const auto timestamp = current_time();
-        return {InputTuple::EVENT, session_id, round_num, timestamp};
+        return {InputTuple::Event, session_id, round_num, timestamp};
     }
 
 public:
@@ -514,7 +514,7 @@ class RewardSourceFunctor {
                 // log
 
                 const auto timestamp = current_time();
-                shipper.push({InputTuple::REWARD, action,
+                shipper.push({InputTuple::Reward, action,
                               static_cast<unsigned>(r2), timestamp});
             }
         }
@@ -897,13 +897,13 @@ public:
 
     void operator()(const InputTuple &tuple, Shipper<OutputTuple> &shipper) {
         switch (tuple.tag) {
-        case InputTuple::EVENT: {
+        case InputTuple::Event: {
             const auto &event_id = tuple.id;
             const auto  actions =
                 reinforcement_learner.next_actions(tuple.value);
             shipper.push({actions, event_id, tuple.timestamp});
         } break;
-        case InputTuple::REWARD: {
+        case InputTuple::Reward: {
             const auto &action_id = tuple.id;
             reinforcement_learner.set_reward(action_id, tuple.value);
         } break;
