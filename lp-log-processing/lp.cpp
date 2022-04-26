@@ -794,6 +794,7 @@ public:
         output.country_total = current_stats.get_country_total();
         output.city          = tuple.city;
         output.city_total    = current_stats.get_city_total(tuple.city);
+        output.timestamp     = tuple.timestamp;
         shipper.push(move(output));
     }
 };
