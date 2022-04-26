@@ -204,7 +204,7 @@ static unsigned long difference(unsigned long a, unsigned long b) {
 bool is_valid_ip_address(const char *ip) {
     sockaddr_in sa;
     const int   result = inet_pton(AF_INET, ip, &(sa.sin_addr));
-    return result != 0;
+    return result == 1;
 }
 
 /*
