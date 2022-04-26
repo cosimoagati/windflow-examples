@@ -50,6 +50,7 @@ struct Parameters {
     bool     use_chaining               = false;
 };
 
+// TODO: Use unions to save space?
 struct SourceTuple {
     enum { Volume, Status, Geo } tag;
     string        ip;
