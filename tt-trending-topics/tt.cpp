@@ -845,6 +845,7 @@ class RollingCounterFunctor {
         const auto counts = counter.get_counts_then_advance_window();
         const auto actual_window_length_in_seconds =
             last_modified_tracker.seconds_since_oldest_modification();
+        last_modified_tracker.mark_as_modified();
 
         for (const auto &kv : counts) {
             const auto &word  = kv.first;
