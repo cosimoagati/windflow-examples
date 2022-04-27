@@ -509,7 +509,7 @@ class RewardSourceFunctor {
         if (action_selection_map[action] == action_selection_count_threshold) {
             assert(action_ctr_distr.find(action) != action_ctr_distr.end());
             const auto distr = action_ctr_distr[action];
-            auto       sum   = 0;
+            int        sum   = 0;
 
             for (int i = 0; i < 12; ++i) {
                 sum += rand(mt);
