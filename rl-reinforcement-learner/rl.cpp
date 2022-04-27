@@ -491,7 +491,7 @@ class RewardSourceFunctor {
     unordered_map<string, vector<int>> action_ctr_distr {
         {"page1", {30, 12}}, {"page2", {60, 30}}, {"page3", {80, 10}}};
     mt19937                       mt {random_device {}()};
-    uniform_int_distribution<int> rand {1, 100};
+    uniform_int_distribution<int> rand {1, 101};
     unsigned long                 duration;
     unsigned                      tuple_rate_per_second;
 
