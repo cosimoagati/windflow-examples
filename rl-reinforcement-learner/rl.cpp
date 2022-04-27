@@ -729,7 +729,6 @@ public:
     }
 
     IntervalEstimator &with_batch_size(unsigned batch_size) {
-
         this->batch_size = batch_size;
         return *this;
     }
