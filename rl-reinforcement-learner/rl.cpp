@@ -796,10 +796,19 @@ public:
         }
 
         if (is_low_sample) {
-            selected_action =
-                actions[static_cast<unsigned>(rand(mt) * actions.size())];
+#ifndef NDEBUG
+            clog << "Using random index in interval estimator\n";
+#endif
+            const auto random_index =
+                static_cast<unsigned>(rand(mt) * actions.size());
+            assert(random_index < actions.size());
+
+            selected_action = actions[random_index];
             ++random_select_count;
         } else {
+#ifndef NDEBUG
+            clog << "NOT using random index in interval estimator\n";
+#endif
             adjust_conf_limit(round_num);
 
             unsigned max_upper_conf_bound = 0;
