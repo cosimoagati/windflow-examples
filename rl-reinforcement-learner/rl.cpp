@@ -981,13 +981,15 @@ public:
     void operator()(optional<OutputTuple> &input, RuntimeContext &context) {
         if (input) {
 #ifndef NDEBUG
-            clog << "Received actions: ";
-            for (const auto &action : input->actions) {
-                clog << action << ", ";
+            if (!input->actions.empty()) {
+                clog << "Received actions: ";
+                for (const auto &action : input->actions) {
+                    clog << action << ", ";
+                }
+                clog << "for event: " << input->event_id << '\n'
+                     << "Adding element " << (input->actions[0])
+                     << " to the queue\n";
             }
-            clog << "for event: " << input->event_id << '\n'
-                 << "Adding element " << (input->actions[0])
-                 << " to the queue\n";
 #endif
             global_action_queue.push(input->actions[0]);
 
