@@ -891,15 +891,15 @@ public:
             const lock_guard lock {print_mutex};
             switch (input->tag) {
             case OutputTuple::Volume:
-                cout << "Received volume - count: " << input->count
+                clog << "Received volume - count: " << input->count
                      << ", timestampMinutes: " << input->minute;
                 break;
             case OutputTuple::Status:
-                cout << "Received status - response: " << input->status_code
+                clog << "Received status - response: " << input->status_code
                      << ", count: " << input->count;
                 break;
             case OutputTuple::Geo:
-                cout << "Received Geo stats - country: " << input->country
+                clog << "Received Geo stats - country: " << input->country
                      << ", city: " << input->city
                      << ", cityTotal: " << input->city_total
                      << ", countryTotal: " << input->country_total;
@@ -908,7 +908,7 @@ public:
                 assert(false);
                 break;
             }
-            cout << " arrival time: " << arrival_time
+            clog << " arrival time: " << arrival_time
                  << " ts: " << input->timestamp << " latency: " << latency
                  << '\n';
 #endif

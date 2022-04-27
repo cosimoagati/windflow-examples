@@ -453,7 +453,7 @@ class CTRGeneratorFunctor {
 
 #ifndef NDEBUG
         if (event_count % 1000 == 0) {
-            cout << "Generated " << event_count << " events\n";
+            clog << "Generated " << event_count << " events\n";
         }
 #endif
         const auto timestamp = current_time();
@@ -500,7 +500,7 @@ class RewardSourceFunctor {
     void send_new_reward(Source_Shipper<InputTuple> &shipper) {
         const auto action = global_action_queue.pop();
 #ifndef NDEBUG
-        cout << "Received action " << action << " from queue\n";
+        clog << "Received action " << action << " from queue\n";
 #endif
         if (action_selection_map.find(action) == action_selection_map.end()) {
             action_selection_map.insert({action, 1});
@@ -524,7 +524,7 @@ class RewardSourceFunctor {
                 }
                 action_selection_map[action] = 0;
 #ifndef NDEBUG
-                cout << "Sending action " << action << " with reward "
+                clog << "Sending action " << action << " with reward "
                      << static_cast<unsigned>(r2) << '\n';
 #endif
                 const auto timestamp = current_time();
@@ -955,9 +955,9 @@ public:
         if (input) {
 #ifndef NDEBUG
             for (const auto &action : input->actions) {
-                cout << "Received action: " << action;
+                clog << "Received action: " << action;
             }
-            cout << " for event: " << input->event_id << '\n';
+            clog << " for event: " << input->event_id << '\n';
 #endif
             // log
             // log

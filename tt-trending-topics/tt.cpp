@@ -872,7 +872,7 @@ class RollingCounterFunctor {
 
 #ifndef NDEBUG
         if (actual_window_length_in_seconds != window_length_in_seconds) {
-            cout << "Warning: actual window length is"
+            clog << "Warning: actual window length is"
                  << actual_window_length_in_seconds << " when it should be "
                  << window_length_in_seconds
                  << " seconds (you can safely ignore this warning during the "
@@ -884,7 +884,7 @@ class RollingCounterFunctor {
             const auto &word  = kv.first;
             const auto  count = kv.second;
 #ifndef NDEBUG
-            cout << "Sending word: " << word << " with count: " << count
+            clog << "Sending word: " << word << " with count: " << count
                  << '\n';
 #endif
             shipper.push(
@@ -951,7 +951,7 @@ public:
         first_parent = {0, 0};
 
 #ifndef NDEBUG
-        cout << rankings << '\n';
+        clog << rankings << '\n';
 #endif
     }
 };
@@ -1025,13 +1025,13 @@ public:
             }
 #ifndef NDEBUG
             const lock_guard lock {print_mutex};
-            cout << "Received tuple containing the following rankings: ";
+            clog << "Received tuple containing the following rankings: ";
             for (const auto &rankable : input->rankings) {
-                cout << rankable.get_object() << ": " << rankable.get_count()
+                clog << rankable.get_object() << ": " << rankable.get_count()
                      << ", ";
             }
-            cout << "\b\b\n";
-            // cout << "arrival time: " << arrival_time
+            clog << "\b\b\n";
+            // clog << "arrival time: " << arrival_time
             //      << " ts:" << input->metadata.timestamp
             //      << " latency: " << latency << '\n';
 #endif

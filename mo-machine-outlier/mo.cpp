@@ -1014,7 +1014,7 @@ public:
             }
 #ifndef NDEBUG
             const lock_guard lock {print_mutex};
-            cout << "id: " << input->id << " "
+            clog << "id: " << input->id << " "
                  << "anomaly score: " << input->anomaly_score
                  << " is_abnormal: " << input->is_abnormal
                  << " arrival time: " << arrival_time
