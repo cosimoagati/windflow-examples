@@ -943,7 +943,14 @@ public:
                 reinforcement_learner.next_actions(tuple.value);
 #ifndef NDEBUG
             clog << "[REINFORCEMENT LEARNER] Received event " << event_id
-                 << ", possible actions are: " << actions << '\n';
+                 << ", possible actions are: ";
+            for (size_t i = 0; i < actions.size(); ++i) {
+                clog << actions[i];
+                if (i != actions.size() - 1) {
+                    clog << ", ";
+                }
+            }
+            clog << '\n';
 #endif
             shipper.push({actions, event_id, tuple.timestamp});
         } break;
