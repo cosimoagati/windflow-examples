@@ -790,8 +790,8 @@ public:
             if (!is_low_sample) {
 #ifndef NDEBUG
                 clog << "Obtained full sample\n";
+                last_round_num = round_num; // Move outside the #ifndef?
 #endif
-                last_round_num = round_num;
             }
         }
 
