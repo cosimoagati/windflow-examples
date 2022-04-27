@@ -786,7 +786,7 @@ public:
         } else {
             adjust_conf_limit(round_num);
 
-            unsigned max_upper_conf_bound {0};
+            unsigned max_upper_conf_bound = 0;
             for (auto &kv : reward_distr) {
                 auto &     stat = kv.second;
                 const auto conf_bounds =
