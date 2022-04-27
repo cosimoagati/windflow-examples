@@ -119,8 +119,6 @@ private:
     queue<T>           internal_queue;
 
 public:
-    BlockingQueue(initializer_list<T> init) : internal_queue {init} {}
-
     void push(T const &value) {
         {
             unique_lock<mutex> lock {internal_mutex};
@@ -433,7 +431,7 @@ static Metric<unsigned long> global_latency_metric {"latency"};
 static Metric<unsigned long> global_interdeparture_metric {
     "interdeparture-time"};
 static Metric<unsigned long> global_service_time_metric {"service-time"};
-static BlockingQueue<string> global_action_queue {"page1", "page2", "page3"};
+static BlockingQueue<string> global_action_queue;
 
 class CTRGeneratorFunctor {
     unsigned long duration;
