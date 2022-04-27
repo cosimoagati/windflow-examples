@@ -381,7 +381,8 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
         case 'h':
             cout << "Parameters: --rate <value> --sampling "
                     "<value> --batch <size> --parallelism "
-                    "<nEventSource,nRewardSource,nReinforcementLearner,nSink> "
+                    "<nSource,nVolumeCounter,nStatusCounter,nGeoFinder,"
+                    "nGeoStats,nSink> "
                     "[--duration <seconds>] "
                     "[--chaining <value>]\n";
             exit(EXIT_SUCCESS);
