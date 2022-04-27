@@ -674,7 +674,6 @@ class IntervalEstimator {
     unsigned       batch_size;
     vector<string> selected_actions;
 
-    unsigned bin_width;
     unsigned confidence_limit;
     unsigned min_confidence_limit;
     unsigned current_confidence_limit;
@@ -708,7 +707,7 @@ public:
                       unsigned confidence_limit_reduction_step           = 5,
                       unsigned confidence_limit_reduction_round_interval = 50,
                       unsigned min_distribution_sample                   = 30)
-        : actions {actions}, batch_size {batch_size}, bin_width {bin_width},
+        : actions {actions}, batch_size {batch_size},
           confidence_limit {confidence_limit},
           min_confidence_limit {min_confidence_limit},
           confidence_limit_reduction_step {confidence_limit_reduction_step},
