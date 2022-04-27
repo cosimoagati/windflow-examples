@@ -7,6 +7,7 @@
 #include <initializer_list>
 #include <mutex>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <random>
 #include <stduuid/uuid.h>
 #include <string>
