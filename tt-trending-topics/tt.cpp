@@ -558,7 +558,7 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
             const auto degrees = get_parallelism_degrees(optarg);
             if (degrees.size() != 6) {
                 cerr << "Error in parsing the input arguments.  Parallelism "
-                        "degree string requires exactly three elements.\n";
+                        "degree string requires exactly six elements.\n";
                 exit(EXIT_FAILURE);
             } else {
                 parameters.source_parallelism              = degrees[0];
