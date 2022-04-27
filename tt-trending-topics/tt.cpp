@@ -114,6 +114,14 @@ public:
     }
 };
 
+#ifndef NDEBUG
+template<typename T>
+ostream &operator<<(ostream &stream, const Rankable<T> rankable) {
+    stream << rankable.get_object() << ": " << rankable.get_count();
+    return stream;
+}
+#endif
+
 template<typename T>
 bool operator<(const Rankable<T> &a, const Rankable<T> &b) {
     return a.get_count() < b.get_count();
@@ -215,6 +223,20 @@ public:
         return ranked_items.end();
     }
 };
+
+#ifndef NDEBUG
+template<typename T>
+ostream &operator<<(ostream &stream, const Rankings<T> &rankings) {
+    const auto items = rankings.get_rankings();
+    for (size_t i = 0; i < items.size(); ++i) {
+        stream << items[i];
+        if (i != items.size() - 1) {
+            stream << ", ";
+        }
+    }
+    return stream;
+}
+#endif
 
 struct RankingsTuple {
     TupleMetadata    metadata;
@@ -926,6 +948,10 @@ public:
             time_diff -= emit_frequency_in_milliseconds;
         }
         first_parent = {0, 0};
+
+#ifndef NDEBUG
+        cout << "Rankings: " << rankings << '\n';
+#endif
     }
 };
 
