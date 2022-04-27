@@ -860,8 +860,10 @@ class RollingCounterFunctor {
         for (const auto &kv : counts) {
             const auto &word  = kv.first;
             const auto  count = kv.second;
+#ifndef NDEBUG
             cout << "Sending word: " << word << " with count: " << count
                  << '\n';
+#endif
             shipper.push(
                 {first_parent, word, count, actual_window_length_in_seconds});
         }
