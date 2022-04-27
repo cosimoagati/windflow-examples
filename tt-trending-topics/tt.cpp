@@ -800,6 +800,9 @@ static Metric<unsigned long> global_latency_metric {"latency"};
 static Metric<unsigned long> global_interdeparture_metric {
     "interdeparture-time"};
 static Metric<unsigned long> global_service_time_metric {"service-time"};
+#ifndef NDEBUG
+static mutex print_mutex;
+#endif
 
 class SourceFunctor {
     static constexpr auto default_path = "tweetstream.jsonl";
@@ -826,7 +829,11 @@ public:
         while (current_time() < end_time) {
             auto tweet = tweets[index];
 #ifndef NDEBUG
-            clog << "[SOURCE] Sending the following tweet: " << tweet << '\n';
+            {
+                unique_lock lock {print_mutex};
+                clog << "[SOURCE] Sending the following tweet: " << tweet
+                     << '\n';
+            }
 #endif
             const auto timestamp = current_time();
             shipper.push({{timestamp, timestamp}, "", move(tweet), timestamp});
@@ -852,8 +859,11 @@ public:
                 assert(!word.empty());
                 if (word[0] == '#') {
 #ifndef NDEBUG
-                    clog << "[TOPIC EXTRACTOR] Extracted topic: " << word
-                         << '\n';
+                    {
+                        unique_lock lock {print_mutex};
+                        clog << "[TOPIC EXTRACTOR] Extracted topic: " << word
+                             << '\n';
+                    }
 #endif
                     shipper.push({tweet.metadata, string {word}});
                 }
@@ -879,11 +889,15 @@ class RollingCounterFunctor {
 
 #ifndef NDEBUG
         if (actual_window_length_in_seconds != window_length_in_seconds) {
-            clog << "[ROLLING COUNTER] Warning: actual window length is"
-                 << actual_window_length_in_seconds << " when it should be "
-                 << window_length_in_seconds
-                 << " seconds (you can safely ignore this warning during the "
-                    "startup phase)\n";
+            {
+                unique_lock lock {print_mutex};
+                clog << "[ROLLING COUNTER] Warning: actual window length is"
+                     << actual_window_length_in_seconds
+                     << " when it should be " << window_length_in_seconds
+                     << " seconds (you can safely ignore this warning during "
+                        "the "
+                        "startup phase)\n";
+            }
         }
 #endif
 
@@ -891,8 +905,11 @@ class RollingCounterFunctor {
             const auto &word  = kv.first;
             const auto  count = kv.second;
 #ifndef NDEBUG
-            clog << "[ROLLING COUNTER] Sending word: " << word
-                 << " with count: " << count << '\n';
+            {
+                unique_lock lock {print_mutex};
+                clog << "[ROLLING COUNTER] Sending word: " << word
+                     << " with count: " << count << '\n';
+            }
 #endif
             shipper.push(
                 {first_parent, word, count, actual_window_length_in_seconds});
@@ -958,7 +975,10 @@ public:
         first_parent = {0, 0};
 
 #ifndef NDEBUG
-        clog << "[RANKLER] Current rankings are" << rankings << '\n';
+        {
+            unique_lock lock {print_mutex};
+            clog << "[RANKLER] Current rankings are" << rankings << '\n';
+        }
 #endif
     }
 };
@@ -1028,10 +1048,14 @@ public:
                 last_sampling_time = arrival_time;
             }
 #ifndef NDEBUG
-            clog << "[SINK] Received tuple containing the following rankings: "
-                 << input->rankings << ", arrival time: " << arrival_time
-                 << " ts:" << input->metadata.timestamp
-                 << " latency: " << latency << '\n';
+            {
+                unique_lock lock {print_mutex};
+                clog << "[SINK] Received tuple containing the following "
+                        "rankings: "
+                     << input->rankings << ", arrival time: " << arrival_time
+                     << " ts:" << input->metadata.timestamp
+                     << " latency: " << latency << '\n';
+            }
 #endif
         } else {
             global_received_tuples.fetch_add(tuples_received);

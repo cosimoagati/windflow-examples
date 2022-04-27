@@ -542,6 +542,9 @@ static Metric<unsigned long> global_latency_metric {"latency"};
 static Metric<unsigned long> global_interdeparture_metric {
     "interdeparture-time"};
 static Metric<unsigned long> global_service_time_metric {"service-time"};
+#ifndef NDEBUG
+static mutex print_mutex;
+#endif
 
 class SourceFunctor {
     static constexpr auto   default_path = "machine-usage.csv";
@@ -569,9 +572,12 @@ public:
             const auto current_observation = machine_metadata[index];
             const auto timestamp           = current_time();
 #ifndef NDEBUG
-            clog << "[SOURCE] Sending out tuple with the following "
-                    "observation: "
-                 << '\n';
+            {
+                unique_lock lock {print_mutex};
+                clog << "[SOURCE] Sending out tuple with the following "
+                        "observation: "
+                     << '\n';
+            }
 #endif
             const TupleMetadata tuple_metadata {
                 timestamp, timestamp}; // Using timestamp as ID
@@ -694,8 +700,12 @@ public:
         const auto current_measurement_timestamp =
             tuple.observation.measurement_timestamp;
 #ifndef NDEBUG
-        clog << "[OBSERVER SCORER] Received tuple with observation timestamp: "
-             << current_measurement_timestamp << '\n';
+        {
+            unique_lock lock {print_mutex};
+            clog << "[OBSERVER SCORER] Received tuple with observation "
+                    "timestamp: "
+                 << current_measurement_timestamp << '\n';
+        }
 #endif
         if (current_measurement_timestamp > last_measurement_timestamp) {
             if (!observation_list.empty()) {
@@ -1028,12 +1038,15 @@ public:
                 last_sampling_time = arrival_time;
             }
 #ifndef NDEBUG
-            clog << "id: " << input->id << " "
-                 << "anomaly score: " << input->anomaly_score
-                 << " is_abnormal: " << input->is_abnormal
-                 << " arrival time: " << arrival_time
-                 << " ts:" << input->timestamp << " latency: " << latency
-                 << '\n';
+            {
+                unique_lock lock {print_mutex};
+                clog << "id: " << input->id << " "
+                     << "anomaly score: " << input->anomaly_score
+                     << " is_abnormal: " << input->is_abnormal
+                     << " arrival time: " << arrival_time
+                     << " ts:" << input->timestamp << " latency: " << latency
+                     << '\n';
+            }
 #endif
         } else {
             global_received_tuples.fetch_add(tuples_received);

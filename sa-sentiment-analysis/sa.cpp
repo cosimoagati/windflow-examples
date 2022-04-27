@@ -480,6 +480,9 @@ static Metric<unsigned long> global_latency_metric {"latency"};
 static Metric<unsigned long> global_interdeparture_metric {
     "interdeparture-time"};
 static Metric<unsigned long> global_service_time_metric {"service-time"};
+#ifndef NDEBUG
+static mutex print_mutex;
+#endif
 
 class SourceFunctor {
     static constexpr auto default_path = "tweetstream.jsonl";
@@ -506,7 +509,11 @@ public:
         while (current_time() < end_time) {
             const auto &tweet = tweets[index];
 #ifndef NDEBUG
-            clog << "[SOURCE] Sending the following tweet: " << tweet << '\n';
+            {
+                unique_lock lock {print_mutex};
+                clog << "[SOURCE] Sending the following tweet: " << tweet
+                     << '\n';
+            }
 #endif
             const auto timestamp = current_time();
             shipper.push({tweet, SentimentResult {}, timestamp});
@@ -541,9 +548,13 @@ public:
             const auto sentiment_entry = sentiment_map.find(word_hash);
             if (sentiment_entry != sentiment_map.end()) {
 #ifndef NDEBUG
-                clog << "[BASIC CLASSIFIER] Current word: "
-                     << sentiment_entry->first
-                     << ", with score: " << sentiment_entry->second << '\n';
+                {
+                    unique_lock lock {print_mutex};
+                    clog << "[BASIC CLASSIFIER] Current word: "
+                         << sentiment_entry->first
+                         << ", with score: " << sentiment_entry->second
+                         << '\n';
+                }
 #endif
                 current_tweet_sentiment += sentiment_entry->second;
             }
@@ -645,13 +656,17 @@ public:
                 last_sampling_time = arrival_time;
             }
 #ifndef NDEBUG
-            clog << "[SINK] arrival time: " << arrival_time
-                 << " ts:" << input->timestamp << " latency: " << latency
-                 << '\n'
-                 << "Received tweet with score " << input->result.score
-                 << " and classification "
-                 << sentiment_to_string(input->result.sentiment) << '\n'
-                 << "with contents after trimming: " << input->tweet << " ";
+            {
+                unique_lock lock {print_mutex};
+                clog << "[SINK] arrival time: " << arrival_time
+                     << " ts:" << input->timestamp << " latency: " << latency
+                     << '\n'
+                     << "Received tweet with score " << input->result.score
+                     << " and classification "
+                     << sentiment_to_string(input->result.sentiment) << '\n'
+                     << "with contents after trimming: " << input->tweet
+                     << " ";
+            }
 #endif
         } else {
             global_received_tuples.fetch_add(tuples_received);

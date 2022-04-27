@@ -432,6 +432,9 @@ static Metric<unsigned long> global_interdeparture_metric {
     "interdeparture-time"};
 static Metric<unsigned long> global_service_time_metric {"service-time"};
 static BlockingQueue<string> global_action_queue;
+#ifndef NDEBUG
+static mutex print_mutex;
+#endif
 
 class CTRGeneratorFunctor {
     unsigned long duration;
@@ -450,10 +453,14 @@ class CTRGeneratorFunctor {
         ++event_count;
 
 #ifndef NDEBUG
-        clog << "[EVENT SOURCE] Generated event with ID: " << session_id
-             << '\n';
-        if (event_count % 1000 == 0) {
-            clog << "[EVENT SOURCE] Generated " << event_count << " events\n";
+        {
+            unique_lock lock {print_mutex};
+            clog << "[EVENT SOURCE] Generated event with ID: " << session_id
+                 << '\n';
+            if (event_count % 1000 == 0) {
+                clog << "[EVENT SOURCE] Generated " << event_count
+                     << " events\n";
+            }
         }
 #endif
         const auto timestamp = current_time();
@@ -496,8 +503,11 @@ class RewardSourceFunctor {
     void send_new_reward(Source_Shipper<InputTuple> &shipper) {
         const auto action = global_action_queue.pop();
 #ifndef NDEBUG
-        clog << "[REWARD SOURCE] Received action " << action
-             << " from queue\n";
+        {
+            unique_lock lock {print_mutex};
+            clog << "[REWARD SOURCE] Received action " << action
+                 << " from queue\n";
+        }
 #endif
         if (action_selection_map.find(action) == action_selection_map.end()) {
             action_selection_map.insert({action, 1});
@@ -521,8 +531,11 @@ class RewardSourceFunctor {
                 }
                 action_selection_map[action] = 0;
 #ifndef NDEBUG
-                clog << "[REWARD SOURCE] Sending action " << action
-                     << " with reward " << r2 << '\n';
+                {
+                    unique_lock lock {print_mutex};
+                    clog << "[REWARD SOURCE] Sending action " << action
+                         << " with reward " << r2 << '\n';
+                }
 #endif
                 const auto timestamp = current_time();
                 shipper.push({InputTuple::Reward, action,
@@ -716,12 +729,15 @@ public:
         init_selected_actions();
 
 #ifndef NDEBUG
-        clog << "confidence_limit: " << confidence_limit
-             << " min_confidence_limit: " << min_confidence_limit
-             << " confidence_limit_reduction_step: "
-             << confidence_limit_reduction_step
-             << "confidence_limit_reduction_round_interval: "
-             << confidence_limit_reduction_round_interval << '\n';
+        {
+            unique_lock lock {print_mutex};
+            clog << "confidence_limit: " << confidence_limit
+                 << " min_confidence_limit: " << min_confidence_limit
+                 << " confidence_limit_reduction_step: "
+                 << confidence_limit_reduction_step
+                 << "confidence_limit_reduction_round_interval: "
+                 << confidence_limit_reduction_round_interval << '\n';
+        }
 #endif
     }
 
@@ -742,8 +758,11 @@ public:
                 (round_num - last_round_num)
                 / confidence_limit_reduction_round_interval};
 #ifndef NDEBUG
-            clog << "red_step: " << red_step << " round_num: " << round_num
-                 << " last_round_num: " << last_round_num << '\n';
+            {
+                unique_lock lock {print_mutex};
+                clog << "red_step: " << red_step << " round_num: " << round_num
+                     << " last_round_num: " << last_round_num << '\n';
+            }
 
 #endif
             if (red_step > 0) {
@@ -755,9 +774,12 @@ public:
                     current_confidence_limit = min_confidence_limit;
                 }
 #ifndef NDEBUG
-                clog << "reduce conf limit round_num: " << round_num
-                     << "last_round_num " << last_round_num << last_round_num
-                     << '\n';
+                {
+                    unique_lock lock {print_mutex};
+                    clog << "reduce conf limit round_num: " << round_num
+                         << "last_round_num " << last_round_num
+                         << last_round_num << '\n';
+                }
 #endif
                 last_round_num = round_num;
             }
@@ -776,8 +798,11 @@ public:
                 const auto sample_count = kv.second.get_count();
 #ifndef NDEBUG
                 if (log_counter % 100 == 0) {
-                    clog << "action: " << kv.first << " sample_count"
-                         << sample_count << '\n';
+                    {
+                        unique_lock lock {print_mutex};
+                        clog << "action: " << kv.first << " sample_count"
+                             << sample_count << '\n';
+                    }
                 }
 #endif
                 if (sample_count < min_distribution_sample) {
@@ -788,7 +813,10 @@ public:
 
             if (!is_low_sample) {
 #ifndef NDEBUG
-                clog << "Obtained full sample\n";
+                {
+                    unique_lock lock {print_mutex};
+                    clog << "Obtained full sample\n";
+                }
                 last_round_num = round_num; // Move outside the #ifndef?
 #endif
             }
@@ -796,7 +824,10 @@ public:
 
         if (is_low_sample) {
 #ifndef NDEBUG
-            clog << "Using random index in interval estimator\n";
+            {
+                unique_lock lock {print_mutex};
+                clog << "Using random index in interval estimator\n";
+            }
 #endif
             const auto random_index =
                 static_cast<unsigned>(rand(mt) * actions.size());
@@ -806,7 +837,10 @@ public:
             ++random_select_count;
         } else {
 #ifndef NDEBUG
-            clog << "NOT using random index in interval estimator\n";
+            {
+                unique_lock lock {print_mutex};
+                clog << "NOT using random index in interval estimator\n";
+            }
 #endif
             adjust_conf_limit(round_num);
 
@@ -817,10 +851,13 @@ public:
                     stat.get_confidence_bounds(current_confidence_limit);
                 assert(conf_bounds.size() >= 2);
 #ifndef NDEBUG
-                clog << "current_confidence_limit: "
-                     << current_confidence_limit << " action: " << kv.first
-                     << " conf_bounds: " << conf_bounds[0] << " "
-                     << conf_bounds[1] << '\n';
+                {
+                    unique_lock lock {print_mutex};
+                    clog << "current_confidence_limit: "
+                         << current_confidence_limit << " action: " << kv.first
+                         << " conf_bounds: " << conf_bounds[0] << " "
+                         << conf_bounds[1] << '\n';
+                }
 #endif
                 if (conf_bounds[1] > max_upper_conf_bound) {
                     max_upper_conf_bound = conf_bounds[1];
@@ -844,8 +881,12 @@ public:
         }
         reward_distr.insert_or_assign(action, reward);
 #ifndef NDEBUG
-        clog << "random_select_count: " << random_select_count
-             << " intv_est_select_count: " << intv_est_select_count << '\n';
+        {
+            unique_lock lock {print_mutex};
+            clog << "random_select_count: " << random_select_count
+                 << " intv_est_select_count: " << intv_est_select_count
+                 << '\n';
+        }
 #endif
     }
 };
@@ -942,23 +983,30 @@ public:
             const auto  actions =
                 reinforcement_learner.next_actions(tuple.value);
 #ifndef NDEBUG
-            clog << "[REINFORCEMENT LEARNER] Received event " << event_id
-                 << ", possible actions are: ";
-            for (size_t i = 0; i < actions.size(); ++i) {
-                clog << actions[i];
-                if (i != actions.size() - 1) {
-                    clog << ", ";
+            {
+                unique_lock lock {print_mutex};
+                clog << "[REINFORCEMENT LEARNER] Received event " << event_id
+                     << ", possible actions are: ";
+                for (size_t i = 0; i < actions.size(); ++i) {
+                    clog << actions[i];
+                    if (i != actions.size() - 1) {
+                        clog << ", ";
+                    }
                 }
+                clog << '\n';
             }
-            clog << '\n';
 #endif
             shipper.push({actions, event_id, tuple.timestamp});
         } break;
         case InputTuple::Reward: {
             const auto &action_id = tuple.id;
 #ifndef NDEBUG
-            clog << "[REINFORCEMENT LEARNER] Received action with ID: "
-                 << action_id << ", setting reward " << tuple.value << '\n';
+            {
+                unique_lock lock {print_mutex};
+                clog << "[REINFORCEMENT LEARNER] Received action with ID: "
+                     << action_id << ", setting reward " << tuple.value
+                     << '\n';
+            }
 #endif
             reinforcement_learner.set_reward(action_id, tuple.value);
         } break;
@@ -995,13 +1043,16 @@ public:
     void operator()(optional<OutputTuple> &input, RuntimeContext &context) {
         if (input) {
 #ifndef NDEBUG
-            if (!input->actions.empty()) {
-                clog << "[SINK] Received actions: ";
-                for (const auto &action : input->actions) {
-                    clog << action << ", ";
+            {
+                unique_lock lock {print_mutex};
+                if (!input->actions.empty()) {
+                    clog << "[SINK] Received actions: ";
+                    for (const auto &action : input->actions) {
+                        clog << action << ", ";
+                    }
+                    clog << "for event: " << input->event_id << ". ";
                 }
-                clog << "for event: " << input->event_id << '\n'
-                     << "Adding element " << (input->actions[0])
+                clog << "Adding element " << (input->actions[0])
                      << " to the queue\n";
             }
 #endif

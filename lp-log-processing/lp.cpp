@@ -603,6 +603,9 @@ static Metric<unsigned long> global_latency_metric {"latency"};
 static Metric<unsigned long> global_interdeparture_metric {
     "interdeparture-time"};
 static Metric<unsigned long> global_service_time_metric {"service-time"};
+#ifndef NDEBUG
+static mutex print_mutex;
+#endif
 
 class SourceFunctor {
     vector<SourceTuple> logs;
@@ -631,8 +634,11 @@ public:
             auto status_source_tuple     = logs[index];
             auto geo_finder_source_tuple = logs[index];
 #ifndef NDEBUG
-            clog << "[SOURCE] Sending log with minute timestamp: "
-                 << logs[index].minute_timestamp << '\n';
+            {
+                unique_lock lock {print_mutex};
+                clog << "[SOURCE] Sending log with minute timestamp: "
+                     << logs[index].minute_timestamp << '\n';
+            }
 #endif
             volume_source_tuple.tag     = SourceTuple::Volume;
             status_source_tuple.tag     = SourceTuple::Status;
@@ -745,8 +751,11 @@ public:
     OutputTuple operator()(const SourceTuple &input) {
         const auto status_code = input.response;
 #ifndef NDEBUG
-        clog << "[STATUS COUNTER] Received log with response status code: "
-             << status_code << '\n';
+        {
+            unique_lock lock {print_mutex};
+            clog << "[STATUS COUNTER] Received log with response status code: "
+                 << status_code << '\n';
+        }
 #endif
         const auto counts_entry = counts.find(status_code);
         if (counts_entry == counts.end()) {
@@ -814,7 +823,11 @@ public:
                     Shipper<GeoFinderOutputTuple> &shipper) {
         const auto ip = input.ip.c_str();
 #ifndef NDEBUG
-        clog << "[GEO FINDER] Received log with ip address: " << ip << '\n';
+        {
+            unique_lock lock {print_mutex};
+            clog << "[GEO FINDER] Received log with ip address: " << ip
+                 << '\n';
+        }
 #endif
         if (is_valid_ip_address(ip)) {
             const auto  ip_info = lookup_country_and_city(mmdb.db(), ip);
@@ -834,8 +847,11 @@ class GeoStatsFunctor {
 public:
     OutputTuple operator()(const GeoFinderOutputTuple &input) {
 #ifndef NDEBUG
-        clog << "[GEO STATS] Received log with country " << input.country
-             << " and city " << input.city << '\n';
+        {
+            unique_lock lock {print_mutex};
+            clog << "[GEO STATS] Received log with country " << input.country
+                 << " and city " << input.city << '\n';
+        }
 #endif
         if (stats.find(input.country) == stats.end()) {
             stats.insert({input.country, {input.country}});
@@ -901,29 +917,32 @@ public:
                 last_sampling_time = arrival_time;
             }
 #ifndef NDEBUG
-            switch (input->tag) {
+            {
+                unique_lock lock {print_mutex};
                 clog << "[SINK] Received ";
-            case OutputTuple::Volume:
-                clog << "volume - count: " << input->count
-                     << ", timestampMinutes: " << input->minute;
-                break;
-            case OutputTuple::Status:
-                clog << "status - response: " << input->status_code
-                     << ", count: " << input->count;
-                break;
-            case OutputTuple::Geo:
-                clog << "Geo stats - country: " << input->country
-                     << ", city: " << input->city
-                     << ", cityTotal: " << input->city_total
-                     << ", countryTotal: " << input->country_total;
-                break;
-            default:
-                assert(false);
-                break;
+                switch (input->tag) {
+                case OutputTuple::Volume:
+                    clog << "volume - count: " << input->count
+                         << ", timestampMinutes: " << input->minute;
+                    break;
+                case OutputTuple::Status:
+                    clog << "status - response: " << input->status_code
+                         << ", count: " << input->count;
+                    break;
+                case OutputTuple::Geo:
+                    clog << "Geo stats - country: " << input->country
+                         << ", city: " << input->city
+                         << ", cityTotal: " << input->city_total
+                         << ", countryTotal: " << input->country_total;
+                    break;
+                default:
+                    assert(false);
+                    break;
+                }
+                clog << " arrival time: " << arrival_time
+                     << " ts: " << input->timestamp << " latency: " << latency
+                     << '\n';
             }
-            clog << " arrival time: " << arrival_time
-                 << " ts: " << input->timestamp << " latency: " << latency
-                 << '\n';
 #endif
         } else {
             global_received_tuples.fetch_add(tuples_received);
