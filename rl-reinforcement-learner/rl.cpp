@@ -689,7 +689,7 @@ class IntervalEstimator {
     bool                                 is_debug_on;
     unsigned long                        log_counter;
     unsigned long                        round_counter;
-    bool                                 is_low_sample {true};
+    bool                                 is_low_sample = true;
     mt19937                              mt {random_device {}()};
     uniform_real_distribution<double>    rand;
 
