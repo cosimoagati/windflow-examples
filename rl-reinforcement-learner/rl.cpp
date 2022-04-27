@@ -522,8 +522,8 @@ class RewardSourceFunctor {
                 }
                 action_selection_map[action] = 0;
 #ifndef NDEBUG
-                clog << "Sending action " << action << " with reward "
-                     << static_cast<unsigned>(r2) << '\n';
+                clog << "Sending action " << action << " with reward " << r2
+                     << '\n';
 #endif
                 const auto timestamp = current_time();
                 shipper.push({InputTuple::Reward, action,
