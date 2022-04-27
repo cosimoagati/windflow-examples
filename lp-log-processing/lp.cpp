@@ -993,6 +993,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
                 assert(false);
                 break;
             }
+            return 0; // Make the compiler happy
         },
         3);
 
