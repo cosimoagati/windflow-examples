@@ -964,9 +964,6 @@ public:
 };
 
 class SinkFunctor {
-#ifndef NDEBUG
-    inline static mutex print_mutex;
-#endif
     vector<unsigned long> latency_samples;
     vector<unsigned long> interdeparture_samples;
     vector<unsigned long> service_time_samples;
@@ -1013,7 +1010,6 @@ public:
                 last_sampling_time = arrival_time;
             }
 #ifndef NDEBUG
-            const lock_guard lock {print_mutex};
             clog << "id: " << input->id << " "
                  << "anomaly score: " << input->anomaly_score
                  << " is_abnormal: " << input->is_abnormal
