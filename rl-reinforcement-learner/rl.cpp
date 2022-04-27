@@ -685,7 +685,6 @@ class IntervalEstimator {
     unsigned long                        last_round_num = 1;
     unsigned long                        random_select_count;
     unsigned long                        intv_est_select_count;
-    bool                                 is_debug_on;
     unsigned long                        log_counter;
     unsigned long                        round_counter;
     bool                                 is_low_sample = true;
@@ -718,6 +717,15 @@ public:
             reward_distr.insert({action, HistogramStat {bin_width}});
         }
         init_selected_actions();
+
+#ifndef NDEBUG
+        clog << "confidence_limit: " << confidence_limit
+             << " min_confidence_limit: " << min_confidence_limit
+             << "confidence_limit_reduction_step: "
+             << confidence_limit_reduction_step
+             << "confidence_limit_reduction_round_interval: "
+             << confidence_limit_reduction_round_interval << '\n';
+#endif
     }
 
     IntervalEstimator &with_batch_size(unsigned batch_size) {
@@ -736,19 +744,22 @@ public:
             unsigned long red_step {
                 (round_num - last_round_num)
                 / confidence_limit_reduction_round_interval};
-            if (is_debug_on) {
-                // log
-            }
+#ifndef NDEBUG
+            clog << "red_step: " << red_step << " round_num: " << round_num
+                 << " last_round_num: " << last_round_num << '\n';
 
+#endif
             if (red_step > 0) {
                 current_confidence_limit -=
                     (red_step * confidence_limit_reduction_step);
                 if (current_confidence_limit < min_confidence_limit) {
                     current_confidence_limit = min_confidence_limit;
                 }
-                if (is_debug_on) {
-                    // log
-                }
+#ifndef NDEBUG
+                clog << "reduce conf limit round_num: " << round_num
+                     << "last_round_num " << last_round_num << last_round_num
+                     << '\n';
+#endif
                 last_round_num = round_num;
             }
         }
@@ -764,17 +775,22 @@ public:
             is_low_sample = false;
             for (const auto &kv : reward_distr) {
                 const auto sample_count = kv.second.get_count();
-                if (is_debug_on && log_counter % 100 == 0) {
-                    // log
+#ifndef NDEBUG
+                if (log_counter % 100 == 0) {
+                    clog << "action: " << kv.first << " sample_count"
+                         << sample_count << '\n';
                 }
+#endif
                 if (sample_count < min_distribution_sample) {
                     is_low_sample = true;
                     break;
                 }
             }
 
-            if (!is_low_sample && is_debug_on) {
-                // log
+            if (!is_low_sample) {
+#ifndef NDEBUG
+                clog << "Obtained full sample\n";
+#endif
                 last_round_num = round_num;
             }
         }
@@ -791,11 +807,13 @@ public:
                 auto &     stat = kv.second;
                 const auto conf_bounds =
                     stat.get_confidence_bounds(current_confidence_limit);
-                if (is_debug_on) {
-                    // log
-                }
-
-                assert(conf_bounds.size() >= 1);
+                assert(conf_bounds.size() >= 2);
+#ifndef NDEBUG
+                clog << "current_confidence_limit: "
+                     << current_confidence_limit << " action: " << kv.first
+                     << " conf_bounds: " << conf_bounds[0] << " "
+                     << conf_bounds[1] << '\n';
+#endif
                 if (conf_bounds[1] > max_upper_conf_bound) {
                     max_upper_conf_bound = conf_bounds[1];
                     selected_action      = kv.first;
@@ -817,9 +835,10 @@ public:
             exit(EXIT_FAILURE);
         }
         reward_distr.insert_or_assign(action, reward);
-        if (is_debug_on) {
-            // log
-        }
+#ifndef NDEBUG
+        clog << "random_select_count: " << random_select_count
+             << " intv_est_select_count: " << intv_est_select_count << '\n';
+#endif
     }
 };
 
@@ -953,13 +972,14 @@ public:
     void operator()(optional<OutputTuple> &input, RuntimeContext &context) {
         if (input) {
 #ifndef NDEBUG
+            clog << "Received actions: ";
             for (const auto &action : input->actions) {
-                clog << "Received action: " << action;
+                clog << action << ", ";
             }
-            clog << " for event: " << input->event_id << '\n';
+            clog << "for event: " << input->event_id << '\n'
+                 << "Adding element " << (input->actions[0])
+                 << " to the queue\n";
 #endif
-            // log
-            // log
             global_action_queue.push(input->actions[0]);
 
             const auto arrival_time = current_time();
