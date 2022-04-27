@@ -726,15 +726,15 @@ public:
 #endif
     }
 
-    IntervalEstimator &with_batch_size(unsigned batch_size) {
-        this->batch_size = batch_size;
-        return *this;
-    }
+    // IntervalEstimator &with_batch_size(unsigned batch_size) {
+    //     this->batch_size = batch_size;
+    //     return *this;
+    // }
 
-    IntervalEstimator &with_actions(const vector<string> &actions) {
-        this->actions = actions;
-        return *this;
-    }
+    // IntervalEstimator &with_actions(const vector<string> &actions) {
+    //     this->actions = actions;
+    //     return *this;
+    // }
 
     void adjust_conf_limit(unsigned long round_num) {
         if (current_confidence_limit > min_confidence_limit) {
