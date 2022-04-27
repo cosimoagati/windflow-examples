@@ -578,8 +578,7 @@ class MachineMetadataScorer {
     static constexpr size_t cpu_idx    = 0;
     static constexpr size_t memory_idx = 1;
 
-    static inline valarray<double>
-    calculate_distance(valarray<valarray<double>> &matrix) {
+    valarray<double> calculate_distance(valarray<valarray<double>> &matrix) {
         assert(matrix.size() > 0);
 #ifndef NDEBUG
         for (const auto &row : matrix) {
@@ -641,7 +640,7 @@ class MachineMetadataScorer {
     }
 
 public:
-    static inline vector<ScorePackage<MachineMetadata>>
+    vector<ScorePackage<MachineMetadata>>
     get_scores(const vector<MachineMetadata> &observation_list) {
         vector<ScorePackage<MachineMetadata>> score_package_list;
 
