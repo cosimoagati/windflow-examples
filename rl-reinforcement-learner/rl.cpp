@@ -721,7 +721,7 @@ public:
 #ifndef NDEBUG
         clog << "confidence_limit: " << confidence_limit
              << " min_confidence_limit: " << min_confidence_limit
-             << "confidence_limit_reduction_step: "
+             << " confidence_limit_reduction_step: "
              << confidence_limit_reduction_step
              << "confidence_limit_reduction_round_interval: "
              << confidence_limit_reduction_round_interval << '\n';
