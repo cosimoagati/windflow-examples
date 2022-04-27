@@ -523,7 +523,7 @@ class RewardSourceFunctor {
                     r2 = 0;
                 }
                 action_selection_map[action] = 0;
-#ifdef NDEBUG
+#ifndef NDEBUG
                 cout << "Sending action " << action << " with reward "
                      << static_cast<unsigned>(r2) << '\n';
 #endif
