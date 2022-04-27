@@ -951,7 +951,7 @@ public:
         first_parent = {0, 0};
 
 #ifndef NDEBUG
-        cout << "Rankings: " << rankings << '\n';
+        cout << rankings << '\n';
 #endif
     }
 };
