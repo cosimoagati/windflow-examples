@@ -738,6 +738,7 @@ public:
 
     void adjust_conf_limit(unsigned long round_num) {
         if (current_confidence_limit > min_confidence_limit) {
+            assert(last_round_num <= round_num);
             unsigned long red_step {
                 (round_num - last_round_num)
                 / confidence_limit_reduction_round_interval};
@@ -747,6 +748,8 @@ public:
 
 #endif
             if (red_step > 0) {
+                assert(current_confidence_limit
+                       >= red_step * confidence_limit_reduction_step);
                 current_confidence_limit -=
                     (red_step * confidence_limit_reduction_step);
                 if (current_confidence_limit < min_confidence_limit) {
