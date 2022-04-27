@@ -743,7 +743,7 @@ public:
 
             if (red_step > 0) {
                 current_confidence_limit -=
-                    (red_step * confidence_limit_reduction_round_interval);
+                    (red_step * confidence_limit_reduction_step);
                 if (current_confidence_limit < min_confidence_limit) {
                     current_confidence_limit = min_confidence_limit;
                 }
