@@ -674,7 +674,7 @@ class IntervalEstimator {
     unsigned       batch_size;
     vector<string> selected_actions;
 
-    unsigned confidence_limit;
+    unsigned confidence_limit; // is this needed?
     unsigned min_confidence_limit;
     unsigned current_confidence_limit;
     unsigned confidence_limit_reduction_step;
