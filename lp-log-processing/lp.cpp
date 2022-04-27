@@ -702,7 +702,6 @@ public:
 };
 
 class VolumeCounterFunctor {
-    // logger
     CircularFifoQueue<unsigned long>            buffer;
     unordered_map<unsigned long, unsigned long> counts;
 
@@ -734,7 +733,6 @@ public:
 };
 
 class StatusCounterFunctor {
-    // logger
     unordered_map<unsigned, unsigned long> counts;
 
 public:
