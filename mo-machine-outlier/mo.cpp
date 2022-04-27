@@ -772,7 +772,6 @@ class SlidingWindowStreamAnomalyScoreFunctor {
     unsigned long                        previous_timestamp = 0;
 
 public:
-    // Window length should be configurable.  For now, we hardcode a value.
     SlidingWindowStreamAnomalyScoreFunctor(size_t length = 10)
         : window_length {length} {}
 
