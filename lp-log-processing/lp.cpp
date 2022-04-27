@@ -412,33 +412,45 @@ static void validate_args(const Parameters &parameters) {
     const auto max_threads = thread::hardware_concurrency();
 
     if (parameters.source_parallelism > max_threads) {
-        cerr << "Error: source parallelism degree is too large\n";
+        cerr << "Error: source parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.volume_counter_parallelism > max_threads) {
-        cerr << "Error: volume counter parallelism degree is too large\n";
+        cerr << "Error: volume counter parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.status_counter_parallelism > max_threads) {
         cerr << "Error: status counter parallelism parallelism degree is too "
-                "large\n";
+                "large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.geo_finder_parallelism > max_threads) {
-        cerr << "Error: sink parallelism degree is too large\n";
+        cerr << "Error: sink parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.geo_stats_parallelism > max_threads) {
-        cerr << "Error: geo stats parallelism is too large\n";
+        cerr << "Error: geo stats parallelism is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.sink_parallelism > max_threads) {
-        cerr << "Error: sink parallelism is too large\n";
+        cerr << "Error: sink parallelism is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
@@ -450,7 +462,9 @@ static void validate_args(const Parameters &parameters) {
             >= max_threads
         && !parameters.use_chaining) {
         cerr << "Error: the total number of hardware threads specified is too "
-                "high to be used without chaining.\n";
+                "high to be used without chaining.\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 }

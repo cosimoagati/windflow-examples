@@ -260,23 +260,31 @@ static void validate_args(const Parameters &parameters) {
     const auto max_threads = thread::hardware_concurrency();
 
     if (parameters.ctr_generator_parallelism > max_threads) {
-        cerr << "Error: Event source parallelism degree is too large\n";
+        cerr << "Error: Event source parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.reward_source_parallelism > max_threads) {
-        cerr << "Error: reward source parallelism degree is too large\n";
+        cerr << "Error: reward source parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.reinforcement_learner_parallelism > max_threads) {
         cerr << "Error: reinforcement learner parallelism degree is too "
-                "large\n";
+                "large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.sink_parallelism > max_threads) {
-        cerr << "Error: sink parallelism degree is too large\n";
+        cerr << "Error: sink parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
@@ -287,7 +295,9 @@ static void validate_args(const Parameters &parameters) {
             >= max_threads
         && !parameters.use_chaining) {
         cerr << "Error: the total number of hardware threads specified is too "
-                "high to be used without chaining.\n";
+                "high to be used without chaining.\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 }

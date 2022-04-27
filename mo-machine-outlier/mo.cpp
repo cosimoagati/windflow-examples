@@ -355,27 +355,50 @@ static void validate_args(const Parameters &parameters) {
     }
 
     if (parameters.source_parallelism > max_threads) {
-        cerr << "Error: source parallelism is too high\n";
+        cerr << "Error: source parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.observer_parallelism > max_threads) {
-        cerr << "Error: observer parallelism is too high\n";
+        cerr << "Error: observer parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.anomaly_scorer_parallelism > max_threads) {
-        cerr << "Error: anomaly scorer parallelism is too high\n";
+        cerr << "Error: anomaly scorer parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.alert_triggerer_parallelism > max_threads) {
-        cerr << "Error: alert triggerer parallelism is too high\n";
+        cerr << "Error: alert triggerer parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.sink_parallelism > max_threads) {
-        cerr << "Error: sink parallelism is too high\n";
+        cerr << "Error: sink parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
+        exit(EXIT_FAILURE);
+    }
+
+    if (parameters.source_parallelism + parameters.observer_parallelism
+                + parameters.anomaly_scorer_parallelism
+                + parameters.alert_triggerer_parallelism
+                + parameters.sink_parallelism
+            >= max_threads
+        && !parameters.use_chaining) {
+        cerr << "Error: the total number of hardware threads specified is too "
+                "high to be used without chaining.\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 }

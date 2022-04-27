@@ -588,32 +588,58 @@ static void validate_args(const Parameters &parameters) {
     }
 
     if (parameters.source_parallelism > max_threads) {
-        cerr << "Error: source parallelism is too high\n";
+        cerr << "Error: source parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.topic_extractor_parallelism > max_threads) {
-        cerr << "Error: topic extractor parallelism is too high\n";
+        cerr << "Error: topic extractor parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.rolling_counter_parallelism > max_threads) {
-        cerr << "Error: rolling counter parallelism is too high\n";
+        cerr << "Error: rolling counter parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.intermediate_ranker_parallelism > max_threads) {
-        cerr << "Error: intermediate ranker parallelism is too high\n";
+        cerr << "Error: intermediate ranker parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.total_ranker_parallelism > max_threads) {
-        cerr << "Error: total ranker parallelism is too high\n";
+        cerr << "Error: total ranker parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.sink_parallelism > max_threads) {
-        cerr << "Error: sink parallelism is too high\n";
+        cerr << "Error: sink parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
+        exit(EXIT_FAILURE);
+    }
+
+    if (parameters.source_parallelism + parameters.topic_extractor_parallelism
+                + parameters.rolling_counter_parallelism
+                + parameters.intermediate_ranker_parallelism
+                + parameters.total_ranker_parallelism
+                + parameters.sink_parallelism
+            >= max_threads
+        && !parameters.use_chaining) {
+        cerr << "Error: the total number of hardware threads specified is too "
+                "high to be used without chaining.\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 }

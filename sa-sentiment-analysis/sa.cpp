@@ -322,26 +322,34 @@ static void validate_args(const Parameters &parameters) {
     const auto max_threads = thread::hardware_concurrency();
 
     if (parameters.source_parallelism > max_threads) {
-        cerr << "Error: source parallelism degree is too large\n";
+        cerr << "Error: source parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.map_parallelism > max_threads) {
-        cerr << "Error: map parallelism degree is too large\n";
+        cerr << "Error: map parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
     if (parameters.sink_parallelism > max_threads) {
-        cerr << "Error: sink parallelism degree is too large\n";
+        cerr << "Error: sink parallelism degree is too large\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 
-    if ((parameters.source_parallelism + parameters.map_parallelism
-         + parameters.sink_parallelism)
+    if (parameters.source_parallelism + parameters.map_parallelism
+                + parameters.sink_parallelism
             >= max_threads
         && !parameters.use_chaining) {
         cerr << "Error: the total number of hardware threads specified is too "
-                "high to be used without chaining.\n";
+                "high to be used without chaining.\n"
+                "Maximum available number of threads is: "
+             << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
 }
