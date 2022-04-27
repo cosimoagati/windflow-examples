@@ -448,7 +448,6 @@ class CTRGeneratorFunctor {
 
     InputTuple get_new_tuple() {
         const auto session_id = uuids::to_string(uuid_gen());
-
         ++round_num;
         ++event_count;
 
