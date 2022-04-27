@@ -227,6 +227,7 @@ public:
 #ifndef NDEBUG
 template<typename T>
 ostream &operator<<(ostream &stream, const Rankings<T> &rankings) {
+    cout << "Rankings: ";
     const auto items = rankings.get_rankings();
     for (size_t i = 0; i < items.size(); ++i) {
         stream << items[i];
