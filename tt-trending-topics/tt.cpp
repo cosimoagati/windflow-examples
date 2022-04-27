@@ -847,6 +847,16 @@ class RollingCounterFunctor {
             last_modified_tracker.seconds_since_oldest_modification();
         last_modified_tracker.mark_as_modified();
 
+#ifndef NDEBUG
+        if (actual_window_length_in_seconds != window_length_in_seconds) {
+            cout << "Warning: actual window length is"
+                 << actual_window_length_in_seconds << " when it should be "
+                 << window_length_in_seconds
+                 << " seconds (you can safely ignore this warning during the "
+                    "startup phase)\n";
+        }
+#endif
+
         for (const auto &kv : counts) {
             const auto &word  = kv.first;
             const auto  count = kv.second;
