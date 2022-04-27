@@ -84,6 +84,17 @@ struct MachineMetadata {
     unsigned long measurement_timestamp;
 };
 
+#ifndef NDEBUG
+ostream &operator<<(ostream &stream, const MachineMetadata &metadata) {
+    stream << "Machine ip: " << metadata.machine_ip
+           << ", CPU usage: " << metadata.cpu_usage
+           << ", memory usage: " << metadata.memory_usage
+           << ", score: " << metadata.score
+           << ", observation timestamp: " << metadata.measurement_timestamp;
+    return stream;
+}
+#endif
+
 template<typename T>
 struct ScorePackage {
     string id;
@@ -555,8 +566,13 @@ public:
         size_t        index       = 0;
 
         while (current_time() < end_time) {
-            const auto          current_observation = machine_metadata[index];
-            const auto          timestamp           = current_time();
+            const auto current_observation = machine_metadata[index];
+            const auto timestamp           = current_time();
+#ifndef NDEBUG
+            clog << "[SOURCE] Sending out tuple with the following "
+                    "observation: "
+                 << '\n';
+#endif
             const TupleMetadata tuple_metadata {
                 timestamp, timestamp}; // Using timestamp as ID
 
@@ -677,6 +693,10 @@ public:
                     Shipper<ObservationResultTuple> &shipper) {
         const auto current_measurement_timestamp =
             tuple.observation.measurement_timestamp;
+#ifndef NDEBUG
+        clog << "[OBSERVER SCORER] Received tuple with observation timestamp: "
+             << current_measurement_timestamp << '\n';
+#endif
         if (current_measurement_timestamp > last_measurement_timestamp) {
             if (!observation_list.empty()) {
                 const auto score_package_list =

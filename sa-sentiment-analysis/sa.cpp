@@ -504,8 +504,11 @@ public:
         size_t        index       = 0;
 
         while (current_time() < end_time) {
-            const auto &tweet     = tweets[index];
-            const auto  timestamp = current_time();
+            const auto &tweet = tweets[index];
+#ifndef NDEBUG
+            clog << "[SOURCE] Sending the following tweet: " << tweet << '\n';
+#endif
+            const auto timestamp = current_time();
             shipper.push({tweet, SentimentResult {}, timestamp});
             ++sent_tuples;
             index = (index + 1) % tweets.size();
@@ -537,6 +540,11 @@ public:
             const auto word_hash       = gethash(word);
             const auto sentiment_entry = sentiment_map.find(word_hash);
             if (sentiment_entry != sentiment_map.end()) {
+#ifndef NDEBUG
+                clog << "[BASIC CLASSIFIER] Current word: "
+                     << sentiment_entry->first
+                     << ", with score: " << sentiment_entry->second << '\n';
+#endif
                 current_tweet_sentiment += sentiment_entry->second;
             }
         }
@@ -637,7 +645,7 @@ public:
                 last_sampling_time = arrival_time;
             }
 #ifndef NDEBUG
-            clog << "arrival time: " << arrival_time
+            clog << "[SINK] arrival time: " << arrival_time
                  << " ts:" << input->timestamp << " latency: " << latency
                  << '\n'
                  << "Received tweet with score " << input->result.score

@@ -630,7 +630,10 @@ public:
             auto volume_source_tuple     = logs[index];
             auto status_source_tuple     = logs[index];
             auto geo_finder_source_tuple = logs[index];
-
+#ifndef NDEBUG
+            clog << "[SOURCE] Sending log with minute timestamp: "
+                 << logs[index].minute_timestamp << '\n';
+#endif
             volume_source_tuple.tag     = SourceTuple::Volume;
             status_source_tuple.tag     = SourceTuple::Status;
             geo_finder_source_tuple.tag = SourceTuple::Geo;
@@ -712,7 +715,10 @@ public:
     OutputTuple operator()(const SourceTuple &input) {
         const unsigned long minute       = input.minute_timestamp;
         const auto          counts_entry = counts.find(minute);
-
+#ifndef NDEBUG
+        clog << "[VOLUME COUNTER] Received log with minute timestamp: "
+             << minute << '\n';
+#endif
         if (counts_entry == counts.end()) {
             if (buffer.full()) {
                 const unsigned long old_minute = buffer.remove();
@@ -737,7 +743,11 @@ class StatusCounterFunctor {
 
 public:
     OutputTuple operator()(const SourceTuple &input) {
-        const auto status_code  = input.response;
+        const auto status_code = input.response;
+#ifndef NDEBUG
+        clog << "[STATUS COUNTER] Received log with response status code: "
+             << status_code << '\n';
+#endif
         const auto counts_entry = counts.find(status_code);
         if (counts_entry == counts.end()) {
             counts.insert({status_code, 0});
@@ -803,6 +813,9 @@ public:
     void operator()(const SourceTuple &            input,
                     Shipper<GeoFinderOutputTuple> &shipper) {
         const auto ip = input.ip.c_str();
+#ifndef NDEBUG
+        clog << "[GEO FINDER] Received log with ip address: " << ip << '\n';
+#endif
         if (is_valid_ip_address(ip)) {
             const auto  ip_info = lookup_country_and_city(mmdb.db(), ip);
             const auto &country = ip_info.first;
@@ -820,6 +833,10 @@ class GeoStatsFunctor {
 
 public:
     OutputTuple operator()(const GeoFinderOutputTuple &input) {
+#ifndef NDEBUG
+        clog << "[GEO STATS] Received log with country " << input.country
+             << " and city " << input.city << '\n';
+#endif
         if (stats.find(input.country) == stats.end()) {
             stats.insert({input.country, {input.country}});
         }
@@ -885,16 +902,17 @@ public:
             }
 #ifndef NDEBUG
             switch (input->tag) {
+                clog << "[SINK] Received ";
             case OutputTuple::Volume:
-                clog << "Received volume - count: " << input->count
+                clog << "volume - count: " << input->count
                      << ", timestampMinutes: " << input->minute;
                 break;
             case OutputTuple::Status:
-                clog << "Received status - response: " << input->status_code
+                clog << "status - response: " << input->status_code
                      << ", count: " << input->count;
                 break;
             case OutputTuple::Geo:
-                clog << "Received Geo stats - country: " << input->country
+                clog << "Geo stats - country: " << input->country
                      << ", city: " << input->city
                      << ", cityTotal: " << input->city_total
                      << ", countryTotal: " << input->country_total;

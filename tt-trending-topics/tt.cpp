@@ -824,7 +824,10 @@ public:
         size_t        index       = 0;
 
         while (current_time() < end_time) {
-            auto       tweet     = tweets[index];
+            auto tweet = tweets[index];
+#ifndef NDEBUG
+            clog << "[SOURCE] Sending the following tweet: " << tweet << '\n';
+#endif
             const auto timestamp = current_time();
             shipper.push({{timestamp, timestamp}, "", move(tweet), timestamp});
             ++sent_tuples;
@@ -848,6 +851,10 @@ public:
             for (const auto &word : words) {
                 assert(!word.empty());
                 if (word[0] == '#') {
+#ifndef NDEBUG
+                    clog << "[TOPIC EXTRACTOR] Extracted topic: " << word
+                         << '\n';
+#endif
                     shipper.push({tweet.metadata, string {word}});
                 }
             }
@@ -872,7 +879,7 @@ class RollingCounterFunctor {
 
 #ifndef NDEBUG
         if (actual_window_length_in_seconds != window_length_in_seconds) {
-            clog << "Warning: actual window length is"
+            clog << "[ROLLING COUNTER] Warning: actual window length is"
                  << actual_window_length_in_seconds << " when it should be "
                  << window_length_in_seconds
                  << " seconds (you can safely ignore this warning during the "
@@ -884,8 +891,8 @@ class RollingCounterFunctor {
             const auto &word  = kv.first;
             const auto  count = kv.second;
 #ifndef NDEBUG
-            clog << "Sending word: " << word << " with count: " << count
-                 << '\n';
+            clog << "[ROLLING COUNTER] Sending word: " << word
+                 << " with count: " << count << '\n';
 #endif
             shipper.push(
                 {first_parent, word, count, actual_window_length_in_seconds});
@@ -951,7 +958,7 @@ public:
         first_parent = {0, 0};
 
 #ifndef NDEBUG
-        clog << rankings << '\n';
+        clog << "[RANKLER] Current rankings are" << rankings << '\n';
 #endif
     }
 };
@@ -1021,15 +1028,10 @@ public:
                 last_sampling_time = arrival_time;
             }
 #ifndef NDEBUG
-            clog << "Received tuple containing the following rankings: ";
-            for (const auto &rankable : input->rankings) {
-                clog << rankable.get_object() << ": " << rankable.get_count()
-                     << ", ";
-            }
-            clog << "\b\b\n";
-            // clog << "arrival time: " << arrival_time
-            //      << " ts:" << input->metadata.timestamp
-            //      << " latency: " << latency << '\n';
+            clog << "[SINK] Received tuple containing the following rankings: "
+                 << input->rankings << ", arrival time: " << arrival_time
+                 << " ts:" << input->metadata.timestamp
+                 << " latency: " << latency << '\n';
 #endif
         } else {
             global_received_tuples.fetch_add(tuples_received);

@@ -450,8 +450,10 @@ class CTRGeneratorFunctor {
         ++event_count;
 
 #ifndef NDEBUG
+        clog << "[EVENT SOURCE] Generated event with ID: " << session_id
+             << '\n';
         if (event_count % 1000 == 0) {
-            clog << "Generated " << event_count << " events\n";
+            clog << "[EVENT SOURCE] Generated " << event_count << " events\n";
         }
 #endif
         const auto timestamp = current_time();
@@ -463,10 +465,6 @@ public:
                         unsigned long max_rounds = 10000)
         : duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate},
           max_rounds {max_rounds} {}
-
-    // bool has_next() {
-    //     return round_num <= max_rounds;
-    // }
 
     void operator()(Source_Shipper<InputTuple> &shipper) {
         const auto    end_time    = current_time() + duration;
@@ -498,7 +496,8 @@ class RewardSourceFunctor {
     void send_new_reward(Source_Shipper<InputTuple> &shipper) {
         const auto action = global_action_queue.pop();
 #ifndef NDEBUG
-        clog << "Received action " << action << " from queue\n";
+        clog << "[REWARD SOURCE] Received action " << action
+             << " from queue\n";
 #endif
         if (action_selection_map.find(action) == action_selection_map.end()) {
             action_selection_map.insert({action, 1});
@@ -516,14 +515,14 @@ class RewardSourceFunctor {
                 const double r = (sum - 100) / 100.0;
 
                 assert(distr.size() >= 2);
-                auto r2 = static_cast<int>(r * distr[1] + distr[0]);
+                int r2 = static_cast<int>(r) * distr[1] + distr[0];
                 if (r2 < 0) {
                     r2 = 0;
                 }
                 action_selection_map[action] = 0;
 #ifndef NDEBUG
-                clog << "Sending action " << action << " with reward " << r2
-                     << '\n';
+                clog << "[REWARD SOURCE] Sending action " << action
+                     << " with reward " << r2 << '\n';
 #endif
                 const auto timestamp = current_time();
                 shipper.push({InputTuple::Reward, action,
@@ -942,10 +941,18 @@ public:
             const auto &event_id = tuple.id;
             const auto  actions =
                 reinforcement_learner.next_actions(tuple.value);
+#ifndef NDEBUG
+            clog << "[REINFORCEMENT LEARNER] Received event " << event_id
+                 << ", possible actions are: " << actions << '\n';
+#endif
             shipper.push({actions, event_id, tuple.timestamp});
         } break;
         case InputTuple::Reward: {
             const auto &action_id = tuple.id;
+#ifndef NDEBUG
+            clog << "[REINFORCEMENT LEARNER] Received action with ID: "
+                 << action_id << ", setting reward " << tuple.value << '\n';
+#endif
             reinforcement_learner.set_reward(action_id, tuple.value);
         } break;
         default:
@@ -982,7 +989,7 @@ public:
         if (input) {
 #ifndef NDEBUG
             if (!input->actions.empty()) {
-                clog << "Received actions: ";
+                clog << "[SINK] Received actions: ";
                 for (const auto &action : input->actions) {
                     clog << action << ", ";
                 }
