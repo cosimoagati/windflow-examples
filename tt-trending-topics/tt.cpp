@@ -896,8 +896,7 @@ class RollingCounterFunctor {
                      << actual_window_length_in_seconds
                      << " when it should be " << window_length_in_seconds
                      << " seconds (you can safely ignore this warning during "
-                        "the "
-                        "startup phase)\n";
+                        "the startup phase)\n";
             }
         }
 #endif
