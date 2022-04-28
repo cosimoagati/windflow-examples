@@ -1074,6 +1074,5 @@ int main(int argc, char *argv[]) {
                                           : 1.0);
     print_statistics(elapsed_time, parameters.duration, global_sent_tuples,
                      average_latency, global_received_tuples);
-
     return 0;
 }
