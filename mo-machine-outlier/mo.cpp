@@ -983,6 +983,15 @@ public:
                 const auto median_score =
                     abnormal_streams[median_idx].anomaly_score;
 
+#ifndef NDEBUG
+                {
+                    unique_lock lock {print_mutex};
+                    clog << "[ALERT TRIGGERER] Median index: " << median_idx
+                         << ", minimum score: " << min_score
+                         << ", median score: " << median_score << '\n';
+                }
+#endif
+
                 for (size_t i = 0; i < abnormal_streams.size(); ++i) {
                     const auto &stream_profile = abnormal_streams[i];
                     const auto  stream_score   = stream_profile.anomaly_score;
