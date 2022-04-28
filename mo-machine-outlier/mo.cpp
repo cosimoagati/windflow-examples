@@ -1040,7 +1040,7 @@ public:
 #ifndef NDEBUG
             {
                 unique_lock lock {print_mutex};
-                clog << "id: " << input->id << " "
+                clog << "[SINK] id: " << input->id << " "
                      << "anomaly score: " << input->anomaly_score
                      << " is_abnormal: " << input->is_abnormal
                      << " arrival time: " << arrival_time
