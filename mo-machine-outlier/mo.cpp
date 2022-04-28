@@ -980,7 +980,6 @@ public:
                 const auto   min_score = abnormal_streams[0].anomaly_score;
 
                 assert(median_idx < abnormal_streams.size());
-
                 const auto median_score =
                     abnormal_streams[median_idx].anomaly_score;
 
