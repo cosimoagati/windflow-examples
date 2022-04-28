@@ -832,6 +832,16 @@ public:
         for (const double score : sliding_window) {
             score_sum += score;
         }
+#ifndef NDEBUG
+        {
+            unique_lock lock {print_mutex};
+            clog << "[SLIDING WINDOW STREAM ANOMALY SCORER] Sending out tuple "
+                    "with observation: ("
+                 << tuple.observation << "), ID: " << tuple.id
+                 << ", score sum: " << score_sum
+                 << ", individual score: " << tuple.score;
+        }
+#endif
         shipper.push({tuple.metadata, tuple.id, score_sum, tuple.timestamp,
                       tuple.observation, tuple.score});
     }
