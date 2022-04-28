@@ -995,6 +995,21 @@ public:
                         && cur_data_inst_score > 0.1 + min_data_instance_score;
 
                     if (is_abnormal) {
+#ifndef NDEBUG
+                        {
+                            unique_lock lock {print_mutex};
+                            clog << "[ALERT TRIGGERER] Sending out tuple with "
+                                    "stream ID: "
+                                 << stream_profile.id
+                                 << ", stream score: " << stream_score
+                                 << ", stream profile timestamp: "
+                                 << stream_profile.timestamp
+                                 << ", is_abnormal: "
+                                 << (is_abnormal ? "true" : "false")
+                                 << ", with observation (" << input.observation
+                                 << ")\n";
+                        }
+#endif
                         shipper.push({input.metadata, stream_profile.id,
                                       stream_score, stream_profile.timestamp,
                                       is_abnormal, input.observation});
