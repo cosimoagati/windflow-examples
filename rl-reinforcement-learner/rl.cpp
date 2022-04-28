@@ -61,6 +61,7 @@ struct InputTuple {
     string        id;
     unsigned long value;
     unsigned long timestamp;
+    unsigned      reinforcement_learner_target_replica;
 };
 
 struct OutputTuple {
@@ -499,6 +500,7 @@ class RewardSourceFunctor {
     uniform_int_distribution<int> rand {1, 101};
     unsigned long                 duration;
     unsigned                      tuple_rate_per_second;
+    unsigned                      reinforcement_learner_replicas;
 
     void send_new_reward(Source_Shipper<InputTuple> &shipper) {
         const auto action = global_action_queue.pop();
@@ -537,16 +539,21 @@ class RewardSourceFunctor {
                          << " with reward " << r2 << '\n';
                 }
 #endif
-                const auto timestamp = current_time();
-                shipper.push({InputTuple::Reward, action,
-                              static_cast<unsigned>(r2), timestamp});
+                for (unsigned i = 0; i < reinforcement_learner_replicas; ++i) {
+                    const auto timestamp = current_time();
+                    shipper.push({InputTuple::Reward, action,
+                                  static_cast<unsigned>(r2), timestamp, i});
+                }
             }
         }
     }
 
 public:
-    RewardSourceFunctor(unsigned d, unsigned rate)
-        : duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {}
+    RewardSourceFunctor(unsigned d, unsigned rate, unsigned rl_replicas)
+        : duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate},
+          reinforcement_learner_replicas {rl_replicas} {
+        assert(rl_replicas != 0);
+    }
 
     void operator()(Source_Shipper<InputTuple> &shipper) {
         const auto    end_time    = current_time() + duration;
@@ -1097,9 +1104,10 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withOutputBatchSize(parameters.batch_size)
             .build();
 
-    RewardSourceFunctor reward_source_functor {parameters.duration,
-                                               parameters.tuple_rate};
-    auto                reward_source_node =
+    RewardSourceFunctor reward_source_functor {
+        parameters.duration, parameters.tuple_rate,
+        parameters.reinforcement_learner_parallelism};
+    auto reward_source_node =
         Source_Builder {reward_source_functor}
             .withParallelism(parameters.reward_source_parallelism)
             .withName("reward source")
@@ -1112,6 +1120,9 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         FlatMap_Builder {reinforcement_learner_functor}
             .withParallelism(parameters.reinforcement_learner_parallelism)
             .withName("reinforcement learner")
+            .withKeyBy([](const InputTuple &tuple) {
+                return tuple.reinforcement_learner_target_replica;
+            })
             .withOutputBatchSize(parameters.batch_size)
             .build();
 
