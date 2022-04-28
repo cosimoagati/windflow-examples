@@ -812,8 +812,7 @@ public:
     SlidingWindowStreamAnomalyScoreFunctor(size_t length = 10)
         : window_length {length} {}
 
-    void operator()(const ObservationResultTuple &tuple,
-                    Shipper<AnomalyResultTuple> & shipper) {
+    AnomalyResultTuple operator()(const ObservationResultTuple &tuple) {
 #ifndef NDEBUG
         {
             unique_lock lock {print_mutex};
@@ -842,8 +841,8 @@ public:
                  << ", individual score: " << tuple.score << '\n';
         }
 #endif
-        shipper.push({tuple.metadata, tuple.id, score_sum, tuple.timestamp,
-                      tuple.observation, tuple.score});
+        return {tuple.metadata,  tuple.id,          score_sum,
+                tuple.timestamp, tuple.observation, tuple.score};
     }
 };
 
@@ -1101,7 +1100,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     SlidingWindowStreamAnomalyScoreFunctor anomaly_scorer_functor;
     auto                                   anomaly_scorer_node =
-        FlatMap_Builder {anomaly_scorer_functor}
+        Map_Builder {anomaly_scorer_functor}
             .withParallelism(parameters.anomaly_scorer_parallelism)
             .withName("anomaly scorer")
             .withKeyBy([](const ObservationResultTuple &tuple) -> string {
