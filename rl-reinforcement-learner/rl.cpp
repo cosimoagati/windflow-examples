@@ -465,7 +465,7 @@ class CTRGeneratorFunctor {
         }
 #endif
         const auto timestamp = current_time();
-        return {InputTuple::Event, session_id, round_num, timestamp};
+        return {InputTuple::Event, session_id, round_num, timestamp, 0};
     }
 
 public:
