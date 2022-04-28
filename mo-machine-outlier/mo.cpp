@@ -839,7 +839,7 @@ public:
                     "with observation: ("
                  << tuple.observation << "), ID: " << tuple.id
                  << ", score sum: " << score_sum
-                 << ", individual score: " << tuple.score;
+                 << ", individual score: " << tuple.score << '\n';
         }
 #endif
         shipper.push({tuple.metadata, tuple.id, score_sum, tuple.timestamp,
