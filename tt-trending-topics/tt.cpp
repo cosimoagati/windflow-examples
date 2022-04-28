@@ -526,6 +526,7 @@ static inline vector<string> get_tweets_from_file(const char *filename) {
         tweets.push_back(move(new_tweet["data"]["text"]));
         twitterstream >> ws;
     }
+    tweets.shrink_to_fit();
     return tweets;
 }
 
