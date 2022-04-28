@@ -721,8 +721,11 @@ public:
         const unsigned long minute       = input.minute_timestamp;
         const auto          counts_entry = counts.find(minute);
 #ifndef NDEBUG
-        clog << "[VOLUME COUNTER] Received log with minute timestamp: "
-             << minute << '\n';
+        {
+            unique_lock lock {print_mutex};
+            clog << "[VOLUME COUNTER] Received log with minute timestamp: "
+                 << minute << '\n';
+        }
 #endif
         if (counts_entry == counts.end()) {
             if (buffer.full()) {
