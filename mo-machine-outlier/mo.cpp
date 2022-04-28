@@ -89,7 +89,6 @@ ostream &operator<<(ostream &stream, const MachineMetadata &metadata) {
     stream << "Machine ip: " << metadata.machine_ip
            << ", CPU usage: " << metadata.cpu_usage
            << ", memory usage: " << metadata.memory_usage
-           << ", score: " << metadata.score
            << ", observation timestamp: " << metadata.measurement_timestamp;
     return stream;
 }
