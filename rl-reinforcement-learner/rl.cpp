@@ -443,7 +443,7 @@ class CTRGeneratorFunctor {
 
     unsigned long round_num   = 1;
     unsigned long event_count = 0;
-    unsigned long max_rounds;
+    unsigned long max_rounds; // is this needed?
 
     mt19937                      mt {random_device {}()};
     uuids::uuid_random_generator uuid_gen {mt};
