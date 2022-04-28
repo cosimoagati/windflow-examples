@@ -738,7 +738,8 @@ public:
 #ifndef NDEBUG
         {
             unique_lock lock {print_mutex};
-            clog << "confidence_limit: " << confidence_limit
+            clog << "[INTERVAL ESTIMATOR] confidence_limit: "
+                 << confidence_limit
                  << " min_confidence_limit: " << min_confidence_limit
                  << " confidence_limit_reduction_step: "
                  << confidence_limit_reduction_step
@@ -757,7 +758,8 @@ public:
 #ifndef NDEBUG
             {
                 unique_lock lock {print_mutex};
-                clog << "red_step: " << red_step << " round_num: " << round_num
+                clog << "[INTERVAL ESTIMATOR] red_step: " << red_step
+                     << " round_num: " << round_num
                      << " last_round_num: " << last_round_num << '\n';
             }
 
@@ -797,8 +799,8 @@ public:
                 if (log_counter % 100 == 0) {
                     {
                         unique_lock lock {print_mutex};
-                        clog << "action: " << kv.first << " sample_count"
-                             << sample_count << '\n';
+                        clog << "[INTERVAL ESTIMATOR] action: " << kv.first
+                             << " sample_count" << sample_count << '\n';
                     }
                 }
 #endif
@@ -812,7 +814,7 @@ public:
 #ifndef NDEBUG
                 {
                     unique_lock lock {print_mutex};
-                    clog << "Obtained full sample\n";
+                    clog << "[INTERVAL ESTIMATOR] Obtained full sample\n";
                 }
                 last_round_num = round_num; // Move outside the #ifndef?
 #endif
@@ -823,7 +825,8 @@ public:
 #ifndef NDEBUG
             {
                 unique_lock lock {print_mutex};
-                clog << "Using random index in interval estimator\n";
+                clog << "[INTERVAL ESTIMATOR] Using random index in interval "
+                        "estimator\n";
             }
 #endif
             const auto random_index =
@@ -836,7 +839,8 @@ public:
 #ifndef NDEBUG
             {
                 unique_lock lock {print_mutex};
-                clog << "NOT using random index in interval estimator\n";
+                clog << "[INTERVAL ESTIMATOR] NOT using random index in "
+                        "interval estimator\n";
             }
 #endif
             adjust_conf_limit(round_num);
@@ -850,7 +854,7 @@ public:
 #ifndef NDEBUG
                 {
                     unique_lock lock {print_mutex};
-                    clog << "current_confidence_limit: "
+                    clog << "[INTERVAL ESTIMATOR] current_confidence_limit: "
                          << current_confidence_limit << " action: " << kv.first
                          << " conf_bounds: " << conf_bounds[0] << " "
                          << conf_bounds[1] << '\n';
@@ -880,7 +884,8 @@ public:
 #ifndef NDEBUG
         {
             unique_lock lock {print_mutex};
-            clog << "random_select_count: " << random_select_count
+            clog << "[INTERVAL ESTIMATOR] random_select_count: "
+                 << random_select_count
                  << " intv_est_select_count: " << intv_est_select_count
                  << '\n';
         }
