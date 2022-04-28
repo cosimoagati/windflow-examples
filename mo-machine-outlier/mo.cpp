@@ -576,7 +576,7 @@ public:
                 unique_lock lock {print_mutex};
                 clog << "[SOURCE] Sending out tuple with the following "
                         "observation: "
-                     << '\n';
+                     << current_observation << '\n';
             }
 #endif
             const TupleMetadata tuple_metadata {
