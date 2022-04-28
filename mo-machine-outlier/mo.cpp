@@ -1079,8 +1079,9 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         FlatMap_Builder {anomaly_scorer_functor}
             .withParallelism(parameters.anomaly_scorer_parallelism)
             .withName("anomaly scorer")
-            .withKeyBy(
-                [](const ObservationResultTuple &tuple) { return tuple.id; })
+            .withKeyBy([](const ObservationResultTuple &tuple) -> string {
+                return tuple.id;
+            })
             .withOutputBatchSize(parameters.batch_size)
             .build();
 
