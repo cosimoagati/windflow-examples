@@ -712,6 +712,14 @@ public:
                 const auto score_package_list =
                     scorer.get_scores(observation_list);
                 for (const auto &package : score_package_list) {
+#ifndef NDEBUG
+                    {
+                        unique_lock lock {print_mutex};
+                        clog << "[OBSERVER SCORER] Sending tuple with id: "
+                             << package.id << ", score: " << package.score
+                             << '\n';
+                    }
+#endif
                     shipper.push({parent_tuple_metadata, package.id,
                                   package.score, last_measurement_timestamp,
                                   package.data});
@@ -807,6 +815,14 @@ public:
 
     void operator()(const ObservationResultTuple &tuple,
                     Shipper<AnomalyResultTuple> & shipper) {
+#ifndef NDEBUG
+        {
+            unique_lock lock {print_mutex};
+            clog << "[SLIDING WINDOW STREAM ANOMALY SCORER] Received tuple "
+                    "with observation ID: "
+                 << tuple.id << '\n';
+        }
+#endif
         auto &sliding_window = sliding_window_map[tuple.id];
         sliding_window.push_back(tuple.score);
         if (sliding_window.size() > window_length) {
