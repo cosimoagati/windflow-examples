@@ -419,6 +419,8 @@ static void print_initial_parameters(const Parameters &parameters) {
          << "Observer parallelism: " << parameters.observer_parallelism << '\n'
          << "Anomaly scorer parallelism: "
          << parameters.anomaly_scorer_parallelism << '\n'
+         << "Alert triggerer parallelism: "
+         << parameters.alert_triggerer_parallelism << '\n'
          << "Sink parallelism: " << parameters.sink_parallelism << '\n'
          << "Batching: ";
     if (parameters.batch_size > 0) {
