@@ -1034,16 +1034,14 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             source_pipe.select(1).chain(status_counter_node);
         auto &geo_pipe =
             source_pipe.select(2).chain(geo_finder_node).chain(geo_stats_node);
-        volume_pipe.merge(status_counter_pipe, geo_pipe);
-        volume_pipe.chain_sink(sink_node);
+        volume_pipe.merge(status_counter_pipe, geo_pipe).chain_sink(sink_node);
     } else {
         auto &volume_pipe = source_pipe.select(0).add(volume_counter_node);
         auto &status_counter_pipe =
             source_pipe.select(1).add(status_counter_node);
         auto &geo_pipe =
             source_pipe.select(2).add(geo_finder_node).add(geo_stats_node);
-        volume_pipe.merge(status_counter_pipe, geo_pipe);
-        volume_pipe.add_sink(sink_node);
+        volume_pipe.merge(status_counter_pipe, geo_pipe).add_sink(sink_node);
     }
     return graph;
 }
