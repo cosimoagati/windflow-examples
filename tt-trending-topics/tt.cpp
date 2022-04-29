@@ -417,81 +417,6 @@ public:
     }
 };
 
-template<typename T>
-class CircularFifoBuffer {
-    vector<T> buffer;
-    size_t    head = 0;
-    size_t    next_head;
-
-public:
-    CircularFifoBuffer(size_t size) : buffer(size) {
-        if (size == 0) {
-            cerr << "Error initializing circular buffer: size must be "
-                    "positive\n";
-            exit(EXIT_FAILURE);
-        }
-        next_head = 1 % size;
-    }
-
-    size_t max_size() const {
-        return buffer.size();
-    }
-
-    void add(const T &element) {
-        buffer[next_head] = element;
-        head              = next_head;
-        next_head         = (next_head + 1) % buffer.size();
-    }
-
-    const T &get() const {
-        return buffer[head];
-    }
-};
-
-static inline uint64_t current_time_msecs() __attribute__((always_inline));
-static inline uint64_t current_time_msecs() {
-    struct timespec t;
-    clock_gettime(CLOCK_REALTIME, &t);
-    return (t.tv_sec) * 1000UL + (t.tv_nsec / 1000000UL);
-}
-
-class NthLastModifiedTimeTracker {
-    static constexpr unsigned millis_in_sec = 1000;
-
-    CircularFifoBuffer<unsigned long> last_modified_times_millis;
-
-    void init_last_modified_times_millis() {
-        const auto now_cached = current_time_msecs();
-        for (size_t i = 0; i < last_modified_times_millis.max_size(); ++i) {
-            last_modified_times_millis.add(now_cached);
-        }
-    }
-
-    void update_last_modified_time() {
-        last_modified_times_millis.add(current_time_msecs());
-    }
-
-public:
-    NthLastModifiedTimeTracker(size_t num_times_to_track)
-        : last_modified_times_millis {num_times_to_track} {
-        if (num_times_to_track < 1) {
-            cerr << "Error: num_times_to_track must be positive\n";
-            exit(EXIT_FAILURE);
-        }
-        init_last_modified_times_millis();
-    }
-
-    unsigned seconds_since_oldest_modification() {
-        const auto modified_time_millis = last_modified_times_millis.get();
-        return static_cast<unsigned>(
-            (current_time_msecs() - modified_time_millis) / millis_in_sec);
-    }
-
-    void mark_as_modified() {
-        update_last_modified_time();
-    }
-};
-
 /*
  * Return difference between a and b, accounting for unsigned arithmetic
  * wraparound.
@@ -805,6 +730,85 @@ static Metric<unsigned long> global_service_time_metric {"service-time"};
 static mutex print_mutex;
 #endif
 
+template<typename T>
+class CircularFifoBuffer {
+    vector<T> buffer;
+    size_t    head = 0;
+    size_t    next_head;
+
+public:
+    CircularFifoBuffer(size_t size) : buffer(size) {
+        if (size == 0) {
+            cerr << "Error initializing circular buffer: size must be "
+                    "positive\n";
+            exit(EXIT_FAILURE);
+        }
+        next_head = 1 % size;
+    }
+
+    size_t max_size() const {
+        return buffer.size();
+    }
+
+    void add(const T &element) {
+#ifndef NDEBUG
+        {
+            unique_lock lock {print_mutex};
+            clog << "[CIRCULAR FIFO BUFFER] Adding " << element << '\n';
+        }
+#endif
+        buffer[next_head] = element;
+        head              = next_head;
+        next_head         = (next_head + 1) % buffer.size();
+    }
+
+    const T &get() const {
+#ifndef NDEBUG
+        {
+            unique_lock lock {print_mutex};
+            clog << "[CIRCULAR FIFO BUFFER] Returning " << buffer[head]
+                 << '\n';
+        }
+#endif
+        return buffer[head];
+    }
+};
+
+static inline uint64_t current_time_msecs() __attribute__((always_inline));
+static inline uint64_t current_time_msecs() {
+    struct timespec t;
+    clock_gettime(CLOCK_REALTIME, &t);
+    return (t.tv_sec) * 1000UL + (t.tv_nsec / 1000000UL);
+}
+
+class NthLastModifiedTimeTracker {
+    static constexpr unsigned millis_in_sec = 1000;
+
+    CircularFifoBuffer<unsigned long> last_modified_times_millis;
+
+public:
+    NthLastModifiedTimeTracker(size_t num_times_to_track)
+        : last_modified_times_millis {num_times_to_track} {
+        if (num_times_to_track < 1) {
+            cerr << "Error: num_times_to_track must be positive\n";
+            exit(EXIT_FAILURE);
+        }
+        const auto now_cached = current_time_msecs();
+        for (size_t i = 0; i < last_modified_times_millis.max_size(); ++i) {
+            last_modified_times_millis.add(now_cached);
+        }
+    }
+
+    unsigned seconds_since_oldest_modification() {
+        const auto modified_time_millis = last_modified_times_millis.get();
+        return static_cast<unsigned>(
+            (current_time_msecs() - modified_time_millis) / millis_in_sec);
+    }
+
+    void mark_as_modified() {
+        last_modified_times_millis.add(current_time_msecs());
+    }
+};
 class SourceFunctor {
     static constexpr auto default_path = "tweetstream.jsonl";
     vector<string>        tweets;
