@@ -309,7 +309,7 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     }
 }
 
-static void validate_args(const Parameters &parameters) {
+static inline void validate_args(const Parameters &parameters) {
     if (parameters.duration == 0) {
         cerr << "Error: duration must be positive\n";
         exit(EXIT_FAILURE);
@@ -356,7 +356,7 @@ static void validate_args(const Parameters &parameters) {
     }
 }
 
-static void print_initial_parameters(const Parameters &parameters) {
+static inline void print_initial_parameters(const Parameters &parameters) {
     cout << "Running graph with the following parameters:\n"
          << "Source parallelism: " << parameters.source_parallelism << '\n'
          << "Classifier parallelism: " << parameters.map_parallelism << '\n'
@@ -432,8 +432,8 @@ static inline string get_datetime_string() {
     return date_string;
 }
 
-static void serialize_to_json(const Metric<unsigned long> &metric,
-                              unsigned long total_measurements) {
+static inline void serialize_to_json(const Metric<unsigned long> &metric,
+                                     unsigned long total_measurements) {
     nlohmann::ordered_json json_stats;
     json_stats["date"]                 = get_datetime_string();
     json_stats["name"]                 = metric.name();
@@ -467,7 +467,7 @@ static void serialize_to_json(const Metric<unsigned long> &metric,
 /*
  * Suspend execution for an amount of time units specified by duration.
  */
-static void busy_wait(unsigned long duration) {
+static inline void busy_wait(unsigned long duration) {
     const auto start_time = current_time();
     auto       now        = start_time;
     while (now - start_time < duration) {

@@ -200,11 +200,12 @@ static const struct option long_opts[] = {
  * Return difference between a and b, accounting for unsigned arithmetic
  * wraparound.
  */
-static unsigned long difference(unsigned long a, unsigned long b) {
+static inline unsigned long difference(unsigned long a, unsigned long b) {
     return max(a, b) - min(a, b);
 }
 
-unsigned long get_millis_date_truncated_by_minute(const char *date_string) {
+static inline unsigned long
+get_millis_date_truncated_by_minute(const char *date_string) {
     tm time;
     memset(&time, 0, sizeof(time));
     const char *ptr = strptime(date_string, "%d/%b/%Y:%H:%M:%S %z", &time);
@@ -219,7 +220,7 @@ unsigned long get_millis_date_truncated_by_minute(const char *date_string) {
     return (unsigned long) result * 1000;
 }
 
-bool is_valid_ip_address(const char *ip) {
+static inline bool is_valid_ip_address(const char *ip) {
     sockaddr_in sa;
     const int   result = inet_pton(AF_INET, ip, &(sa.sin_addr));
     return result == 1;
@@ -243,7 +244,7 @@ static inline vector<string_view> string_split(const string_view &s,
     return words;
 }
 
-static vector<string> split_log_fields(const string &line) {
+static inline vector<string> split_log_fields(const string &line) {
     const regex log_regex {
         "^(\\S+) (\\S+) (\\S+) \\[([\\w:/]+\\s[+\\-]\\d{4})\\] "
         "\"(.+?)\" (\\d{3}) (\\S+)(.*?)"};
@@ -257,7 +258,7 @@ static vector<string> split_log_fields(const string &line) {
     return result;
 }
 
-static string char_buf_to_string(const char *buf, size_t size) {
+static inline string char_buf_to_string(const char *buf, size_t size) {
     string result;
     for (size_t i = 0; i < size; ++i) {
         result.push_back(buf[i]);
@@ -266,7 +267,7 @@ static string char_buf_to_string(const char *buf, size_t size) {
     return result;
 }
 
-static pair<optional<string>, optional<string>>
+static inline pair<optional<string>, optional<string>>
 lookup_country_and_city(const MMDB_s &mmdb, const char *ip_string) {
     int  gai_error;
     int  mmdb_error;
@@ -394,7 +395,7 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     }
 }
 
-static void validate_args(const Parameters &parameters) {
+static inline void validate_args(const Parameters &parameters) {
     if (parameters.duration == 0) {
         cerr << "Error: duration must be positive\n";
         exit(EXIT_FAILURE);
@@ -470,7 +471,7 @@ static void validate_args(const Parameters &parameters) {
     }
 }
 
-static void print_initial_parameters(const Parameters &parameters) {
+static inline void print_initial_parameters(const Parameters &parameters) {
     cout << "Running graph with the following parameters:\n"
          << "Source parallelism: " << parameters.source_parallelism << '\n'
          << "Volume counter parallelism: "
@@ -553,8 +554,8 @@ static inline string get_datetime_string() {
     return date_string;
 }
 
-static void serialize_to_json(const Metric<unsigned long> &metric,
-                              unsigned long total_measurements) {
+static inline void serialize_to_json(const Metric<unsigned long> &metric,
+                                     unsigned long total_measurements) {
     nlohmann::ordered_json json_stats;
     json_stats["date"]                 = get_datetime_string();
     json_stats["name"]                 = metric.name();
@@ -588,7 +589,7 @@ static void serialize_to_json(const Metric<unsigned long> &metric,
 /*
  * Suspend execution for an amount of time units specified by duration.
  */
-static void busy_wait(unsigned long duration) {
+static inline void busy_wait(unsigned long duration) {
     const auto start_time = current_time();
     auto       now        = start_time;
     while (now - start_time < duration) {

@@ -544,7 +544,7 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     }
 }
 
-static void validate_args(const Parameters &parameters) {
+static inline void validate_args(const Parameters &parameters) {
     if (parameters.duration == 0) {
         cerr << "Error: duration must be positive\n";
         exit(EXIT_FAILURE);
@@ -620,7 +620,7 @@ static void validate_args(const Parameters &parameters) {
     }
 }
 
-static void print_initial_parameters(const Parameters &parameters) {
+static inline void print_initial_parameters(const Parameters &parameters) {
     cout << "Running graph with the following parameters:\n"
          << "Source parallelism: " << parameters.source_parallelism << '\n'
          << "Topic extractor parallelism: "
@@ -708,8 +708,8 @@ static inline string get_datetime_string() {
     return date_string;
 }
 
-static void serialize_to_json(const Metric<unsigned long> &metric,
-                              unsigned long total_measurements) {
+static inline void serialize_to_json(const Metric<unsigned long> &metric,
+                                     unsigned long total_measurements) {
     nlohmann::ordered_json json_stats;
     json_stats["date"]                 = get_datetime_string();
     json_stats["name"]                 = metric.name();
@@ -743,7 +743,7 @@ static void serialize_to_json(const Metric<unsigned long> &metric,
 /*
  * Suspend execution for an amount of time units specified by duration.
  */
-static void busy_wait(unsigned long duration) {
+static inline void busy_wait(unsigned long duration) {
     const auto start_time = current_time();
     auto       now        = start_time;
     while (now - start_time < duration) {
@@ -1055,8 +1055,8 @@ public:
     }
 };
 
-void update_intermediate_rankings(const Counts &    counts,
-                                  Rankings<string> &rankings) {
+static inline void update_intermediate_rankings(const Counts &    counts,
+                                                Rankings<string> &rankings) {
     // XXX: Is this field relevant?
     // const auto  window_length = counts.window_length;
     Rankable<string> rankable {counts.word, counts.count};
@@ -1066,8 +1066,8 @@ void update_intermediate_rankings(const Counts &    counts,
 using IntermediateRankerFunctor =
     RankerFunctor<Counts, update_intermediate_rankings>;
 
-void update_total_rankings(const RankingsTuple &partial_rankings,
-                           Rankings<string> &   total_rankings) {
+static inline void update_total_rankings(const RankingsTuple &partial_rankings,
+                                         Rankings<string> &   total_rankings) {
     total_rankings.update_with(partial_rankings.rankings);
     total_rankings.prune_zero_counts();
 }
