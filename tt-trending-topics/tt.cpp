@@ -866,6 +866,7 @@ public:
         last_modified_times_millis.add(current_time_msecs());
     }
 };
+
 class SourceFunctor {
     static constexpr auto default_path = "tweetstream.jsonl";
     vector<string>        tweets;
@@ -959,7 +960,6 @@ class RollingCounterFunctor {
             }
         }
 #endif
-
         for (const auto &kv : counts) {
             const auto &word  = kv.first;
             const auto  count = kv.second;
