@@ -733,8 +733,9 @@ static mutex print_mutex;
 template<typename T>
 class CircularFifoBuffer {
     vector<T> buffer;
-    size_t    head = 0;
-    size_t    next_head;
+    size_t    head     = 0;
+    size_t    tail     = 0;
+    bool      is_empty = true;
 
 public:
     CircularFifoBuffer(size_t size) : buffer(size) {
@@ -743,7 +744,6 @@ public:
                     "positive\n";
             exit(EXIT_FAILURE);
         }
-        next_head = 1 % size;
     }
 
     size_t max_size() const {
@@ -757,20 +757,24 @@ public:
             clog << "[CIRCULAR FIFO BUFFER] Adding " << element << '\n';
         }
 #endif
-        buffer[next_head] = element;
-        head              = next_head;
-        next_head         = (next_head + 1) % buffer.size();
+        buffer[head] = element;
+        head         = (head + 1) % buffer.size();
+        if (head == tail) {
+            tail = (tail + 1) % buffer.size();
+        }
+        is_empty = false;
     }
 
     const T &get() const {
+        assert(!is_empty);
 #ifndef NDEBUG
         {
             unique_lock lock {print_mutex};
-            clog << "[CIRCULAR FIFO BUFFER] Returning " << buffer[head]
+            clog << "[CIRCULAR FIFO BUFFER] Returning " << buffer[tail]
                  << '\n';
         }
 #endif
-        return buffer[head];
+        return buffer[tail];
     }
 };
 
