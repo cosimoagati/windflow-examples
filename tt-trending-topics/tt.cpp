@@ -421,6 +421,7 @@ template<typename T>
 class CircularFifoBuffer {
     vector<T> buffer;
     size_t    head = 0;
+    size_t    next_head;
 
 public:
     CircularFifoBuffer(size_t size) : buffer(size) {
@@ -429,6 +430,7 @@ public:
                     "positive\n";
             exit(EXIT_FAILURE);
         }
+        next_head = 1 % size;
     }
 
     size_t max_size() const {
@@ -436,8 +438,9 @@ public:
     }
 
     void add(const T &element) {
-        buffer[head] = element;
-        head         = (head + 1) % buffer.size();
+        buffer[next_head] = element;
+        head              = next_head;
+        next_head         = (next_head + 1) % buffer.size();
     }
 
     const T &get() const {
