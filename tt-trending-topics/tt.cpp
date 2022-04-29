@@ -326,7 +326,13 @@ class SlotBasedCounter {
     }
 
 public:
-    SlotBasedCounter(size_t num_slots) : num_slots {num_slots} {}
+    SlotBasedCounter(size_t num_slots) : num_slots {num_slots} {
+        if (num_slots == 0) {
+            cerr << "Error: SlotBasedCounter must be initialized with a "
+                    "positive num_slots value\n";
+            exit(EXIT_FAILURE);
+        }
+    }
 
     void increment_count(const T &obj, size_t slot, unsigned long increment) {
         assert(slot < num_slots);
