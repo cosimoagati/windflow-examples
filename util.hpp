@@ -96,7 +96,7 @@ get_nums_split_by_commas(const char *degrees) {
 
 static inline std::string get_datetime_string() {
     const auto  current_date = std::time(nullptr);
-    std::string date_string  = asctime(localtime(&current_date));
+    std::string date_string  = std::asctime(localtime(&current_date));
     if (!date_string.empty()) {
         date_string.pop_back(); // needed to remove trailing newline
     }
