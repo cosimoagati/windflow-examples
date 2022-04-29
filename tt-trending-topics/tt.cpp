@@ -506,7 +506,7 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
             parameters.rolling_counter_frequency     = frequencies[0];
             parameters.intermediate_ranker_frequency = frequencies[1];
             parameters.total_ranker_frequency        = frequencies[2];
-        }
+        } break;
         case 'p': {
             const auto degrees = get_nums_split_by_commas(optarg);
             if (degrees.size() != 6) {
@@ -521,8 +521,7 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
                 parameters.total_ranker_parallelism        = degrees[4];
                 parameters.sink_parallelism                = degrees[5];
             }
-            break;
-        }
+        } break;
         case 'c':
             parameters.use_chaining = atoi(optarg) > 0 ? true : false;
             break;
