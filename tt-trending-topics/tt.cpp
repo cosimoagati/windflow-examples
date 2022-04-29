@@ -483,9 +483,9 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     int option;
     int index;
 
-    while (
-        (option = getopt_long(argc, argv, "r:s:p:b:c:d:h", long_opts, &index))
-        != -1) {
+    while ((option =
+                getopt_long(argc, argv, "r:s:p:b:c:d:f:h", long_opts, &index))
+           != -1) {
         switch (option) {
         case 'r':
             parameters.tuple_rate = atoi(optarg);
