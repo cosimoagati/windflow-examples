@@ -997,6 +997,7 @@ using IntermediateRankerFunctor =
 void update_total_rankings(const RankingsTuple &partial_rankings,
                            Rankings<string> &   total_rankings) {
     total_rankings.update_with(partial_rankings.rankings);
+    total_rankings.prune_zero_counts();
 }
 
 using TotalRankerFunctor = RankerFunctor<RankingsTuple, update_total_rankings>;
