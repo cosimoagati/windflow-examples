@@ -54,10 +54,15 @@ static const unsigned long timeunit_scale_factor =
     : current_time == current_time_nsecs ? 1000000000
                                          : 1;
 
-static const struct option long_opts[] = {
-    {"help", 0, 0, 'h'},        {"rate", 1, 0, 'r'},  {"sampling", 1, 0, 's'},
-    {"parallelism", 1, 0, 'p'}, {"batch", 1, 0, 'b'}, {"chaining", 1, 0, 'c'},
-    {"duration", 1, 0, 'd'},    {0, 0, 0, 0}};
+static const struct option long_opts[] = {{"help", 0, 0, 'h'},
+                                          {"rate", 1, 0, 'r'},
+                                          {"sampling", 1, 0, 's'},
+                                          {"parallelism", 1, 0, 'p'},
+                                          {"batch", 1, 0, 'b'},
+                                          {"chaining", 1, 0, 'c'},
+                                          {"duration", 1, 0, 'd'},
+                                          {"frequency", 1, 0, 'f'},
+                                          {0, 0, 0, 0}};
 
 struct Parameters {
     unsigned source_parallelism              = 1;
@@ -66,6 +71,9 @@ struct Parameters {
     unsigned intermediate_ranker_parallelism = 1;
     unsigned total_ranker_parallelism        = 1;
     unsigned sink_parallelism                = 1;
+    unsigned rolling_counter_frequency       = 2;
+    unsigned intermediate_ranker_frequency   = 2;
+    unsigned total_ranker_frequency          = 2;
     unsigned batch_size                      = 0;
     unsigned duration                        = 60;
     unsigned tuple_rate                      = 1000;
