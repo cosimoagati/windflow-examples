@@ -662,12 +662,11 @@ public:
                 unique_lock lock {print_mutex};
                 clog << "[SINK] arrival time: " << arrival_time
                      << " ts:" << input->timestamp << " latency: " << latency
-                     << '\n'
-                     << "Received tweet with score " << input->result.score
+                     << ", received tweet with score " << input->result.score
                      << " and classification "
                      << sentiment_to_string(input->result.sentiment)
                      << "with contents after trimming: " << input->tweet
-                     << " ";
+                     << '\n';
             }
 #endif
         } else {
