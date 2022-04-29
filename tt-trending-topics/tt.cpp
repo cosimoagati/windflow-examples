@@ -333,7 +333,7 @@ public:
 
         const auto counts_entry = counts_map.find(obj);
         if (counts_entry == counts_map.end()) {
-            counts_map.insert_or_assign(obj, vector<unsigned long>(num_slots));
+            counts_map.insert({obj, vector<unsigned long>(num_slots)});
         }
         counts_map.find(obj)->second[slot] += increment;
     }
