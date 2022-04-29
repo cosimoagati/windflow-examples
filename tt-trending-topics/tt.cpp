@@ -471,12 +471,12 @@ static inline vector<string> get_tweets_from_file(const char *filename) {
     return tweets;
 }
 
-static inline vector<size_t> get_parallelism_degrees(const char *degrees) {
-    vector<size_t> parallelism_degrees;
+static inline vector<size_t> get_nums_split_by_commas(const char *degrees) {
+    vector<size_t> nums;
     for (const auto &s : string_split(degrees, ",")) {
-        parallelism_degrees.push_back(atoi(s.data()));
+        nums.push_back(atoi(s.data()));
     }
-    return parallelism_degrees;
+    return nums;
 }
 
 static inline void parse_args(int argc, char **argv, Parameters &parameters) {
@@ -496,8 +496,19 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
         case 'b':
             parameters.batch_size = atoi(optarg);
             break;
+        case 'f': {
+            const auto frequencies = get_nums_split_by_commas(optarg);
+            if (frequencies.size() != 3) {
+                cerr << "Error in parsing input arguments.  Frequencies "
+                        "string requires exactly 3 elements\n";
+                exit(EXIT_FAILURE);
+            }
+            parameters.rolling_counter_frequency     = frequencies[0];
+            parameters.intermediate_ranker_frequency = frequencies[1];
+            parameters.total_ranker_frequency        = frequencies[2];
+        }
         case 'p': {
-            const auto degrees = get_parallelism_degrees(optarg);
+            const auto degrees = get_nums_split_by_commas(optarg);
             if (degrees.size() != 6) {
                 cerr << "Error in parsing the input arguments.  Parallelism "
                         "degree string requires exactly 6 elements.\n";
@@ -646,9 +657,14 @@ static void print_initial_parameters(const Parameters &parameters) {
     } else {
         cout << "unlimited (sample every incoming tuple)\n";
     }
-
     cout << "Chaining: " << (parameters.use_chaining ? "enabled" : "disabled")
          << '\n';
+    cout << "Rolling counter output frequency: "
+         << parameters.rolling_counter_frequency << " seconds\n"
+         << "Intermediate ranker frequency: "
+         << parameters.intermediate_ranker_frequency << " seconds\n"
+         << "Total ranker frequency: " << parameters.total_ranker_frequency
+         << " seconds\n";
 }
 
 static inline void print_statistics(unsigned long elapsed_time,
