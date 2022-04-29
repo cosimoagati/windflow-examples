@@ -331,8 +331,7 @@ public:
     void increment_count(const T &obj, size_t slot, unsigned long increment) {
         assert(slot < num_slots);
 
-        const auto counts_entry = counts_map.find(obj);
-        if (counts_entry == counts_map.end()) {
+        if (counts_map.find(obj) == counts_map.end()) {
             counts_map.insert({obj, vector<unsigned long>(num_slots)});
         }
         counts_map.find(obj)->second[slot] += increment;
