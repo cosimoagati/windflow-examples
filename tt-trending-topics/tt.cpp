@@ -446,10 +446,6 @@ public:
     const T &get() const {
         return buffer[head];
     }
-
-    T &get() {
-        return buffer[head];
-    }
 };
 
 static inline uint64_t current_time_msecs() __attribute__((always_inline));
