@@ -518,7 +518,7 @@ public:
             auto geo_finder_source_tuple = logs[index];
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[SOURCE] Sending log with minute timestamp: "
                      << logs[index].minute_timestamp << '\n';
             }
@@ -606,7 +606,7 @@ public:
         const auto          counts_entry = counts.find(minute);
 #ifndef NDEBUG
         {
-            unique_lock lock {print_mutex};
+            lock_guard lock {print_mutex};
             clog << "[VOLUME COUNTER] Received log with minute timestamp: "
                  << minute << '\n';
         }
@@ -638,7 +638,7 @@ public:
         const auto status_code = input.response;
 #ifndef NDEBUG
         {
-            unique_lock lock {print_mutex};
+            lock_guard lock {print_mutex};
             clog << "[STATUS COUNTER] Received log with response status code: "
                  << status_code << '\n';
         }
@@ -710,7 +710,7 @@ public:
         const auto ip = input.ip.c_str();
 #ifndef NDEBUG
         {
-            unique_lock lock {print_mutex};
+            lock_guard lock {print_mutex};
             clog << "[GEO FINDER] Received log with ip address: " << ip
                  << '\n';
         }
@@ -734,7 +734,7 @@ public:
     OutputTuple operator()(const GeoFinderOutputTuple &input) {
 #ifndef NDEBUG
         {
-            unique_lock lock {print_mutex};
+            lock_guard lock {print_mutex};
             clog << "[GEO STATS] Received log with country " << input.country
                  << " and city " << input.city << '\n';
         }
@@ -804,7 +804,7 @@ public:
             }
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[SINK] Received ";
                 switch (input->tag) {
                 case OutputTuple::Volume:

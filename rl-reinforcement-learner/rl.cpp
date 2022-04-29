@@ -94,7 +94,7 @@ private:
 public:
     void push(T const &value) {
         {
-            unique_lock<mutex> lock {internal_mutex};
+            lock_guard<mutex> lock {internal_mutex};
             internal_queue.push(value);
         }
         cv.notify_one();
@@ -340,7 +340,7 @@ class CTRGeneratorFunctor {
 
 #ifndef NDEBUG
         {
-            unique_lock lock {print_mutex};
+            lock_guard lock {print_mutex};
             clog << "[EVENT SOURCE] Generated event with ID: " << session_id
                  << '\n';
             if (event_count % 1000 == 0) {
@@ -391,7 +391,7 @@ class RewardSourceFunctor {
         const auto action = global_action_queue.pop();
 #ifndef NDEBUG
         {
-            unique_lock lock {print_mutex};
+            lock_guard lock {print_mutex};
             clog << "[REWARD SOURCE] Received action " << action
                  << " from queue\n";
         }
@@ -419,7 +419,7 @@ class RewardSourceFunctor {
                 action_selection_map[action] = 0;
 #ifndef NDEBUG
                 {
-                    unique_lock lock {print_mutex};
+                    lock_guard lock {print_mutex};
                     clog << "[REWARD SOURCE] Sending action " << action
                          << " with reward " << r2 << '\n';
                 }
@@ -622,7 +622,7 @@ public:
 
 #ifndef NDEBUG
         {
-            unique_lock lock {print_mutex};
+            lock_guard lock {print_mutex};
             clog << "[INTERVAL ESTIMATOR] confidence_limit: "
                  << confidence_limit
                  << " min_confidence_limit: " << min_confidence_limit
@@ -642,7 +642,7 @@ public:
                 / confidence_limit_reduction_round_interval};
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[INTERVAL ESTIMATOR] red_step: " << red_step
                      << " round_num: " << round_num
                      << " last_round_num: " << last_round_num << '\n';
@@ -659,7 +659,7 @@ public:
                 }
 #ifndef NDEBUG
                 {
-                    unique_lock lock {print_mutex};
+                    lock_guard lock {print_mutex};
                     clog << "reduce conf limit round_num: " << round_num
                          << "last_round_num " << last_round_num
                          << last_round_num << '\n';
@@ -683,7 +683,7 @@ public:
 #ifndef NDEBUG
                 if (log_counter % 100 == 0) {
                     {
-                        unique_lock lock {print_mutex};
+                        lock_guard lock {print_mutex};
                         clog << "[INTERVAL ESTIMATOR] action: " << kv.first
                              << " sample_count" << sample_count << '\n';
                     }
@@ -698,7 +698,7 @@ public:
             if (!is_low_sample) {
 #ifndef NDEBUG
                 {
-                    unique_lock lock {print_mutex};
+                    lock_guard lock {print_mutex};
                     clog << "[INTERVAL ESTIMATOR] Obtained full sample\n";
                 }
                 last_round_num = round_num; // Move outside the #ifndef?
@@ -709,7 +709,7 @@ public:
         if (is_low_sample) {
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[INTERVAL ESTIMATOR] Using random index in interval "
                         "estimator\n";
             }
@@ -723,7 +723,7 @@ public:
         } else {
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[INTERVAL ESTIMATOR] NOT using random index in "
                         "interval estimator\n";
             }
@@ -738,7 +738,7 @@ public:
                 assert(conf_bounds.size() >= 2);
 #ifndef NDEBUG
                 {
-                    unique_lock lock {print_mutex};
+                    lock_guard lock {print_mutex};
                     clog << "[INTERVAL ESTIMATOR] current_confidence_limit: "
                          << current_confidence_limit << " action: " << kv.first
                          << " conf_bounds: " << conf_bounds[0] << " "
@@ -768,7 +768,7 @@ public:
         reward_distr.insert_or_assign(action, reward);
 #ifndef NDEBUG
         {
-            unique_lock lock {print_mutex};
+            lock_guard lock {print_mutex};
             clog << "[INTERVAL ESTIMATOR] random_select_count: "
                  << random_select_count
                  << " intv_est_select_count: " << intv_est_select_count
@@ -871,7 +871,7 @@ public:
                 reinforcement_learner.next_actions(tuple.value);
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[REINFORCEMENT LEARNER] Received event " << event_id
                      << ", possible actions are: ";
                 for (size_t i = 0; i < actions.size(); ++i) {
@@ -889,7 +889,7 @@ public:
             const auto &action_id = tuple.id;
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[REINFORCEMENT LEARNER] Received action with ID: "
                      << action_id << ", setting reward " << tuple.value
                      << '\n';
@@ -931,7 +931,7 @@ public:
         if (input) {
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 if (!input->actions.empty()) {
                     clog << "[SINK] Received actions: ";
                     for (const auto &action : input->actions) {

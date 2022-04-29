@@ -718,7 +718,7 @@ public:
     void add(const T &element) {
 #ifndef NDEBUG
         {
-            unique_lock lock {print_mutex};
+            lock_guard lock {print_mutex};
             clog << "[CIRCULAR FIFO BUFFER] Adding " << element << '\n';
         }
 #endif
@@ -734,7 +734,7 @@ public:
         assert(!is_empty);
 #ifndef NDEBUG
         {
-            unique_lock lock {print_mutex};
+            lock_guard lock {print_mutex};
             clog << "[CIRCULAR FIFO BUFFER] Returning " << buffer[tail]
                  << '\n';
         }
@@ -805,7 +805,7 @@ public:
             auto tweet = tweets[index];
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[SOURCE] Sending the following tweet: " << tweet
                      << '\n';
             }
@@ -835,7 +835,7 @@ public:
                 if (word[0] == '#') {
 #ifndef NDEBUG
                     {
-                        unique_lock lock {print_mutex};
+                        lock_guard lock {print_mutex};
                         clog << "[TOPIC EXTRACTOR] Extracted topic: " << word
                              << '\n';
                     }
@@ -863,7 +863,7 @@ class RollingCounterFunctor {
 #ifndef NDEBUG
         if (actual_window_length_in_seconds != window_length_in_seconds) {
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[ROLLING COUNTER] Warning: actual window length is "
                      << actual_window_length_in_seconds
                      << " when it should be " << window_length_in_seconds
@@ -877,7 +877,7 @@ class RollingCounterFunctor {
             const auto  count = kv.second;
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[ROLLING COUNTER] Sending word: " << word
                      << " with count: " << count << '\n';
             }
@@ -900,7 +900,7 @@ public:
         if (topic.is_tick_tuple) {
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[ROLLING COUNTER] Received tick tuple at time (in "
                         "miliseconds) "
                      << current_time_msecs() << '\n';
@@ -934,7 +934,7 @@ public:
             first_parent = {0, 0};
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[RANKER] Current rankings are " << rankings << '\n';
             }
 #endif
@@ -1014,7 +1014,7 @@ public:
             }
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[SINK] Received tuple containing the following "
                         "rankings: "
                      << input->rankings << ", arrival time: " << arrival_time

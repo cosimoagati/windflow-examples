@@ -437,7 +437,7 @@ public:
             const auto timestamp           = current_time();
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[SOURCE] Sending out tuple with the following "
                         "observation: "
                      << current_observation << '\n';
@@ -565,7 +565,7 @@ public:
             tuple.observation.measurement_timestamp;
 #ifndef NDEBUG
         {
-            unique_lock lock {print_mutex};
+            lock_guard lock {print_mutex};
             clog << "[OBSERVER SCORER] Received tuple with observation "
                     "timestamp: "
                  << current_measurement_timestamp << '\n';
@@ -578,7 +578,7 @@ public:
                 for (const auto &package : score_package_list) {
 #ifndef NDEBUG
                     {
-                        unique_lock lock {print_mutex};
+                        lock_guard lock {print_mutex};
                         clog << "[OBSERVER SCORER] Sending tuple with id: "
                              << package.id << ", score: " << package.score
                              << '\n';
@@ -680,7 +680,7 @@ public:
     AnomalyResultTuple operator()(const ObservationResultTuple &tuple) {
 #ifndef NDEBUG
         {
-            unique_lock lock {print_mutex};
+            lock_guard lock {print_mutex};
             clog << "[SLIDING WINDOW STREAM ANOMALY SCORER] Received tuple "
                     "with observation ID: "
                  << tuple.id << '\n';
@@ -698,7 +698,7 @@ public:
         }
 #ifndef NDEBUG
         {
-            unique_lock lock {print_mutex};
+            lock_guard lock {print_mutex};
             clog << "[SLIDING WINDOW STREAM ANOMALY SCORER] Sending out tuple "
                     "with observation: ("
                  << tuple.observation << "), ID: " << tuple.id
@@ -848,7 +848,7 @@ public:
 
 #ifndef NDEBUG
                 {
-                    unique_lock lock {print_mutex};
+                    lock_guard lock {print_mutex};
                     clog << "[ALERT TRIGGERER] Median index: " << median_idx
                          << ", minimum score: " << min_score
                          << ", median score: " << median_score << '\n';
@@ -868,7 +868,7 @@ public:
                     if (is_abnormal) {
 #ifndef NDEBUG
                         {
-                            unique_lock lock {print_mutex};
+                            lock_guard lock {print_mutex};
                             clog << "[ALERT TRIGGERER] Sending out tuple with "
                                     "stream ID: "
                                  << stream_profile.id
@@ -951,7 +951,7 @@ public:
             }
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[SINK] id: " << input->id << " "
                      << "anomaly score: " << input->anomaly_score
                      << " is_abnormal: " << input->is_abnormal

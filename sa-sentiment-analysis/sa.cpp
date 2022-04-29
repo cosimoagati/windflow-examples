@@ -374,7 +374,7 @@ public:
             const auto &tweet = tweets[index];
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[SOURCE] Sending the following tweet: " << tweet
                      << '\n';
             }
@@ -413,7 +413,7 @@ public:
             if (sentiment_entry != sentiment_map.end()) {
 #ifndef NDEBUG
                 {
-                    unique_lock lock {print_mutex};
+                    lock_guard lock {print_mutex};
                     clog << "[BASIC CLASSIFIER] Current word: "
                          << sentiment_entry->first
                          << ", with score: " << sentiment_entry->second
@@ -521,7 +521,7 @@ public:
             }
 #ifndef NDEBUG
             {
-                unique_lock lock {print_mutex};
+                lock_guard lock {print_mutex};
                 clog << "[SINK] arrival time: " << arrival_time
                      << " ts:" << input->timestamp << " latency: " << latency
                      << ", received tweet with score " << input->result.score
