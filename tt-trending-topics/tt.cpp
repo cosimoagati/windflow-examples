@@ -484,7 +484,8 @@ public:
 
     unsigned seconds_since_oldest_modification() {
         const auto modified_time_millis = last_modified_times_millis.get();
-        return (unsigned) (current_time_msecs() - modified_time_millis);
+        return static_cast<unsigned>(current_time_msecs()
+                                     - modified_time_millis);
     }
 
     void mark_as_modified() {
