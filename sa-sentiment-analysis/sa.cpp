@@ -665,7 +665,7 @@ public:
                      << '\n'
                      << "Received tweet with score " << input->result.score
                      << " and classification "
-                     << sentiment_to_string(input->result.sentiment) << '\n'
+                     << sentiment_to_string(input->result.sentiment)
                      << "with contents after trimming: " << input->tweet
                      << " ";
             }
