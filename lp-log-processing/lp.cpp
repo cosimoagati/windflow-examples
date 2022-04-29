@@ -687,7 +687,7 @@ public:
         if (head == tail) {
             tail = (tail + 1) % buffer.size();
         }
-        is_empty = true;
+        is_empty = false;
     }
 
     bool empty() const {
