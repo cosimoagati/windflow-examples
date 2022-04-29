@@ -369,8 +369,7 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
                 parameters.geo_stats_parallelism      = degrees[4];
                 parameters.sink_parallelism           = degrees[5];
             }
-            break;
-        }
+        } break;
         case 'c':
             parameters.use_chaining = atoi(optarg) > 0 ? true : false;
             break;
@@ -385,10 +384,12 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
                     "[--duration <seconds>] "
                     "[--chaining <value>]\n";
             exit(EXIT_SUCCESS);
+            break;
         default:
             cerr << "Error in parsing the input arguments.  Use the --help "
                     "(-h) option for usage information.\n";
             exit(EXIT_FAILURE);
+            break;
         }
     }
 }
