@@ -29,6 +29,8 @@
 #include <utility>
 #include <vector>
 
+#include "../util.hpp"
+
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -96,49 +98,6 @@ struct OutputTuple {
     unsigned long timestamp;
 };
 
-template<typename T>
-class Metric {
-
-    vector<T> sorted_samples;
-    string    metric_name;
-    mutex     metric_mutex;
-
-public:
-    Metric(const char *name = "name") : metric_name {name} {}
-
-    Metric &merge(const vector<T> &new_samples) {
-        lock_guard guard {metric_mutex};
-        sorted_samples.insert(sorted_samples.begin(), new_samples.begin(),
-                              new_samples.end());
-        sort(sorted_samples.begin(), sorted_samples.end());
-        return *this;
-    }
-
-    size_t size() const {
-        return sorted_samples.size();
-    }
-
-    size_t length() const {
-        return sorted_samples.length();
-    }
-
-    bool empty() const {
-        return sorted_samples.empty();
-    }
-
-    typename vector<T>::const_iterator begin() const {
-        return sorted_samples.begin();
-    }
-
-    typename vector<T>::const_iterator end() const {
-        return sorted_samples.end();
-    }
-
-    const char *name() const {
-        return metric_name.c_str();
-    }
-};
-
 class MMDB_handle {
     MMDB_s mmdb;
     bool   is_db_valid = false;
@@ -192,29 +151,10 @@ public:
     }
 };
 
-constexpr auto current_time = current_time_nsecs;
-
-const auto timeunit_string = current_time == current_time_usecs ? "microsecond"
-                             : current_time == current_time_nsecs
-                                 ? "nanosecond"
-                                 : "time unit";
-
-static const unsigned long timeunit_scale_factor =
-    current_time == current_time_usecs   ? 1000000
-    : current_time == current_time_nsecs ? 1000000000
-                                         : 1;
 static const struct option long_opts[] = {
     {"help", 0, 0, 'h'},        {"rate", 1, 0, 'r'},  {"sampling", 1, 0, 's'},
     {"parallelism", 1, 0, 'p'}, {"batch", 1, 0, 'b'}, {"chaining", 1, 0, 'c'},
     {"duration", 1, 0, 'd'},    {0, 0, 0, 0}};
-
-/*
- * Return difference between a and b, accounting for unsigned arithmetic
- * wraparound.
- */
-static inline unsigned long difference(unsigned long a, unsigned long b) {
-    return max(a, b) - min(a, b);
-}
 
 static inline unsigned long
 get_millis_date_truncated_by_minute(const char *date_string) {
@@ -236,24 +176,6 @@ static inline bool is_valid_ip_address(const char *ip) {
     sockaddr_in sa;
     const int   result = inet_pton(AF_INET, ip, &(sa.sin_addr));
     return result == 1;
-}
-
-/*
- * Return a std::vector of std::string_views, obtained from splitting the
- * original string_view. by the delim character.
- */
-static inline vector<string_view> string_split(const string_view &s,
-                                               char               delim) {
-    const auto          is_delim   = [=](char c) { return c == delim; };
-    auto                word_begin = find_if_not(s.begin(), s.end(), is_delim);
-    vector<string_view> words;
-
-    while (word_begin < s.end()) {
-        const auto word_end = find_if(word_begin + 1, s.end(), is_delim);
-        words.emplace_back(word_begin, word_end - word_begin);
-        word_begin = find_if_not(word_end, s.end(), is_delim);
-    }
-    return words;
 }
 
 static inline vector<string> split_log_fields(const string &line) {
@@ -555,58 +477,6 @@ static inline void print_statistics(unsigned long elapsed_time,
          << service_time_in_seconds << " seconds)\n"
          << "Average latency: " << average_latency << ' ' << timeunit_string
          << "s (" << latency_in_seconds << " seconds)\n";
-}
-
-static inline string get_datetime_string() {
-    const auto current_date = time(nullptr);
-    string     date_string {asctime(localtime(&current_date))};
-    if (!date_string.empty()) {
-        date_string.pop_back(); // needed to remove trailing newline
-    }
-    return date_string;
-}
-
-static inline void serialize_to_json(const Metric<unsigned long> &metric,
-                                     unsigned long total_measurements) {
-    nlohmann::ordered_json json_stats;
-    json_stats["date"]                 = get_datetime_string();
-    json_stats["name"]                 = metric.name();
-    json_stats["time unit"]            = string {timeunit_string} + 's';
-    json_stats["sampled measurements"] = metric.size();
-    json_stats["total measurements"]   = total_measurements;
-
-    if (!metric.empty()) {
-        const auto mean =
-            accumulate(metric.begin(), metric.end(), 0.0) / metric.size();
-        json_stats["mean"] = mean;
-
-        for (const auto percentile : {0.0, 0.05, 0.25, 0.5, 0.75, 0.95, 1.0}) {
-            const auto percentile_value_position =
-                metric.begin() + (metric.size() - 1) * percentile;
-            const auto label = to_string(static_cast<int>(percentile * 100))
-                               + "th percentile ";
-            json_stats[label] = *percentile_value_position;
-        }
-    } else {
-        json_stats["mean"] = 0;
-        for (const auto percentile : {"0", "25", "50", "75", "95", "100"}) {
-            const auto label  = string {percentile} + "th percentile";
-            json_stats[label] = 0;
-        }
-    }
-    ofstream fs {string {"metric-"} + metric.name() + ".json"};
-    fs << json_stats.dump(4) << '\n';
-}
-
-/*
- * Suspend execution for an amount of time units specified by duration.
- */
-static inline void busy_wait(unsigned long duration) {
-    const auto start_time = current_time();
-    auto       now        = start_time;
-    while (now - start_time < duration) {
-        now = current_time();
-    }
 }
 
 /* Global variables */
