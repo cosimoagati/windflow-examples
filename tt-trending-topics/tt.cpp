@@ -96,6 +96,7 @@ struct Tweet {
 struct Topic {
     TupleMetadata metadata;
     string        word;
+    bool          is_tick_tuple;
 };
 
 struct Counts {
@@ -103,6 +104,7 @@ struct Counts {
     string        word;
     unsigned long count;
     size_t        window_length;
+    bool          is_tick_tuple;
 };
 
 template<typename T>
@@ -250,6 +252,7 @@ ostream &operator<<(ostream &stream, const Rankings<T> &rankings) {
 struct RankingsTuple {
     TupleMetadata    metadata;
     Rankings<string> rankings;
+    bool             is_tick_tuple;
 };
 
 template<typename T>
@@ -532,7 +535,8 @@ static void validate_args(const Parameters &parameters) {
         exit(EXIT_FAILURE);
     }
 
-    const auto max_threads = thread::hardware_concurrency();
+    constexpr unsigned timer_threads = 2;
+    const auto max_threads = thread::hardware_concurrency() - timer_threads;
 
     if (parameters.source_parallelism == 0
         || parameters.topic_extractor_parallelism == 0
@@ -738,6 +742,47 @@ static Metric<unsigned long> global_service_time_metric {"service-time"};
 static mutex print_mutex;
 #endif
 
+template<typename OutputTuple>
+class TimerFunctor {
+    unsigned long last_tick_time = current_time();
+    unsigned long duration;
+    unsigned long time_units_between_ticks;
+    unsigned      replicas;
+
+public:
+    TimerFunctor(unsigned d, unsigned seconds_per_tick, unsigned replicas)
+        : duration {d * timeunit_scale_factor},
+          time_units_between_ticks {seconds_per_tick * timeunit_scale_factor},
+          replicas {replicas} {
+        if (time_units_between_ticks == 0) {
+            cerr << "Error: the amount of time units between ticks must be "
+                    "positive\n";
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    void operator()(Source_Shipper<OutputTuple> &shipper) {
+        const auto end_time = current_time() + duration;
+
+        while (current_time() < end_time) {
+            auto delta = difference(current_time(), last_tick_time);
+            while (delta >= time_units_between_ticks) {
+                for (unsigned i = 0; i < replicas; ++i) {
+                    OutputTuple tuple;
+                    tuple.is_tick_tuple = true;
+                    shipper.push(move(tuple));
+                }
+                delta -= time_units_between_ticks;
+                last_tick_time += time_units_between_ticks;
+            }
+        }
+    }
+};
+
+using RollingCounterTimerFunctor     = TimerFunctor<Topic>;
+using IntermediateRankerTimerFunctor = TimerFunctor<Counts>;
+using TotalRankerTimerFunctor        = TimerFunctor<RankingsTuple>;
+
 template<typename T>
 class CircularFifoBuffer {
     vector<T> buffer;
@@ -882,7 +927,7 @@ public:
                              << '\n';
                     }
 #endif
-                    shipper.push({tweet.metadata, string {word}});
+                    shipper.push({tweet.metadata, string {word}, false});
                 }
             }
         }
@@ -891,8 +936,6 @@ public:
 
 class RollingCounterFunctor {
     unsigned                     window_length_in_seconds;
-    unsigned                     emit_frequency_in_milliseconds;
-    unsigned long                last_shipping_time;
     SlidingWindowCounter<string> counter;
     NthLastModifiedTimeTracker   last_modified_tracker;
 
@@ -927,8 +970,8 @@ class RollingCounterFunctor {
                      << " with count: " << count << '\n';
             }
 #endif
-            shipper.push(
-                {first_parent, word, count, actual_window_length_in_seconds});
+            shipper.push({first_parent, word, count,
+                          actual_window_length_in_seconds, false});
         }
         first_parent = {0, 0};
     }
@@ -937,25 +980,27 @@ public:
     RollingCounterFunctor(unsigned window_length_in_seconds  = 300,
                           unsigned emit_frequency_in_seconds = 60)
         : window_length_in_seconds {window_length_in_seconds},
-          emit_frequency_in_milliseconds {emit_frequency_in_seconds * 1000u},
-          last_shipping_time {current_time_msecs()},
           counter {window_length_in_seconds / emit_frequency_in_seconds},
           last_modified_tracker {window_length_in_seconds
                                  / emit_frequency_in_seconds} {}
 
     void operator()(const Topic &topic, Shipper<Counts> &shipper) {
-        const auto obj = topic.word;
-        counter.increment_count(obj);
-
-        if (first_parent.id == 0 && first_parent.timestamp == 0) {
-            first_parent = topic.metadata;
-        }
-
-        auto time_diff = current_time_msecs() - last_shipping_time;
-        while (time_diff >= emit_frequency_in_milliseconds) {
+        if (topic.is_tick_tuple) {
+#ifndef NDEBUG
+            {
+                unique_lock lock {print_mutex};
+                clog << "[ROLLING COUNTER] Received tick tuple at time (in "
+                        "miliseconds) "
+                     << current_time_msecs() << '\n';
+            }
+#endif
             ship_all(shipper);
-            last_shipping_time = current_time_msecs();
-            time_diff -= emit_frequency_in_milliseconds;
+        } else {
+            const auto obj = topic.word;
+            counter.increment_count(obj);
+            if (first_parent.id == 0 && first_parent.timestamp == 0) {
+                first_parent = topic.metadata;
+            }
         }
     }
 };
@@ -963,39 +1008,30 @@ public:
 template<typename InputType,
          void update_rankings(const InputType &, Rankings<string> &)>
 class RankerFunctor {
-    unsigned         emit_frequency_in_milliseconds;
     unsigned long    last_shipping_time = current_time_msecs();
     unsigned         count;
     Rankings<string> rankings;
     TupleMetadata    first_parent {0, 0};
 
 public:
-    RankerFunctor(unsigned emit_frequency_in_milliseconds = 60,
-                  unsigned count                          = 10)
-        : emit_frequency_in_milliseconds {emit_frequency_in_milliseconds},
-          count {count} {}
+    RankerFunctor(unsigned count = 10) : count {count} {}
 
     void operator()(const InputType &counts, Shipper<RankingsTuple> &shipper) {
-        update_rankings(counts, rankings);
-
-        if (first_parent.id == 0 && first_parent.timestamp == 0) {
-            first_parent = counts.metadata;
-        }
-
-        auto time_diff = current_time_msecs() - last_shipping_time;
-        while (time_diff >= emit_frequency_in_milliseconds) {
-            shipper.push({counts.metadata, rankings});
-            last_shipping_time = current_time_msecs();
-            time_diff -= emit_frequency_in_milliseconds;
-        }
-        first_parent = {0, 0};
-
+        if (counts.is_tick_tuple) {
+            shipper.push({first_parent, rankings, false});
+            first_parent = {0, 0};
 #ifndef NDEBUG
-        {
-            unique_lock lock {print_mutex};
-            clog << "[RANKLER] Current rankings are" << rankings << '\n';
-        }
+            {
+                unique_lock lock {print_mutex};
+                clog << "[RANKER] Current rankings are " << rankings << '\n';
+            }
 #endif
+        } else {
+            update_rankings(counts, rankings);
+            if (first_parent.id == 0 && first_parent.timestamp == 0) {
+                first_parent = counts.metadata;
+            }
+        }
     }
 };
 
@@ -1100,14 +1136,44 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withOutputBatchSize(parameters.batch_size)
             .build();
 
-    RollingCounterFunctor rolling_counter_functor;
-    auto                  rolling_counter_node =
+    RollingCounterTimerFunctor rolling_counter_timer_functor {
+        parameters.duration, parameters.rolling_counter_frequency,
+        parameters.rolling_counter_parallelism};
+    auto rolling_counter_timer_node =
+        Source_Builder {rolling_counter_timer_functor}
+            .withParallelism(1)
+            .withName("rolling counter timer")
+            .withOutputBatchSize(0)
+            .build();
+
+    RollingCounterFunctor rolling_counter_functor {
+        300, parameters.intermediate_ranker_frequency};
+    auto rolling_counter_node =
         FlatMap_Builder {rolling_counter_functor}
             .withParallelism(parameters.rolling_counter_parallelism)
             .withName("rolling counter")
             .withOutputBatchSize(parameters.batch_size)
             .withKeyBy([](const Topic &topic) -> string { return topic.word; })
             .build();
+
+    IntermediateRankerTimerFunctor intermediate_ranker_timer_functor {
+        parameters.duration, parameters.intermediate_ranker_frequency,
+        parameters.intermediate_ranker_parallelism};
+    auto intermediate_ranker_timer_node =
+        Source_Builder {intermediate_ranker_timer_functor}
+            .withParallelism(1)
+            .withName("intermediate ranker timer")
+            .withOutputBatchSize(0)
+            .build();
+
+    TotalRankerTimerFunctor total_ranker_timer_functor {
+        parameters.duration, parameters.total_ranker_frequency,
+        parameters.total_ranker_parallelism};
+    auto total_ranker_timer_node = Source_Builder {total_ranker_timer_functor}
+                                       .withParallelism(1)
+                                       .withName("total ranker timer")
+                                       .withOutputBatchSize(1)
+                                       .build();
 
     IntermediateRankerFunctor intermediate_ranker_functor;
     auto                      intermediate_ranker_node =
@@ -1134,17 +1200,37 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
                     .build();
 
     if (parameters.use_chaining) {
-        graph.add_source(source)
-            .chain(topic_extractor_node)
+        auto &topic_extractor_pipe =
+            graph.add_source(source).chain(topic_extractor_node);
+        auto &rolling_counter_timer_pipe =
+            graph.add_source(rolling_counter_timer_node);
+        auto &intermediate_ranker_timer_pipe =
+            graph.add_source(intermediate_ranker_timer_node);
+        auto &total_ranker_timer_pipe =
+            graph.add_source(total_ranker_timer_node);
+
+        topic_extractor_pipe.merge(rolling_counter_timer_pipe)
             .chain(rolling_counter_node)
+            .merge(intermediate_ranker_timer_pipe)
             .chain(intermediate_ranker_node)
+            .merge(total_ranker_timer_pipe)
             .chain(total_ranker_node)
             .chain_sink(sink);
     } else {
-        graph.add_source(source)
-            .add(topic_extractor_node)
+        auto &topic_extractor_pipe =
+            graph.add_source(source).add(topic_extractor_node);
+        auto &rolling_counter_timer_pipe =
+            graph.add_source(rolling_counter_timer_node);
+        auto &intermediate_ranker_timer_pipe =
+            graph.add_source(intermediate_ranker_timer_node);
+        auto &total_ranker_timer_pipe =
+            graph.add_source(total_ranker_timer_node);
+
+        topic_extractor_pipe.merge(rolling_counter_timer_pipe)
             .add(rolling_counter_node)
+            .merge(intermediate_ranker_timer_pipe)
             .add(intermediate_ranker_node)
+            .merge(total_ranker_timer_pipe)
             .add(total_ranker_node)
             .add_sink(sink);
     }
