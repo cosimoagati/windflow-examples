@@ -494,7 +494,7 @@ static inline void validate_args(const Parameters &parameters) {
         exit(EXIT_FAILURE);
     }
 
-    constexpr unsigned timer_threads = 2;
+    constexpr unsigned timer_threads = 3;
     const auto max_threads = thread::hardware_concurrency() - timer_threads;
 
     if (parameters.source_parallelism == 0
