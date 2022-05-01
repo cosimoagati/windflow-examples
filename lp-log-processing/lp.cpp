@@ -116,15 +116,8 @@ public:
         return mmdb;
     }
 
-    MMDB_handle(const MMDB_handle &other) {
-        const int status =
-            MMDB_open(other.mmdb.filename, MMDB_MODE_MMAP, &mmdb);
-        if (status != MMDB_SUCCESS) {
-            cerr << "Error opening MaxMind database file\n";
-            exit(EXIT_FAILURE);
-        }
-        is_db_valid = true;
-    }
+    MMDB_handle(const MMDB_handle &other)
+        : MMDB_handle {other.mmdb.filename} {}
 
     MMDB_handle &operator=(const MMDB_handle &other) {
         if (is_db_valid) {
