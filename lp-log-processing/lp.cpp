@@ -100,7 +100,6 @@ struct OutputTuple {
 
 class MMDB_handle {
     MMDB_s mmdb;
-    bool   is_db_valid = false;
 
 public:
     MMDB_handle(const char *path = "GeoLite2-City.mmdb") {
@@ -109,28 +108,19 @@ public:
             cerr << "Error opening MaxMind database file\n";
             exit(EXIT_FAILURE);
         }
-        is_db_valid = true;
-    }
-
-    const MMDB_s &db() const {
-        return mmdb;
     }
 
     MMDB_handle(const MMDB_handle &other)
         : MMDB_handle {other.mmdb.filename} {}
 
     MMDB_handle &operator=(const MMDB_handle &other) {
-        if (is_db_valid) {
-            MMDB_close(&mmdb);
-            is_db_valid = false;
-        }
+        MMDB_close(&mmdb);
         const int status =
             MMDB_open(other.mmdb.filename, MMDB_MODE_MMAP, &mmdb);
         if (status != MMDB_SUCCESS) {
             cerr << "Error opening MaxMind database file\n";
             exit(EXIT_FAILURE);
         }
-        is_db_valid = true;
         return *this;
     }
 
@@ -138,9 +128,11 @@ public:
     MMDB_handle &operator=(MMDB_handle &&other) = delete;
 
     ~MMDB_handle() {
-        if (is_db_valid) {
-            MMDB_close(&mmdb);
-        }
+        MMDB_close(&mmdb);
+    }
+
+    const MMDB_s &db() const {
+        return mmdb;
     }
 };
 
