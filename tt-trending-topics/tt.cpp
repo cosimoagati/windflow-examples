@@ -56,31 +56,29 @@
 using namespace std;
 using namespace wf;
 
-static const struct option long_opts[] = {{"help", 0, 0, 'h'},
-                                          {"rate", 1, 0, 'r'},
-                                          {"sampling", 1, 0, 's'},
-                                          {"parallelism", 1, 0, 'p'},
-                                          {"batch", 1, 0, 'b'},
-                                          {"chaining", 1, 0, 'c'},
-                                          {"duration", 1, 0, 'd'},
-                                          {"frequency", 1, 0, 'f'},
-                                          {0, 0, 0, 0}};
+static const struct option long_opts[] = {
+    {"help", 0, 0, 'h'},      {"rate", 1, 0, 'r'},
+    {"sampling", 1, 0, 's'},  {"parallelism", 1, 0, 'p'},
+    {"batch", 1, 0, 'b'},     {"chaining", 1, 0, 'c'},
+    {"duration", 1, 0, 'd'},  {"frequency", 1, 0, 'f'},
+    {"outputdir", 1, 0, 'o'}, {0, 0, 0, 0}};
 
 struct Parameters {
-    unsigned source_parallelism              = 1;
-    unsigned topic_extractor_parallelism     = 1;
-    unsigned rolling_counter_parallelism     = 1;
-    unsigned intermediate_ranker_parallelism = 1;
-    unsigned total_ranker_parallelism        = 1;
-    unsigned sink_parallelism                = 1;
-    unsigned rolling_counter_frequency       = 2;
-    unsigned intermediate_ranker_frequency   = 2;
-    unsigned total_ranker_frequency          = 2;
-    unsigned batch_size                      = 0;
-    unsigned duration                        = 60;
-    unsigned tuple_rate                      = 1000;
-    unsigned sampling_rate                   = 100;
-    bool     use_chaining                    = false;
+    const char *metric_output_directory         = ".";
+    unsigned    source_parallelism              = 1;
+    unsigned    topic_extractor_parallelism     = 1;
+    unsigned    rolling_counter_parallelism     = 1;
+    unsigned    intermediate_ranker_parallelism = 1;
+    unsigned    total_ranker_parallelism        = 1;
+    unsigned    sink_parallelism                = 1;
+    unsigned    rolling_counter_frequency       = 2;
+    unsigned    intermediate_ranker_frequency   = 2;
+    unsigned    total_ranker_frequency          = 2;
+    unsigned    batch_size                      = 0;
+    unsigned    duration                        = 60;
+    unsigned    tuple_rate                      = 1000;
+    unsigned    sampling_rate                   = 100;
+    bool        use_chaining                    = false;
 };
 
 struct TupleMetadata {
@@ -427,8 +425,8 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     int option;
     int index;
 
-    while ((option =
-                getopt_long(argc, argv, "r:s:p:b:c:d:f:h", long_opts, &index))
+    while ((option = getopt_long(argc, argv, "r:s:p:b:c:d:f:o:h", long_opts,
+                                 &index))
            != -1) {
         switch (option) {
         case 'r':
@@ -471,6 +469,9 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
             break;
         case 'd':
             parameters.duration = atoi(optarg);
+            break;
+        case 'o':
+            parameters.metric_output_directory = optarg;
             break;
         case 'h':
             cout << "Parameters: --rate <value> --sampling "
@@ -1163,9 +1164,15 @@ int main(int argc, char *argv[]) {
     graph.run();
     const auto elapsed_time = difference(current_time(), start_time);
 
-    serialize_to_json(global_latency_metric, global_received_tuples);
-    serialize_to_json(global_interdeparture_metric, global_received_tuples);
-    serialize_to_json(global_service_time_metric, global_received_tuples);
+    serialize_to_json(global_latency_metric,
+                      parameters.metric_output_directory,
+                      global_received_tuples);
+    serialize_to_json(global_interdeparture_metric,
+                      parameters.metric_output_directory,
+                      global_received_tuples);
+    serialize_to_json(global_service_time_metric,
+                      parameters.metric_output_directory,
+                      global_received_tuples);
 
     const auto average_latency =
         accumulate(global_latency_metric.begin(), global_latency_metric.end(),

@@ -3,12 +3,17 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdlib>
 #include <ctime>
+#include <dirent.h>
+#include <iostream>
 #include <mutex>
 #include <nlohmann/json.hpp>
-#include <ostream>
 #include <string>
 #include <string_view>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <system_error>
 #include <vector>
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -145,7 +150,25 @@ public:
     }
 };
 
+static inline void create_directory_if_not_exists(const char *path) noexcept {
+    const auto dir = opendir(path);
+    if (dir) {
+        const int status = closedir(dir);
+        if (status != 0) {
+            std::cerr << "Error closing directory " << path << '\n';
+            std::exit(EXIT_FAILURE);
+        }
+    } else {
+        const int status = mkdir(path, S_IRWXU | S_IRGRP | S_IROTH);
+        if (status != 0) {
+            std::cerr << "Error creating directory\n";
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
 static inline void serialize_to_json(const Metric<unsigned long> &metric,
+                                     const char *  output_directory,
                                      unsigned long total_measurements) {
     nlohmann::ordered_json json_stats;
     json_stats["date"]                 = get_datetime_string();
@@ -174,7 +197,9 @@ static inline void serialize_to_json(const Metric<unsigned long> &metric,
             json_stats[label] = 0;
         }
     }
-    std::ofstream fs {std::string {"metric-"} + metric.name() + ".json"};
+    create_directory_if_not_exists(output_directory);
+    std::ofstream fs {std::string {output_directory} + std::string {"/metric-"}
+                      + metric.name() + ".json"};
     fs << json_stats.dump(4) << '\n';
 }
 
