@@ -1002,7 +1002,6 @@ int main(int argc, char *argv[]) {
     serialize_to_json(global_geo_latency_metric,
                       parameters.metric_output_directory,
                       global_geo_received_tuples);
-
     serialize_to_json(global_interdeparture_metric,
                       parameters.metric_output_directory,
                       global_received_tuples);
