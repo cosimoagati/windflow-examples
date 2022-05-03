@@ -24,6 +24,7 @@
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <regex>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -255,6 +256,37 @@ static inline vector<SourceTuple> parse_logs(const char *path) {
     }
     return logs;
 }
+
+#ifndef NDEBUG
+string get_log_output_message(const OutputTuple &input,
+                              unsigned long      arrival_time,
+                              unsigned long      latency) {
+    stringstream msg;
+
+    msg << "[SINK] Received ";
+    switch (input.tag) {
+    case OutputTupleTag::Volume:
+        msg << "volume - count: " << input.count
+            << ", timestampMinutes: " << input.minute;
+        break;
+    case OutputTupleTag::Status:
+        msg << "status - response: " << input.status_code
+            << ", count: " << input.count;
+        break;
+    case OutputTupleTag::Geo:
+        msg << "Geo stats - country: " << input.country
+            << ", city: " << input.city << ", cityTotal: " << input.city_total
+            << ", countryTotal: " << input.country_total;
+        break;
+    default:
+        assert(false);
+        break;
+    }
+    msg << " arrival time: " << arrival_time << " ts: " << input.timestamp
+        << " latency: " << latency << '\n';
+    return msg.str();
+}
+#endif
 
 static inline vector<size_t> get_parallelism_degrees(const char *degrees) {
     vector<size_t> parallelism_degrees;
@@ -799,29 +831,7 @@ public:
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
-                clog << "[SINK] Received ";
-                switch (input->tag) {
-                case OutputTuple::Volume:
-                    clog << "volume - count: " << input->count
-                         << ", timestampMinutes: " << input->minute;
-                    break;
-                case OutputTuple::Status:
-                    clog << "status - response: " << input->status_code
-                         << ", count: " << input->count;
-                    break;
-                case OutputTuple::Geo:
-                    clog << "Geo stats - country: " << input->country
-                         << ", city: " << input->city
-                         << ", cityTotal: " << input->city_total
-                         << ", countryTotal: " << input->country_total;
-                    break;
-                default:
-                    assert(false);
-                    break;
-                }
-                clog << " arrival time: " << arrival_time
-                     << " ts: " << input->timestamp << " latency: " << latency
-                     << '\n';
+                clog << get_log_output_message(*input, arrival_time, latency);
             }
 #endif
         } else {
