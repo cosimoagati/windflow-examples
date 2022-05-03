@@ -70,9 +70,11 @@ struct Parameters {
     bool        use_chaining               = false;
 };
 
+enum class TupleTag { Volume, Status, Geo };
+
 // TODO: Use unions to save space?
 struct SourceTuple {
-    enum { Volume, Status, Geo } tag;
+    TupleTag      tag;
     string        ip;
     string        request;
     string        log_timestamp;
@@ -88,18 +90,16 @@ struct GeoFinderOutputTuple {
     unsigned long timestamp;
 };
 
-enum class OutputTupleTag { Volume, Status, Geo };
-
 struct OutputTuple {
-    OutputTupleTag tag;
-    string         country;
-    string         city;
-    unsigned       country_total;
-    unsigned       city_total;
-    unsigned       status_code;
-    unsigned long  minute;
-    unsigned long  count;
-    unsigned long  timestamp;
+    TupleTag      tag;
+    string        country;
+    string        city;
+    unsigned      country_total;
+    unsigned      city_total;
+    unsigned      status_code;
+    unsigned long minute;
+    unsigned long count;
+    unsigned long timestamp;
 };
 
 class MMDB_handle {
@@ -267,15 +267,15 @@ static inline string get_log_output_message(const OutputTuple &input,
 
     msg << "[SINK] Received ";
     switch (input.tag) {
-    case OutputTupleTag::Volume:
+    case TupleTag::Volume:
         msg << "volume - count: " << input.count
             << ", timestampMinutes: " << input.minute;
         break;
-    case OutputTupleTag::Status:
+    case TupleTag::Status:
         msg << "status - response: " << input.status_code
             << ", count: " << input.count;
         break;
-    case OutputTupleTag::Geo:
+    case TupleTag::Geo:
         msg << "Geo stats - country: " << input.country
             << ", city: " << input.city << ", cityTotal: " << input.city_total
             << ", countryTotal: " << input.country_total;
@@ -573,9 +573,9 @@ public:
                      << logs[index].minute_timestamp << '\n';
             }
 #endif
-            volume_source_tuple.tag     = SourceTuple::Volume;
-            status_source_tuple.tag     = SourceTuple::Status;
-            geo_finder_source_tuple.tag = SourceTuple::Geo;
+            volume_source_tuple.tag     = TupleTag::Volume;
+            status_source_tuple.tag     = TupleTag::Status;
+            geo_finder_source_tuple.tag = TupleTag::Geo;
 
             const auto timestamp              = current_time();
             volume_source_tuple.timestamp     = timestamp;
@@ -672,7 +672,7 @@ public:
             counts_entry->second += 1;
         }
         OutputTuple output;
-        output.tag       = OutputTupleTag::Volume;
+        output.tag       = TupleTag::Volume;
         output.minute    = minute;
         output.count     = counts.find(minute)->second;
         output.timestamp = input.timestamp;
@@ -700,7 +700,7 @@ public:
             counts_entry->second += 1;
         }
         OutputTuple output;
-        output.tag         = OutputTupleTag::Status;
+        output.tag         = TupleTag::Status;
         output.status_code = status_code;
         output.count       = counts.find(status_code)->second;
         output.timestamp   = input.timestamp;
@@ -797,7 +797,7 @@ public:
         current_stats.city_found(input.city);
 
         OutputTuple output;
-        output.tag           = OutputTupleTag::Geo;
+        output.tag           = TupleTag::Geo;
         output.country       = input.country;
         output.country_total = current_stats.get_country_total();
         output.city          = input.city;
@@ -808,19 +808,15 @@ public:
 };
 
 class SinkFunctor {
-    vector<unsigned long> latency_samples;
-    unordered_map<OutputTupleTag, vector<unsigned long>>
-        specific_latency_samples {{OutputTupleTag::Volume, {}},
-                                  {OutputTupleTag::Status, {}},
-                                  {OutputTupleTag::Geo, {}}};
+    vector<unsigned long>                          latency_samples;
+    unordered_map<TupleTag, vector<unsigned long>> specific_latency_samples {
+        {TupleTag::Volume, {}}, {TupleTag::Status, {}}, {TupleTag::Geo, {}}};
     vector<unsigned long> interdeparture_samples;
     vector<unsigned long> service_time_samples;
 
-    unsigned long                                tuples_received = 0;
-    unordered_map<OutputTupleTag, unsigned long> specific_tuples_received {
-        {OutputTupleTag::Volume, 0},
-        {OutputTupleTag::Status, 0},
-        {OutputTupleTag::Geo, 0}};
+    unsigned long                          tuples_received = 0;
+    unordered_map<TupleTag, unsigned long> specific_tuples_received {
+        {TupleTag::Volume, 0}, {TupleTag::Status, 0}, {TupleTag::Geo, 0}};
 
     unsigned long last_sampling_time = current_time();
     unsigned long last_arrival_time  = last_sampling_time;
@@ -842,9 +838,9 @@ public:
 
     void operator()(optional<OutputTuple> &input, RuntimeContext &context) {
         if (input) {
-            assert(input->tag == OutputTupleTag::Volume
-                   || input->tag == OutputTupleTag::Status
-                   || input->tag == OutputTupleTag::Geo);
+            assert(input->tag == TupleTag::Volume
+                   || input->tag == TupleTag::Status
+                   || input->tag == TupleTag::Geo);
 
             const auto arrival_time = current_time();
             const auto latency = difference(arrival_time, input->timestamp);
@@ -877,19 +873,19 @@ public:
         } else {
             global_received_tuples.fetch_add(tuples_received);
             global_volume_received_tuples.fetch_add(
-                specific_tuples_received[OutputTupleTag::Volume]);
+                specific_tuples_received[TupleTag::Volume]);
             global_status_received_tuples.fetch_add(
-                specific_tuples_received[OutputTupleTag::Status]);
+                specific_tuples_received[TupleTag::Status]);
             global_geo_received_tuples.fetch_add(
-                specific_tuples_received[OutputTupleTag::Geo]);
+                specific_tuples_received[TupleTag::Geo]);
 
             global_latency_metric.merge(latency_samples);
             global_volume_latency_metric.merge(
-                specific_latency_samples[OutputTupleTag::Volume]);
+                specific_latency_samples[TupleTag::Volume]);
             global_status_latency_metric.merge(
-                specific_latency_samples[OutputTupleTag::Status]);
+                specific_latency_samples[TupleTag::Status]);
             global_geo_latency_metric.merge(
-                specific_latency_samples[OutputTupleTag::Geo]);
+                specific_latency_samples[TupleTag::Geo]);
 
             global_interdeparture_metric.merge(interdeparture_samples);
             global_service_time_metric.merge(service_time_samples);
@@ -956,13 +952,13 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     source_pipe.split(
         [](const SourceTuple &t) {
             switch (t.tag) {
-            case SourceTuple::Volume:
+            case TupleTag::Volume:
                 return 0;
                 break;
-            case SourceTuple::Status:
+            case TupleTag::Status:
                 return 1;
                 break;
-            case SourceTuple::Geo:
+            case TupleTag::Geo:
                 return 2;
                 break;
             default:
