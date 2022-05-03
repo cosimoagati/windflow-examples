@@ -474,11 +474,11 @@ static inline void print_initial_parameters(const Parameters &parameters) {
          << '\n';
 }
 
-static inline void print_statistics(unsigned long elapsed_time,
-                                    unsigned long duration,
-                                    unsigned long sent_tuples,
-                                    double        average_latency,
-                                    unsigned long received_tuples) {
+static inline void
+print_statistics(unsigned long elapsed_time, unsigned long duration,
+                 unsigned long sent_tuples, double average_latency,
+                 double average_volume_latency, double average_status_latency,
+                 double average_geo_latency, unsigned long received_tuples) {
     const auto elapsed_time_in_seconds =
         elapsed_time / static_cast<double>(timeunit_scale_factor);
 
@@ -490,6 +490,12 @@ static inline void print_statistics(unsigned long elapsed_time,
     const auto service_time            = 1 / throughput;
     const auto service_time_in_seconds = service_time / timeunit_scale_factor;
     const auto latency_in_seconds = average_latency / timeunit_scale_factor;
+    const auto volume_latency_in_seconds =
+        average_volume_latency / timeunit_scale_factor;
+    const auto status_latency_in_seconds =
+        average_status_latency / timeunit_scale_factor;
+    const auto geo_latency_in_seconds =
+        average_geo_latency / timeunit_scale_factor;
 
     cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string << "s ("
          << elapsed_time_in_seconds << " seconds)\n"
@@ -504,7 +510,16 @@ static inline void print_statistics(unsigned long elapsed_time,
          << "Service time: " << service_time << ' ' << timeunit_string << "s ("
          << service_time_in_seconds << " seconds)\n"
          << "Average latency: " << average_latency << ' ' << timeunit_string
-         << "s (" << latency_in_seconds << " seconds)\n";
+         << "s (" << latency_in_seconds << " seconds)\n"
+         << "Average volume latency: " << average_volume_latency << ' '
+         << timeunit_string << "s (" << volume_latency_in_seconds
+         << " seoncds)\n"
+         << "Average status latency: " << average_status_latency << ' '
+         << timeunit_string << "s (" << status_latency_in_seconds
+         << " seoncds)\n"
+         << "Average geo latency: " << average_geo_latency << ' '
+         << timeunit_string << "s (" << geo_latency_in_seconds
+         << " seoncds)\n";
 }
 
 /* Global variables */
@@ -1014,7 +1029,28 @@ int main(int argc, char *argv[]) {
                    0.0)
         / (!global_latency_metric.empty() ? global_latency_metric.size()
                                           : 1.0);
+    const auto average_volume_latency =
+        accumulate(global_volume_latency_metric.begin(),
+                   global_volume_latency_metric.end(), 0.0)
+        / (!global_volume_latency_metric.empty()
+               ? global_volume_latency_metric.size()
+               : 1.0);
+
+    const auto average_status_latency =
+        accumulate(global_volume_latency_metric.begin(),
+                   global_status_latency_metric.end(), 0.0)
+        / (!global_status_latency_metric.empty()
+               ? global_status_latency_metric.size()
+               : 1.0);
+    const auto average_geo_latency =
+        accumulate(global_geo_latency_metric.begin(),
+                   global_geo_latency_metric.end(), 0.0)
+        / (!global_geo_latency_metric.empty()
+               ? global_geo_latency_metric.size()
+               : 1.0);
     print_statistics(elapsed_time, parameters.duration, global_sent_tuples,
-                     average_latency, global_received_tuples);
+                     average_latency, average_volume_latency,
+                     average_status_latency, average_geo_latency,
+                     global_received_tuples);
     return 0;
 }
