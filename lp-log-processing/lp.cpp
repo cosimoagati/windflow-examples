@@ -88,16 +88,18 @@ struct GeoFinderOutputTuple {
     unsigned long timestamp;
 };
 
+enum class OutputTupleTag { Volume, Status, Geo };
+
 struct OutputTuple {
-    enum { Volume, Status, Geo } tag;
-    string        country;
-    string        city;
-    unsigned      country_total;
-    unsigned      city_total;
-    unsigned      status_code;
-    unsigned long minute;
-    unsigned long count;
-    unsigned long timestamp;
+    OutputTupleTag tag;
+    string         country;
+    string         city;
+    unsigned       country_total;
+    unsigned       city_total;
+    unsigned       status_code;
+    unsigned long  minute;
+    unsigned long  count;
+    unsigned long  timestamp;
 };
 
 class MMDB_handle {
@@ -506,9 +508,16 @@ static inline void print_statistics(unsigned long elapsed_time,
 }
 
 /* Global variables */
-static atomic_ulong          global_sent_tuples {0};
-static atomic_ulong          global_received_tuples {0};
+static atomic_ulong global_sent_tuples {0};
+static atomic_ulong global_received_tuples {0};
+static atomic_ulong global_volume_received_tuples {0};
+static atomic_ulong global_status_received_tuples {0};
+static atomic_ulong global_geo_received_tuples {0};
+
 static Metric<unsigned long> global_latency_metric {"latency"};
+static Metric<unsigned long> global_volume_latency_metric {"volume-latency"};
+static Metric<unsigned long> global_status_latency_metric {"status-latency"};
+static Metric<unsigned long> global_geo_latency_metric {"geo-latency"};
 static Metric<unsigned long> global_interdeparture_metric {
     "interdeparture-time"};
 static Metric<unsigned long> global_service_time_metric {"service-time"};
@@ -648,7 +657,7 @@ public:
             counts_entry->second += 1;
         }
         OutputTuple output;
-        output.tag       = OutputTuple::Volume;
+        output.tag       = OutputTupleTag::Volume;
         output.minute    = minute;
         output.count     = counts.find(minute)->second;
         output.timestamp = input.timestamp;
@@ -676,7 +685,7 @@ public:
             counts_entry->second += 1;
         }
         OutputTuple output;
-        output.tag         = OutputTuple::Status;
+        output.tag         = OutputTupleTag::Status;
         output.status_code = status_code;
         output.count       = counts.find(status_code)->second;
         output.timestamp   = input.timestamp;
@@ -773,7 +782,7 @@ public:
         current_stats.city_found(input.city);
 
         OutputTuple output;
-        output.tag           = OutputTuple::Geo;
+        output.tag           = OutputTupleTag::Geo;
         output.country       = input.country;
         output.country_total = current_stats.get_country_total();
         output.city          = input.city;
@@ -785,14 +794,24 @@ public:
 
 class SinkFunctor {
     vector<unsigned long> latency_samples;
+    unordered_map<OutputTupleTag, vector<unsigned long>>
+        specific_latency_samples {{OutputTupleTag::Volume, {}},
+                                  {OutputTupleTag::Status, {}},
+                                  {OutputTupleTag::Geo, {}}};
     vector<unsigned long> interdeparture_samples;
     vector<unsigned long> service_time_samples;
-    unsigned long         tuples_received    = 0;
-    unsigned long         last_sampling_time = current_time();
-    unsigned long         last_arrival_time  = last_sampling_time;
-    unsigned              sampling_rate;
 
-    bool is_time_to_sample(unsigned long arrival_time) {
+    unsigned long                                tuples_received = 0;
+    unordered_map<OutputTupleTag, unsigned long> specific_tuples_received {
+        {OutputTupleTag::Volume, 0},
+        {OutputTupleTag::Status, 0},
+        {OutputTupleTag::Geo, 0}};
+
+    unsigned long last_sampling_time = current_time();
+    unsigned long last_arrival_time  = last_sampling_time;
+    unsigned      sampling_rate;
+
+    bool is_time_to_sample(unsigned long arrival_time) const {
         if (sampling_rate == 0) {
             return true;
         }
@@ -808,16 +827,22 @@ public:
 
     void operator()(optional<OutputTuple> &input, RuntimeContext &context) {
         if (input) {
+            assert(input->tag == OutputTupleTag::Volume
+                   || input->tag == OutputTupleTag::Status
+                   || input->tag == OutputTupleTag::Geo);
+
             const auto arrival_time = current_time();
             const auto latency = difference(arrival_time, input->timestamp);
             const auto interdeparture_time =
                 difference(arrival_time, last_arrival_time);
 
             ++tuples_received;
+            ++specific_tuples_received[input->tag];
             last_arrival_time = arrival_time;
 
             if (is_time_to_sample(arrival_time)) {
                 latency_samples.push_back(latency);
+                specific_latency_samples[input->tag].push_back(latency);
                 interdeparture_samples.push_back(interdeparture_time);
 
                 // The current service time is computed via this heuristic,
@@ -836,7 +861,21 @@ public:
 #endif
         } else {
             global_received_tuples.fetch_add(tuples_received);
+            global_volume_received_tuples.fetch_add(
+                specific_tuples_received[OutputTupleTag::Volume]);
+            global_status_received_tuples.fetch_add(
+                specific_tuples_received[OutputTupleTag::Status]);
+            global_geo_received_tuples.fetch_add(
+                specific_tuples_received[OutputTupleTag::Geo]);
+
             global_latency_metric.merge(latency_samples);
+            global_volume_latency_metric.merge(
+                specific_latency_samples[OutputTupleTag::Volume]);
+            global_status_latency_metric.merge(
+                specific_latency_samples[OutputTupleTag::Status]);
+            global_geo_latency_metric.merge(
+                specific_latency_samples[OutputTupleTag::Geo]);
+
             global_interdeparture_metric.merge(interdeparture_samples);
             global_service_time_metric.merge(service_time_samples);
         }
@@ -954,6 +993,16 @@ int main(int argc, char *argv[]) {
     serialize_to_json(global_latency_metric,
                       parameters.metric_output_directory,
                       global_received_tuples);
+    serialize_to_json(global_volume_latency_metric,
+                      parameters.metric_output_directory,
+                      global_volume_received_tuples);
+    serialize_to_json(global_status_latency_metric,
+                      parameters.metric_output_directory,
+                      global_status_received_tuples);
+    serialize_to_json(global_geo_latency_metric,
+                      parameters.metric_output_directory,
+                      global_geo_received_tuples);
+
     serialize_to_json(global_interdeparture_metric,
                       parameters.metric_output_directory,
                       global_received_tuples);
