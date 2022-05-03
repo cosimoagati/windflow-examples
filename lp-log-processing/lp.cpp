@@ -1037,7 +1037,7 @@ int main(int argc, char *argv[]) {
                : 1.0);
 
     const auto average_status_latency =
-        accumulate(global_volume_latency_metric.begin(),
+        accumulate(global_status_latency_metric.begin(),
                    global_status_latency_metric.end(), 0.0)
         / (!global_status_latency_metric.empty()
                ? global_status_latency_metric.size()
