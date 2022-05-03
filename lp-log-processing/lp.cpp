@@ -260,9 +260,9 @@ static inline vector<SourceTuple> parse_logs(const char *path) {
 }
 
 #ifndef NDEBUG
-string get_log_output_message(const OutputTuple &input,
-                              unsigned long      arrival_time,
-                              unsigned long      latency) {
+static inline string get_log_output_message(const OutputTuple &input,
+                                            unsigned long      arrival_time,
+                                            unsigned long      latency) {
     stringstream msg;
 
     msg << "[SINK] Received ";
