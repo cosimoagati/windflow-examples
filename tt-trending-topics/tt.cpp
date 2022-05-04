@@ -55,14 +55,6 @@
 using namespace std;
 using namespace wf;
 
-static const struct option long_opts[] = {
-    {"help", 0, 0, 'h'},       {"rate", 1, 0, 'r'},
-    {"sampling", 1, 0, 's'},   {"parallelism", 1, 0, 'p'},
-    {"batch", 1, 0, 'b'},      {"chaining", 1, 0, 'c'},
-    {"duration", 1, 0, 'd'},   {"frequency", 1, 0, 'f'},
-    {"outputdir", 1, 0, 'o'},  {"execmode", 1, 0, 'e'},
-    {"timepolicy", 1, 0, 't'}, {0, 0, 0, 0}};
-
 struct Parameters {
     const char *     metric_output_directory     = ".";
     Execution_Mode_t execution_mode              = Execution_Mode_t::DEFAULT;
@@ -108,6 +100,14 @@ struct Counts {
     size_t        window_length;
     bool          is_tick_tuple;
 };
+
+static const struct option long_opts[] = {
+    {"help", 0, 0, 'h'},       {"rate", 1, 0, 'r'},
+    {"sampling", 1, 0, 's'},   {"parallelism", 1, 0, 'p'},
+    {"batch", 1, 0, 'b'},      {"chaining", 1, 0, 'c'},
+    {"duration", 1, 0, 'd'},   {"frequency", 1, 0, 'f'},
+    {"outputdir", 1, 0, 'o'},  {"execmode", 1, 0, 'e'},
+    {"timepolicy", 1, 0, 't'}, {0, 0, 0, 0}};
 
 template<typename T>
 class Rankable {

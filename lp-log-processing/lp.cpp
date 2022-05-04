@@ -103,6 +103,18 @@ struct OutputTuple {
     unsigned long timestamp;
 };
 
+static const struct option long_opts[] = {{"help", 0, 0, 'h'},
+                                          {"rate", 1, 0, 'r'},
+                                          {"sampling", 1, 0, 's'},
+                                          {"parallelism", 1, 0, 'p'},
+                                          {"batch", 1, 0, 'b'},
+                                          {"chaining", 1, 0, 'c'},
+                                          {"duration", 1, 0, 'd'},
+                                          {"outputdir", 1, 0, 'o'},
+                                          {"execmode", 1, 0, 'e'},
+                                          {"timepolicy", 1, 0, 't'},
+                                          {0, 0, 0, 0}};
+
 class MMDB_handle {
     MMDB_s mmdb;
 
@@ -140,18 +152,6 @@ public:
         return mmdb;
     }
 };
-
-static const struct option long_opts[] = {{"help", 0, 0, 'h'},
-                                          {"rate", 1, 0, 'r'},
-                                          {"sampling", 1, 0, 's'},
-                                          {"parallelism", 1, 0, 'p'},
-                                          {"batch", 1, 0, 'b'},
-                                          {"chaining", 1, 0, 'c'},
-                                          {"duration", 1, 0, 'd'},
-                                          {"outputdir", 1, 0, 'o'},
-                                          {"execmode", 1, 0, 'e'},
-                                          {"timepolicy", 1, 0, 't'},
-                                          {0, 0, 0, 0}};
 
 static inline unsigned long
 get_millis_date_truncated_by_minute(const char *date_string) {

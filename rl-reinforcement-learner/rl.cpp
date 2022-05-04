@@ -86,6 +86,20 @@ struct OutputTuple {
     unsigned long  timestamp;
 };
 
+static const struct option long_opts[] = {{"help", 0, 0, 'h'},
+                                          {"rate", 1, 0, 'r'},
+                                          {"sampling", 1, 0, 's'},
+                                          {"parallelism", 1, 0, 'p'},
+                                          {"batch", 1, 0, 'b'},
+                                          {"chaining", 1, 0, 'c'},
+                                          {"duration", 1, 0, 'd'},
+                                          {"outputdir", 1, 0, 'o'},
+                                          {"execmode", 1, 0, 'e'},
+                                          {"timepolicy", 1, 0, 't'},
+                                          {0, 0, 0, 0}};
+
+static const vector<string> default_available_actions {"page1", "page2",
+                                                       "page3"};
 template<typename T>
 class BlockingQueue {
 private:
@@ -112,21 +126,6 @@ public:
         return element;
     }
 };
-
-static const struct option long_opts[] = {{"help", 0, 0, 'h'},
-                                          {"rate", 1, 0, 'r'},
-                                          {"sampling", 1, 0, 's'},
-                                          {"parallelism", 1, 0, 'p'},
-                                          {"batch", 1, 0, 'b'},
-                                          {"chaining", 1, 0, 'c'},
-                                          {"duration", 1, 0, 'd'},
-                                          {"outputdir", 1, 0, 'o'},
-                                          {"execmode", 1, 0, 'e'},
-                                          {"timepolicy", 1, 0, 't'},
-                                          {0, 0, 0, 0}};
-
-static const vector<string> default_available_actions {"page1", "page2",
-                                                       "page3"};
 
 static inline vector<size_t> get_parallelism_degrees(const char *degrees) {
     vector<size_t> parallelism_degrees;
