@@ -471,39 +471,6 @@ public:
     }
 };
 
-class CachingClassifier {
-    static constexpr auto                  default_path = "AFINN-111.txt";
-    hash<string_view>                      gethash;
-    unordered_map<unsigned long, int>      sentiment_map;
-    unordered_map<string, SentimentResult> result_cache;
-
-public:
-    CachingClassifier(const char *path = default_path)
-        : sentiment_map {get_sentiment_map<decltype(sentiment_map)>(path)} {}
-
-    SentimentResult classify(string &tweet) {
-        const auto cached_result = result_cache.find(tweet);
-
-        if (cached_result != result_cache.end()) {
-            return cached_result->second;
-        }
-        auto &     result_cache_entry      = result_cache[tweet];
-        const auto words                   = split_in_words_in_place(tweet);
-        auto       current_tweet_sentiment = 0;
-
-        for (const auto &word : words) {
-            const auto word_hash       = gethash(word);
-            const auto sentiment_entry = sentiment_map.find(word_hash);
-            if (sentiment_entry != sentiment_map.end()) {
-                current_tweet_sentiment += sentiment_entry->second;
-            }
-        }
-        result_cache_entry = {score_to_sentiment(current_tweet_sentiment),
-                              current_tweet_sentiment};
-        return result_cache_entry;
-    }
-};
-
 template<typename Classifier>
 class MapFunctor {
     Classifier classifier;
