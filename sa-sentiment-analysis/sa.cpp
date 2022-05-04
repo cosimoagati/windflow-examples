@@ -19,7 +19,6 @@
 #include <getopt.h>
 #include <iostream>
 #include <mutex>
-#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 #include <string_view>

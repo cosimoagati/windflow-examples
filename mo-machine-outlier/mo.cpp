@@ -22,7 +22,6 @@
 #include <iostream>
 #include <limits>
 #include <mutex>
-#include <nlohmann/json.hpp>
 #include <optional>
 #include <sstream>
 #include <string>

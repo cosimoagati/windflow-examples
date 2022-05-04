@@ -21,7 +21,6 @@
 #include <getopt.h>
 #include <maxminddb.h>
 #include <mutex>
-#include <nlohmann/json.hpp>
 #include <optional>
 #include <regex>
 #include <sstream>
