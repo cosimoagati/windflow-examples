@@ -558,7 +558,9 @@ print_statistics(unsigned long elapsed_time, unsigned long duration,
          << " seoncds)\n";
 }
 
-/* Global variables */
+/*
+ * Global variables
+ */
 static atomic_ulong global_sent_tuples {0};
 static atomic_ulong global_received_tuples {0};
 static atomic_ulong global_volume_received_tuples {0};
