@@ -108,6 +108,28 @@ static inline std::string get_datetime_string() {
     return date_string;
 }
 
+static const std::unordered_map<std::string, wf::Execution_Mode_t>
+    string_to_execution_mode_map {
+        {"default", wf::Execution_Mode_t::DEFAULT},
+        {"deterministic", wf::Execution_Mode_t::DETERMINISTIC},
+        {"probabilistic", wf::Execution_Mode_t::PROBABILISTIC}};
+
+static const std::unordered_map<std::string, wf::Time_Policy_t>
+    string_to_time_policy_map {
+        {"ingress_time", wf::Time_Policy_t::INGRESS_TIME},
+        {"event_time", wf::Time_Policy_t::EVENT_TIME}};
+
+static const std::unordered_map<wf::Execution_Mode_t, std::string>
+    execution_mode_to_string_map {
+        {wf::Execution_Mode_t::DEFAULT, "default"},
+        {wf::Execution_Mode_t::DETERMINISTIC, "deterministic"},
+        {wf::Execution_Mode_t::PROBABILISTIC, "probabilistic"}};
+
+static const std::unordered_map<wf::Time_Policy_t, std::string>
+    time_policy_to_string_map {
+        {wf::Time_Policy_t::INGRESS_TIME, "ingress time"},
+        {wf::Time_Policy_t::EVENT_TIME, "event time"}};
+
 template<typename T>
 class Metric {
     std::vector<T> sorted_samples;

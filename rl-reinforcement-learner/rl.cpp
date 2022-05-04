@@ -58,16 +58,18 @@ using namespace std;
 using namespace wf;
 
 struct Parameters {
-    const char *metric_output_directory           = ".";
-    unsigned    ctr_generator_parallelism         = 1;
-    unsigned    reward_source_parallelism         = 1;
-    unsigned    reinforcement_learner_parallelism = 1;
-    unsigned    sink_parallelism                  = 1;
-    unsigned    batch_size                        = 0;
-    unsigned    duration                          = 60;
-    unsigned    tuple_rate                        = 1000;
-    unsigned    sampling_rate                     = 100;
-    bool        use_chaining                      = false;
+    const char *     metric_output_directory   = ".";
+    Execution_Mode_t execution_mode            = Execution_Mode_t::DEFAULT;
+    Time_Policy_t    time_policy               = Time_Policy_t::INGRESS_TIME;
+    unsigned         ctr_generator_parallelism = 1;
+    unsigned         reward_source_parallelism = 1;
+    unsigned         reinforcement_learner_parallelism = 1;
+    unsigned         sink_parallelism                  = 1;
+    unsigned         batch_size                        = 0;
+    unsigned         duration                          = 60;
+    unsigned         tuple_rate                        = 1000;
+    unsigned         sampling_rate                     = 100;
+    bool             use_chaining                      = false;
 };
 
 struct InputTuple {
@@ -119,6 +121,8 @@ static const struct option long_opts[] = {{"help", 0, 0, 'h'},
                                           {"chaining", 1, 0, 'c'},
                                           {"duration", 1, 0, 'd'},
                                           {"outputdir", 1, 0, 'o'},
+                                          {"execmode", 1, 0, 'e'},
+                                          {"timepolicy", 1, 0, 't'},
                                           {0, 0, 0, 0}};
 
 static const vector<string> default_available_actions {"page1", "page2",
@@ -136,8 +140,8 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     int option;
     int index;
 
-    while ((option =
-                getopt_long(argc, argv, "r:s:p:b:c:d:o:h", long_opts, &index))
+    while ((option = getopt_long(argc, argv, "r:s:p:b:c:d:o:e:t:h", long_opts,
+                                 &index))
            != -1) {
         switch (option) {
         case 'r':
@@ -171,6 +175,19 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
         case 'o':
             parameters.metric_output_directory = optarg;
             break;
+        case 'e': {
+            const auto entry =
+                string_to_execution_mode_map.find(string {optarg});
+            if (entry != string_to_execution_mode_map.end()) {
+                parameters.execution_mode = entry->second;
+            }
+        } break;
+        case 't': {
+            const auto entry = string_to_time_policy_map.find(string {optarg});
+            if (entry != string_to_time_policy_map.end()) {
+                parameters.time_policy = entry->second;
+            }
+        } break;
         case 'h':
             cout << "Parameters: --rate <value> --sampling "
                     "<value> --batch <size> --parallelism "
@@ -262,6 +279,22 @@ static void print_initial_parameters(const Parameters &parameters) {
     } else {
         cout << "None\n";
     }
+
+    cout << "Execution mode: ";
+    const auto exec_mode_entry =
+        execution_mode_to_string_map.find(parameters.execution_mode);
+    cout << (exec_mode_entry != execution_mode_to_string_map.end()
+                 ? exec_mode_entry->second
+                 : "unknown")
+         << '\n';
+
+    cout << "Time policy: ";
+    const auto time_policy_entry =
+        time_policy_to_string_map.find(parameters.time_policy);
+    cout << (time_policy_entry != time_policy_to_string_map.end()
+                 ? time_policy_entry->second
+                 : "unknown")
+         << '\n';
 
     cout << "Duration: " << parameters.duration << " second"
          << (parameters.duration == 1 ? "" : "s") << '\n'
@@ -1041,8 +1074,8 @@ int main(int argc, char *argv[]) {
     validate_args(parameters);
     print_initial_parameters(parameters);
 
-    PipeGraph graph {"rl-reinforcement-learner", Execution_Mode_t::DEFAULT,
-                     Time_Policy_t::INGRESS_TIME};
+    PipeGraph graph {"rl-reinforcement-learner", parameters.execution_mode,
+                     parameters.time_policy};
     build_graph(parameters, graph);
 
     const auto start_time = current_time();
