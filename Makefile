@@ -3,25 +3,8 @@ mo-machine-outlier/mo tt-trending-topics/tt rl-reinforcement-learner/rl \
 lp-log-processing/lp
 
 GPU_EXAMPLES:= example3 example4 example5
-CXX = g++
 
-CXXFLAGS = -std=c++17 -Wall -Wextra -Wpedantic -pedantic -O3 -g3 \
--fno-exceptions -flto -fno-permissive -DNDEBUG -DFF_BOUNDED_BUFFER \
--DDEFAULT_BUFFER_CAPACITY=32786
-
-INCLUDE_FLAGS = -I$(HOME)/.local/include -I$(HOME)/.local/include/gsl \
--I$(HOME)/fastflow -I$(HOME)/.local/include/wf
-LIB_PATH_FLAGS = -L$(HOME)/.local/lib
-
-LIBS = -pthread -lmaxminddb
 GPULIBS = -ltbb
-
-ifneq (, $(shell which clang++))
-	DEBUG_CXX = clang++
-else
-	DEBUG_CXX = g++
-endif
-
 NVXX = /usr/local/cuda/bin/nvcc
 NVXXFLAGS = -std=c++17 -x cu --compiler-options \
 "-Wall -Wextra -Wpedantic -pedantic"
@@ -44,40 +27,57 @@ GPU_OBJS:=$(GPU_SRCS:.cu=.o)
 
 all: cpu gpu
 
-debug-cpu: CXXFLAGS := $(CXXFLAGS) -fno-lto -Og -ggdb3 -fno-inline -UNDEBUG
-
-debug-cpu: CXX := $(DEBUG_CXX)
-debug-cpu: cpu
-
-debug-cpu-optimized: CXXFLAGS := $(CXXFLAGS) -fno-lto -g3 -UNDEBUG
-debug-cpu-optimized: cpu
-
 debug-gpu: NVOPTFLAGS := $(NVOPTFLAGS) -g -G -O0
 debug-gpu: gpu
 
 debug: debug-cpu debug-gpu
 
-cpu: $(CPU_EXAMPLES)
-gpu: $(GPU_EXAMPLES)
+sa:
+	$(MAKE) -C sa-sentiment-analysis
+mo:
+	$(MAKE) -C mo-machine-outlier
+tt:
+	$(MAKE) -C tt-trending-topics
+rl:
+	$(MAKE) -C rl-reinforcement-learner
+lp:
+	$(MAKE) -C lp-log-processing
 
-sa: sa-sentiment-analysis/sa
-mo: mo-machine-outlier/mo
-tt: tt-trending-topics/tt
-rl: rl-reinforcement-learner/rl
-lp: lp-log-processing/lp
+sa-debug:
+	$(MAKE) debug -C sa-sentiment-analysis
+mo-debug:
+	$(MAKE) debug -C mo-machine-outlier
+tt-debug:
+	$(MAKE) debug -C tt-trending-topics
+rl-debug:
+	$(MAKE) debug -C rl-reinforcement-learner
+lp-debug:
+	$(MAKE) debug -C lp-log-processing
+
+sa-debug-optimized:
+	$(MAKE) debug-optimized -C sa-sentiment-analysis
+mo-debug-optimized:
+	$(MAKE) debug-optimized -C mo-machine-outlier
+tt-debug-optimized:
+	$(MAKE) debug-optimized -C tt-trending-topics
+rl-debug-optimized:
+	$(MAKE) debug-optimized -C rl-reinforcement-learner
+lp-debug-optimized:
+	$(MAKE) debug-optimized -C lp-log-processing
+
+cpu: sa mo tt rl lp
+debug-cpu: sa-debug mo-debug tt-debug rl-debug lp-debug
+debug-cpu-optimized: sa-debug-optimized mo-debug-optimized tt-debug-optimized \
+rl-debug-optimized lp-debug-optimized
+
+gpu: $(GPU_EXAMPLES)
 
 clean:
 	rm -f $(CPU_EXAMPLES) $(GPU_EXAMPLES) $(CPU_OBJS) $(GPU_OBJS)
 
-$(CPU_OBJS): %.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(INCLUDE_FLAGS) -c $< -o $@
-
 $(GPU_OBJS): %.o: %.cu
 	$(NVXX) $(NVXXFLAGS) $(INCLUDE_FLAGS) $(MACRO) $(NVOPTFLAGS) \
 	$(USER_DEFINES) -c $< -o $@
-
-$(CPU_EXAMPLES): %: %.o
-	$(CXX) $< $(LIB_PATH_FLAGS) $(LIBS) -o $@
 
 $(GPU_EXAMPLES): %: %.o
 	$(NVXX) $(GPULIBS) $< -o $@
