@@ -159,11 +159,15 @@ get_millis_date_truncated_by_minute(const char *date_string) {
     memset(&time, 0, sizeof(time));
     const char *ptr = strptime(date_string, "%d/%b/%Y:%H:%M:%S %z", &time);
     if (!ptr) {
+        cerr << "get_millis_date_truncated_by_minute:  error building "
+                "tm structure\n";
         exit(EXIT_FAILURE);
     }
     time.tm_sec   = 0;
     time_t result = mktime(&time);
     if (result == (time_t) -1) {
+        cerr << "get_millis_date_truncated_by_minute:  error building time_t "
+                "structure\n";
         exit(EXIT_FAILURE);
     }
     return (unsigned long) result * 1000;
