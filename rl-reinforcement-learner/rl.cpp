@@ -58,14 +58,20 @@
 using namespace std;
 using namespace wf;
 
+enum NodeID : unsigned {
+    ctr_generator_id         = 0,
+    reward_source_id         = 1,
+    reinforcement_learner_id = 2,
+    sink_id                  = 3,
+    num_nodes                = 4
+};
+
 struct Parameters {
-    const char *     metric_output_directory   = ".";
-    Execution_Mode_t execution_mode            = Execution_Mode_t::DEFAULT;
-    Time_Policy_t    time_policy               = Time_Policy_t::INGRESS_TIME;
-    unsigned         ctr_generator_parallelism = 1;
-    unsigned         reward_source_parallelism = 1;
-    unsigned         reinforcement_learner_parallelism = 1;
-    unsigned         sink_parallelism                  = 1;
+    const char *     metric_output_directory = ".";
+    Execution_Mode_t execution_mode          = Execution_Mode_t::DEFAULT;
+    Time_Policy_t    time_policy             = Time_Policy_t::INGRESS_TIME;
+    unsigned         parallelism[num_nodes]  = {1, 1, 1, 1};
+    unsigned         output_batch_sizes[num_nodes - 1] = {0, 0, 0};
     unsigned         batch_size                        = 0;
     unsigned         duration                          = 60;
     unsigned         tuple_rate                        = 1000;
@@ -154,16 +160,16 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
             parameters.batch_size = atoi(optarg);
             break;
         case 'p': {
-            const auto degrees = get_parallelism_degrees(optarg);
-            if (degrees.size() != 4) {
+            const auto degrees = get_nums_split_by_commas(optarg);
+            if (degrees.size() != num_nodes) {
                 cerr << "Error in parsing the input arguments.  Parallelism "
-                        "degree string requires exactly 4 elements.\n";
+                        "degree string requires exactly "
+                     << num_nodes << " elements.\n";
                 exit(EXIT_FAILURE);
             } else {
-                parameters.ctr_generator_parallelism         = degrees[0];
-                parameters.reward_source_parallelism         = degrees[1];
-                parameters.reinforcement_learner_parallelism = degrees[2];
-                parameters.sink_parallelism                  = degrees[3];
+                for (unsigned i = 0; i < num_nodes; ++i) {
+                    parameters.parallelism[i] = degrees[i];
+                }
             }
         } break;
         case 'c':
@@ -204,53 +210,31 @@ static void validate_args(const Parameters &parameters) {
         exit(EXIT_FAILURE);
     }
 
-    if (parameters.ctr_generator_parallelism == 0
-        || parameters.reward_source_parallelism == 0
-        || parameters.reinforcement_learner_parallelism == 0
-        || parameters.sink_parallelism == 0) {
-        cerr << "Error: parallelism degree must be positive\n";
-        exit(EXIT_FAILURE);
+    for (unsigned i = 0; i < num_nodes; ++i) {
+        if (parameters.parallelism[i] == 0) {
+            cerr << "Error: parallelism degree for node " << i
+                 << " must be positive\n";
+            exit(EXIT_FAILURE);
+        }
     }
 
     const auto max_threads = thread::hardware_concurrency();
 
-    if (parameters.ctr_generator_parallelism > max_threads) {
-        cerr << "Error: Event source parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
+    for (unsigned i = 0; i < num_nodes; ++i) {
+        if (parameters.parallelism[i] > max_threads) {
+            cerr << "Error:  parallelism degree for node " << i
+                 << " is too large\n"
+                    "Maximum available number of threads is: "
+                 << max_threads << '\n';
+        }
     }
 
-    if (parameters.reward_source_parallelism > max_threads) {
-        cerr << "Error: reward source parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.reinforcement_learner_parallelism > max_threads) {
-        cerr << "Error: reinforcement learner parallelism degree is too "
-                "large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.sink_parallelism > max_threads) {
-        cerr << "Error: sink parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if ((parameters.ctr_generator_parallelism
-         + parameters.reward_source_parallelism
-         + parameters.reinforcement_learner_parallelism
-         + parameters.sink_parallelism)
+    if (accumulate(cbegin(parameters.parallelism),
+                   cend(parameters.parallelism), 0u)
             >= max_threads
         && !parameters.use_chaining) {
-        cerr << "Error: the total number of hardware threads specified is too "
-                "high to be used without chaining.\n"
+        cerr << "Error: the total number of hardware threads specified is "
+                "too high to be used without chaining.\n"
                 "Maximum available number of threads is: "
              << max_threads << '\n';
         exit(EXIT_FAILURE);
@@ -260,12 +244,12 @@ static void validate_args(const Parameters &parameters) {
 static void print_initial_parameters(const Parameters &parameters) {
     cout << "Running graph with the following parameters:\n"
          << "Event source parallelism: "
-         << parameters.ctr_generator_parallelism << '\n'
+         << parameters.parallelism[ctr_generator_id] << '\n'
          << "Reward source parallelism: "
-         << parameters.reward_source_parallelism << '\n'
+         << parameters.parallelism[reward_source_id] << '\n'
          << "Reinforcement learner parallelism: "
-         << parameters.reinforcement_learner_parallelism << '\n'
-         << "Sink parallelism: " << parameters.sink_parallelism << '\n'
+         << parameters.parallelism[reinforcement_learner_id] << '\n'
+         << "Sink parallelism: " << parameters.parallelism[sink_id] << '\n'
          << "Batching: ";
     if (parameters.batch_size > 0) {
         cout << parameters.batch_size << '\n';
@@ -1004,17 +988,17 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     auto ctr_generator_node =
         Source_Builder {ctr_generator_functor}
-            .withParallelism(parameters.ctr_generator_parallelism)
+            .withParallelism(parameters.parallelism[ctr_generator_id])
             .withName("ctr generator")
             .withOutputBatchSize(parameters.batch_size)
             .build();
 
     RewardSourceFunctor reward_source_functor {
         parameters.duration, parameters.tuple_rate,
-        parameters.reinforcement_learner_parallelism};
+        parameters.parallelism[reinforcement_learner_id]};
     auto reward_source_node =
         Source_Builder {reward_source_functor}
-            .withParallelism(parameters.reward_source_parallelism)
+            .withParallelism(parameters.parallelism[reward_source_id])
             .withName("reward source")
             .withOutputBatchSize(parameters.batch_size)
             .build();
@@ -1023,7 +1007,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
          reinforcement_learner_functor {default_available_actions};
     auto reinforcement_learner_node =
         FlatMap_Builder {reinforcement_learner_functor}
-            .withParallelism(parameters.reinforcement_learner_parallelism)
+            .withParallelism(parameters.parallelism[reinforcement_learner_id])
             .withName("reinforcement learner")
             .withKeyBy([](const InputTuple &tuple) {
                 return tuple.reinforcement_learner_target_replica;
@@ -1033,7 +1017,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     SinkFunctor sink_functor {parameters.sampling_rate};
     auto        sink = Sink_Builder {sink_functor}
-                    .withParallelism(parameters.sink_parallelism)
+                    .withParallelism(parameters.parallelism[sink_id])
                     .withName("sink")
                     .build();
 

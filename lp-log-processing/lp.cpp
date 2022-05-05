@@ -55,21 +55,27 @@
 using namespace std;
 using namespace wf;
 
+enum NodeId : unsigned {
+    source_id         = 0,
+    volume_counter_id = 1,
+    status_counter_id = 2,
+    geo_finder_id     = 3,
+    geo_stats_id      = 4,
+    sink_id           = 5,
+    num_nodes         = 6
+};
+
 struct Parameters {
-    const char *     metric_output_directory    = ".";
-    Execution_Mode_t execution_mode             = Execution_Mode_t::DEFAULT;
-    Time_Policy_t    time_policy                = Time_Policy_t::INGRESS_TIME;
-    unsigned         source_parallelism         = 1;
-    unsigned         volume_counter_parallelism = 1;
-    unsigned         status_counter_parallelism = 1;
-    unsigned         geo_finder_parallelism     = 1;
-    unsigned         geo_stats_parallelism      = 1;
-    unsigned         sink_parallelism           = 1;
-    unsigned         batch_size                 = 0;
-    unsigned         duration                   = 60;
-    unsigned         tuple_rate                 = 1000;
-    unsigned         sampling_rate              = 100;
-    bool             use_chaining               = false;
+    const char *     metric_output_directory = ".";
+    Execution_Mode_t execution_mode          = Execution_Mode_t::DEFAULT;
+    Time_Policy_t    time_policy             = Time_Policy_t::INGRESS_TIME;
+    unsigned         parallelism[num_nodes]  = {1, 1, 1, 1, 1, 1};
+    unsigned         output_batch_sizes[num_nodes - 1] = {0, 0, 0, 0, 0};
+    unsigned         batch_size                        = 0;
+    unsigned         duration                          = 60;
+    unsigned         tuple_rate                        = 1000;
+    unsigned         sampling_rate                     = 100;
+    bool             use_chaining                      = false;
 };
 
 enum class TupleTag { Volume, Status, Geo };
@@ -324,18 +330,16 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
             parameters.batch_size = atoi(optarg);
             break;
         case 'p': {
-            const auto degrees = get_parallelism_degrees(optarg);
-            if (degrees.size() != 6) {
+            const auto degrees = get_nums_split_by_commas(optarg);
+            if (degrees.size() != num_nodes) {
                 cerr << "Error in parsing the input arguments.  Parallelism "
-                        "degree string requires exactly 6 elements.\n";
+                        "degree string requires exactly "
+                     << num_nodes << " elements.\n";
                 exit(EXIT_FAILURE);
             } else {
-                parameters.source_parallelism         = degrees[0];
-                parameters.volume_counter_parallelism = degrees[1];
-                parameters.status_counter_parallelism = degrees[2];
-                parameters.geo_finder_parallelism     = degrees[3];
-                parameters.geo_stats_parallelism      = degrees[4];
-                parameters.sink_parallelism           = degrees[5];
+                for (unsigned i = 0; i < num_nodes; ++i) {
+                    parameters.parallelism[i] = degrees[i];
+                }
             }
         } break;
         case 'c':
@@ -377,70 +381,31 @@ static inline void validate_args(const Parameters &parameters) {
         exit(EXIT_FAILURE);
     }
 
-    if (parameters.source_parallelism == 0
-        || parameters.volume_counter_parallelism == 0
-        || parameters.status_counter_parallelism == 0
-        || parameters.geo_finder_parallelism == 0
-        || parameters.geo_stats_parallelism == 0
-        || parameters.sink_parallelism == 0) {
-        cerr << "Error: parallelism degree must be positive\n";
-        exit(EXIT_FAILURE);
+    for (unsigned i = 0; i < num_nodes; ++i) {
+        if (parameters.parallelism[i] == 0) {
+            cerr << "Error: parallelism degree for node " << i
+                 << " must be positive\n";
+            exit(EXIT_FAILURE);
+        }
     }
 
     const auto max_threads = thread::hardware_concurrency();
 
-    if (parameters.source_parallelism > max_threads) {
-        cerr << "Error: source parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
+    for (unsigned i = 0; i < num_nodes; ++i) {
+        if (parameters.parallelism[i] > max_threads) {
+            cerr << "Error:  parallelism degree for node " << i
+                 << " is too large\n"
+                    "Maximum available number of threads is: "
+                 << max_threads << '\n';
+        }
     }
 
-    if (parameters.volume_counter_parallelism > max_threads) {
-        cerr << "Error: volume counter parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.status_counter_parallelism > max_threads) {
-        cerr << "Error: status counter parallelism parallelism degree is too "
-                "large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.geo_finder_parallelism > max_threads) {
-        cerr << "Error: sink parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.geo_stats_parallelism > max_threads) {
-        cerr << "Error: geo stats parallelism is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.sink_parallelism > max_threads) {
-        cerr << "Error: sink parallelism is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.source_parallelism + parameters.volume_counter_parallelism
-                + parameters.status_counter_parallelism
-                + parameters.geo_finder_parallelism
-                + parameters.geo_stats_parallelism
-                + parameters.sink_parallelism
+    if (accumulate(cbegin(parameters.parallelism),
+                   cend(parameters.parallelism), 0u)
             >= max_threads
         && !parameters.use_chaining) {
-        cerr << "Error: the total number of hardware threads specified is too "
-                "high to be used without chaining.\n"
+        cerr << "Error: the total number of hardware threads specified is "
+                "too high to be used without chaining.\n"
                 "Maximum available number of threads is: "
              << max_threads << '\n';
         exit(EXIT_FAILURE);
@@ -449,16 +414,16 @@ static inline void validate_args(const Parameters &parameters) {
 
 static inline void print_initial_parameters(const Parameters &parameters) {
     cout << "Running graph with the following parameters:\n"
-         << "Source parallelism: " << parameters.source_parallelism << '\n'
+         << "Source parallelism: " << parameters.parallelism[source_id] << '\n'
          << "Volume counter parallelism: "
-         << parameters.volume_counter_parallelism << '\n'
+         << parameters.parallelism[volume_counter_id] << '\n'
          << "Status counter parallelism: "
-         << parameters.status_counter_parallelism << '\n'
-         << "Geo finder parallelism: " << parameters.geo_finder_parallelism
+         << parameters.parallelism[status_counter_id] << '\n'
+         << "Geo finder parallelism: " << parameters.parallelism[geo_finder_id]
          << '\n'
-         << "Geo stats parallelism: " << parameters.geo_stats_parallelism
+         << "Geo stats parallelism: " << parameters.parallelism[geo_stats_id]
          << '\n'
-         << "Sink parallelism: " << parameters.sink_parallelism << '\n'
+         << "Sink parallelism: " << parameters.parallelism[sink_id] << '\n'
          << "Batching: ";
     if (parameters.batch_size > 0) {
         cout << parameters.batch_size << '\n';
@@ -918,7 +883,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
     SourceFunctor source_functor {parameters.duration, parameters.tuple_rate};
     auto          source_node = Source_Builder {source_functor}
-                           .withParallelism(parameters.source_parallelism)
+                           .withParallelism(parameters.parallelism[source_id])
                            .withName("source")
                            .withOutputBatchSize(parameters.batch_size)
                            .build();
@@ -926,7 +891,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     VolumeCounterFunctor volume_counter_functor;
     auto                 volume_counter_node =
         Map_Builder {volume_counter_functor}
-            .withParallelism(parameters.volume_counter_parallelism)
+            .withParallelism(parameters.parallelism[volume_counter_id])
             .withName("volume counter")
             .withOutputBatchSize(parameters.batch_size)
             .withKeyBy([](const SourceTuple &t) -> unsigned long {
@@ -937,7 +902,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     StatusCounterFunctor status_counter_functor;
     auto                 status_counter_node =
         Map_Builder {status_counter_functor}
-            .withParallelism(parameters.status_counter_parallelism)
+            .withParallelism(parameters.parallelism[status_counter_id])
             .withName("status counter")
             .withOutputBatchSize(parameters.batch_size)
             .withKeyBy(
@@ -947,7 +912,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     GeoFinderFunctor geo_finder_functor;
     auto             geo_finder_node =
         FlatMap_Builder {geo_finder_functor}
-            .withParallelism(parameters.geo_finder_parallelism)
+            .withParallelism(parameters.parallelism[geo_finder_id])
             .withName("geo finder")
             .withOutputBatchSize(parameters.batch_size)
             .build();
@@ -955,7 +920,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     GeoStatsFunctor geo_stats_functor;
     auto            geo_stats_node =
         Map_Builder {geo_stats_functor}
-            .withParallelism(parameters.geo_finder_parallelism)
+            .withParallelism(parameters.parallelism[geo_stats_id])
             .withName("geo stats")
             .withOutputBatchSize(parameters.batch_size)
             .withKeyBy([](const GeoFinderOutputTuple &t) -> string {
@@ -965,7 +930,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     SinkFunctor sink_functor {parameters.sampling_rate};
     auto        sink_node = Sink_Builder {sink_functor}
-                         .withParallelism(parameters.sink_parallelism)
+                         .withParallelism(parameters.parallelism[sink_id])
                          .withName("sink")
                          .build();
 

@@ -60,18 +60,24 @@
 using namespace std;
 using namespace wf;
 
+enum NodeId : unsigned {
+    source_id     = 0,
+    classifier_id = 1,
+    sink_id       = 2,
+    num_nodes     = 3
+};
+
 struct Parameters {
     const char *     metric_output_directory = ".";
     Execution_Mode_t execution_mode          = Execution_Mode_t::DEFAULT;
     Time_Policy_t    time_policy             = Time_Policy_t::INGRESS_TIME;
-    unsigned         source_parallelism      = 1;
-    unsigned         map_parallelism         = 1;
-    unsigned         sink_parallelism        = 1;
-    unsigned         batch_size              = 0;
-    unsigned         duration                = 60;
-    unsigned         tuple_rate              = 1000;
-    unsigned         sampling_rate           = 100;
-    bool             use_chaining            = false;
+    unsigned         parallelism[num_nodes]  = {1, 1, 1};
+    unsigned         output_batch_sizes[num_nodes - 1] = {0, 0};
+    unsigned         batch_size                        = 0;
+    unsigned         duration                          = 60;
+    unsigned         tuple_rate                        = 1000;
+    unsigned         sampling_rate                     = 100;
+    bool             use_chaining                      = false;
 };
 
 enum class Sentiment { Positive, Negative, Neutral };
@@ -211,14 +217,15 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
             break;
         case 'p': {
             const auto degrees = get_nums_split_by_commas(optarg);
-            if (degrees.size() != 3) {
+            if (degrees.size() != num_nodes) {
                 cerr << "Error in parsing the input arguments.  Parallelism "
-                        "degree string requires exactly 3 elements.\n";
+                        "degree string requires exactly "
+                     << num_nodes << " elements.\n";
                 exit(EXIT_FAILURE);
             } else {
-                parameters.source_parallelism = degrees[0];
-                parameters.map_parallelism    = degrees[1];
-                parameters.sink_parallelism   = degrees[2];
+                for (unsigned i = 0; i < num_nodes; ++i) {
+                    parameters.parallelism[i] = degrees[i];
+                }
             }
         } break;
         case 'c':
@@ -258,42 +265,31 @@ static inline void validate_args(const Parameters &parameters) {
         exit(EXIT_FAILURE);
     }
 
-    if (parameters.source_parallelism == 0 || parameters.map_parallelism == 0
-        || parameters.sink_parallelism == 0) {
-        cerr << "Error: parallelism degree must be positive\n";
-        exit(EXIT_FAILURE);
+    for (unsigned i = 0; i < num_nodes; ++i) {
+        if (parameters.parallelism[i] == 0) {
+            cerr << "Error: parallelism degree for node " << i
+                 << " must be positive\n";
+            exit(EXIT_FAILURE);
+        }
     }
 
     const auto max_threads = thread::hardware_concurrency();
 
-    if (parameters.source_parallelism > max_threads) {
-        cerr << "Error: source parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
+    for (unsigned i = 0; i < num_nodes; ++i) {
+        if (parameters.parallelism[i] > max_threads) {
+            cerr << "Error:  parallelism degree for node " << i
+                 << " is too large\n"
+                    "Maximum available number of threads is: "
+                 << max_threads << '\n';
+        }
     }
 
-    if (parameters.map_parallelism > max_threads) {
-        cerr << "Error: map parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.sink_parallelism > max_threads) {
-        cerr << "Error: sink parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.source_parallelism + parameters.map_parallelism
-                + parameters.sink_parallelism
+    if (accumulate(cbegin(parameters.parallelism),
+                   cend(parameters.parallelism), 0u)
             >= max_threads
         && !parameters.use_chaining) {
         cerr << "Error: the total number of hardware threads specified is "
-                "too "
-                "high to be used without chaining.\n"
+                "too high to be used without chaining.\n"
                 "Maximum available number of threads is: "
              << max_threads << '\n';
         exit(EXIT_FAILURE);
@@ -302,9 +298,10 @@ static inline void validate_args(const Parameters &parameters) {
 
 static inline void print_initial_parameters(const Parameters &parameters) {
     cout << "Running graph with the following parameters:\n"
-         << "Source parallelism: " << parameters.source_parallelism << '\n'
-         << "Classifier parallelism: " << parameters.map_parallelism << '\n'
-         << "Sink parallelism: " << parameters.sink_parallelism << '\n'
+         << "Source parallelism: " << parameters.parallelism[source_id] << '\n'
+         << "Classifier parallelism: " << parameters.parallelism[classifier_id]
+         << '\n'
+         << "Sink parallelism: " << parameters.parallelism[sink_id] << '\n'
          << "Batching: ";
     if (parameters.batch_size > 0) {
         cout << parameters.batch_size << '\n';
@@ -549,21 +546,22 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
     SourceFunctor source_functor {parameters.duration, parameters.tuple_rate};
     auto          source = Source_Builder {source_functor}
-                      .withParallelism(parameters.source_parallelism)
+                      .withParallelism(parameters.parallelism[source_id])
                       .withName("source")
                       .withOutputBatchSize(parameters.batch_size)
                       .build();
 
     MapFunctor<BasicClassifier> map_functor;
-    auto                        classifier_node = Map_Builder {map_functor}
-                               .withParallelism(parameters.map_parallelism)
-                               .withName("classifier")
-                               .withOutputBatchSize(parameters.batch_size)
-                               .build();
+    auto                        classifier_node =
+        Map_Builder {map_functor}
+            .withParallelism(parameters.parallelism[classifier_id])
+            .withName("classifier")
+            .withOutputBatchSize(parameters.batch_size)
+            .build();
 
     SinkFunctor sink_functor {parameters.sampling_rate};
     auto        sink = Sink_Builder {sink_functor}
-                    .withParallelism(parameters.sink_parallelism)
+                    .withParallelism(parameters.parallelism[sink_id])
                     .withName("sink")
                     .build();
 

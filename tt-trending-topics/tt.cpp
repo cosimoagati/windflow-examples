@@ -56,24 +56,30 @@
 using namespace std;
 using namespace wf;
 
+enum NodeId : unsigned {
+    source_id              = 0,
+    topic_extractor_id     = 1,
+    rolling_counter_id     = 2,
+    intermediate_ranker_id = 3,
+    total_ranker_id        = 4,
+    sink_id                = 5,
+    num_nodes              = 6
+};
+
 struct Parameters {
-    const char *     metric_output_directory     = ".";
-    Execution_Mode_t execution_mode              = Execution_Mode_t::DEFAULT;
-    Time_Policy_t    time_policy                 = Time_Policy_t::INGRESS_TIME;
-    unsigned         source_parallelism          = 1;
-    unsigned         topic_extractor_parallelism = 1;
-    unsigned         rolling_counter_parallelism = 1;
-    unsigned         intermediate_ranker_parallelism = 1;
-    unsigned         total_ranker_parallelism        = 1;
-    unsigned         sink_parallelism                = 1;
-    unsigned         rolling_counter_frequency       = 2;
-    unsigned         intermediate_ranker_frequency   = 2;
-    unsigned         total_ranker_frequency          = 2;
-    unsigned         batch_size                      = 0;
-    unsigned         duration                        = 60;
-    unsigned         tuple_rate                      = 1000;
-    unsigned         sampling_rate                   = 100;
-    bool             use_chaining                    = false;
+    const char *     metric_output_directory = ".";
+    Execution_Mode_t execution_mode          = Execution_Mode_t::DEFAULT;
+    Time_Policy_t    time_policy             = Time_Policy_t::INGRESS_TIME;
+    unsigned         parallelism[num_nodes]  = {1, 1, 1, 1, 1, 1};
+    unsigned         output_batch_sizes[num_nodes - 1] = {0, 0, 0, 0, 0};
+    unsigned         rolling_counter_frequency         = 2;
+    unsigned         intermediate_ranker_frequency     = 2;
+    unsigned         total_ranker_frequency            = 2;
+    unsigned         batch_size                        = 0;
+    unsigned         duration                          = 60;
+    unsigned         tuple_rate                        = 1000;
+    unsigned         sampling_rate                     = 100;
+    bool             use_chaining                      = false;
 };
 
 struct TupleMetadata {
@@ -454,17 +460,15 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
         } break;
         case 'p': {
             const auto degrees = get_nums_split_by_commas(optarg);
-            if (degrees.size() != 6) {
+            if (degrees.size() != num_nodes) {
                 cerr << "Error in parsing the input arguments.  Parallelism "
-                        "degree string requires exactly 6 elements.\n";
+                        "degree string requires exactly "
+                     << num_nodes << " elements.\n";
                 exit(EXIT_FAILURE);
             } else {
-                parameters.source_parallelism              = degrees[0];
-                parameters.topic_extractor_parallelism     = degrees[1];
-                parameters.rolling_counter_parallelism     = degrees[2];
-                parameters.intermediate_ranker_parallelism = degrees[3];
-                parameters.total_ranker_parallelism        = degrees[4];
-                parameters.sink_parallelism                = degrees[5];
+                for (unsigned i = 0; i < num_nodes; ++i) {
+                    parameters.parallelism[i] = degrees[i];
+                }
             }
         } break;
         case 'c':
@@ -504,75 +508,32 @@ static inline void validate_args(const Parameters &parameters) {
         exit(EXIT_FAILURE);
     }
 
+    for (unsigned i = 0; i < num_nodes; ++i) {
+        if (parameters.parallelism[i] == 0) {
+            cerr << "Error: parallelism degree for node " << i
+                 << " must be positive\n";
+            exit(EXIT_FAILURE);
+        }
+    }
+
     constexpr unsigned timer_threads = 3;
     const auto max_threads = thread::hardware_concurrency() - timer_threads;
 
-    if (parameters.source_parallelism == 0
-        || parameters.topic_extractor_parallelism == 0
-        || parameters.rolling_counter_parallelism == 0
-        || parameters.intermediate_ranker_parallelism == 0
-        || parameters.total_ranker_parallelism == 0
-        || parameters.sink_parallelism == 0) {
-        cerr << "Error: parallelism degree must be positive\n";
-        exit(EXIT_FAILURE);
+    for (unsigned i = 0; i < num_nodes; ++i) {
+        if (parameters.parallelism[i] > max_threads) {
+            cerr << "Error:  parallelism degree for node " << i
+                 << " is too large\n"
+                    "Maximum available number of threads is: "
+                 << max_threads << '\n';
+        }
     }
 
-    if (parameters.source_parallelism > max_threads) {
-        cerr << "Error: source parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.topic_extractor_parallelism > max_threads) {
-        cerr << "Error: topic extractor parallelism degree is too "
-                "large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.rolling_counter_parallelism > max_threads) {
-        cerr << "Error: rolling counter parallelism degree is too "
-                "large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.intermediate_ranker_parallelism > max_threads) {
-        cerr << "Error: intermediate ranker parallelism degree is too "
-                "large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.total_ranker_parallelism > max_threads) {
-        cerr << "Error: total ranker parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.sink_parallelism > max_threads) {
-        cerr << "Error: sink parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.source_parallelism + parameters.topic_extractor_parallelism
-                + parameters.rolling_counter_parallelism
-                + parameters.intermediate_ranker_parallelism
-                + parameters.total_ranker_parallelism
-                + parameters.sink_parallelism
+    if (accumulate(cbegin(parameters.parallelism),
+                   cend(parameters.parallelism), 0u)
             >= max_threads
         && !parameters.use_chaining) {
-        cerr << "Error: the total number of hardware threads "
-                "specified is "
-                "too "
-                "high to be used without chaining.\n"
+        cerr << "Error: the total number of hardware threads specified is "
+                "too high to be used without chaining.\n"
                 "Maximum available number of threads is: "
              << max_threads << '\n';
         exit(EXIT_FAILURE);
@@ -581,16 +542,16 @@ static inline void validate_args(const Parameters &parameters) {
 
 static inline void print_initial_parameters(const Parameters &parameters) {
     cout << "Running graph with the following parameters:\n"
-         << "Source parallelism: " << parameters.source_parallelism << '\n'
+         << "Source parallelism: " << parameters.parallelism[source_id] << '\n'
          << "Topic extractor parallelism: "
-         << parameters.topic_extractor_parallelism << '\n'
+         << parameters.parallelism[topic_extractor_id] << '\n'
          << "Rolling counter parallelism: "
-         << parameters.rolling_counter_parallelism << '\n'
+         << parameters.parallelism[rolling_counter_id] << '\n'
          << "Intermediate ranker parallelism: "
-         << parameters.intermediate_ranker_parallelism << '\n'
-         << "Total ranker parallelism: " << parameters.total_ranker_parallelism
-         << '\n'
-         << "Sink parallelism: " << parameters.sink_parallelism << '\n'
+         << parameters.parallelism[intermediate_ranker_id] << '\n'
+         << "Total ranker parallelism: "
+         << parameters.parallelism[total_ranker_id] << '\n'
+         << "Sink parallelism: " << parameters.parallelism[sink_id] << '\n'
          << "Batching: ";
     if (parameters.batch_size > 0) {
         cout << parameters.batch_size << '\n';
@@ -1064,7 +1025,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
     SourceFunctor source_functor {parameters.duration, parameters.tuple_rate};
     auto          source = Source_Builder {source_functor}
-                      .withParallelism(parameters.source_parallelism)
+                      .withParallelism(parameters.parallelism[source_id])
                       .withName("source")
                       .withOutputBatchSize(parameters.batch_size)
                       .build();
@@ -1072,14 +1033,14 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     TopicExtractorFunctor topic_extractor_functor;
     auto                  topic_extractor_node =
         FlatMap_Builder {topic_extractor_functor}
-            .withParallelism(parameters.topic_extractor_parallelism)
+            .withParallelism(parameters.parallelism[topic_extractor_id])
             .withName("topic extractor")
             .withOutputBatchSize(parameters.batch_size)
             .build();
 
     RollingCounterTimerFunctor rolling_counter_timer_functor {
         parameters.duration, parameters.rolling_counter_frequency,
-        parameters.rolling_counter_parallelism};
+        parameters.parallelism[rolling_counter_id]};
     auto rolling_counter_timer_node =
         Source_Builder {rolling_counter_timer_functor}
             .withParallelism(1)
@@ -1091,7 +1052,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         300, parameters.intermediate_ranker_frequency};
     auto rolling_counter_node =
         FlatMap_Builder {rolling_counter_functor}
-            .withParallelism(parameters.rolling_counter_parallelism)
+            .withParallelism(parameters.parallelism[rolling_counter_id])
             .withName("rolling counter")
             .withOutputBatchSize(parameters.batch_size)
             .withKeyBy([](const Topic &topic) -> string { return topic.word; })
@@ -1099,7 +1060,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     IntermediateRankerTimerFunctor intermediate_ranker_timer_functor {
         parameters.duration, parameters.intermediate_ranker_frequency,
-        parameters.intermediate_ranker_parallelism};
+        parameters.parallelism[intermediate_ranker_id]};
     auto intermediate_ranker_timer_node =
         Source_Builder {intermediate_ranker_timer_functor}
             .withParallelism(1)
@@ -1107,36 +1068,36 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withOutputBatchSize(0)
             .build();
 
-    TotalRankerTimerFunctor total_ranker_timer_functor {
-        parameters.duration, parameters.total_ranker_frequency,
-        parameters.total_ranker_parallelism};
-    auto total_ranker_timer_node = Source_Builder {total_ranker_timer_functor}
-                                       .withParallelism(1)
-                                       .withName("total ranker timer")
-                                       .withOutputBatchSize(1)
-                                       .build();
-
     IntermediateRankerFunctor intermediate_ranker_functor;
     auto                      intermediate_ranker_node =
         FlatMap_Builder {intermediate_ranker_functor}
-            .withParallelism(parameters.intermediate_ranker_parallelism)
+            .withParallelism(parameters.parallelism[intermediate_ranker_id])
             .withName("intermediate ranker")
             .withOutputBatchSize(parameters.batch_size)
             .withKeyBy(
                 [](const Counts &count) -> string { return count.word; })
             .build();
 
+    TotalRankerTimerFunctor total_ranker_timer_functor {
+        parameters.duration, parameters.total_ranker_frequency,
+        parameters.parallelism[total_ranker_id]};
+    auto total_ranker_timer_node = Source_Builder {total_ranker_timer_functor}
+                                       .withParallelism(1)
+                                       .withName("total ranker timer")
+                                       .withOutputBatchSize(1)
+                                       .build();
+
     TotalRankerFunctor total_ranker_functor;
     auto               total_ranker_node =
         FlatMap_Builder {total_ranker_functor}
-            .withParallelism(parameters.total_ranker_parallelism)
+            .withParallelism(parameters.parallelism[total_ranker_id])
             .withName("total ranker")
             .withOutputBatchSize(parameters.batch_size)
             .build();
 
     SinkFunctor sink_functor {parameters.sampling_rate};
     auto        sink = Sink_Builder {sink_functor}
-                    .withParallelism(parameters.sink_parallelism)
+                    .withParallelism(parameters.parallelism[sink_id])
                     .withName("sink")
                     .build();
 

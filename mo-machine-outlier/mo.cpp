@@ -65,20 +65,26 @@
 using namespace std;
 using namespace wf;
 
+enum NodeId : unsigned {
+    source_id          = 0,
+    observer_id        = 1,
+    anomaly_scorer_id  = 2,
+    alert_triggerer_id = 3,
+    sink_id            = 4,
+    num_nodes          = 5
+};
+
 struct Parameters {
     const char *     metric_output_directory = ".";
     Execution_Mode_t execution_mode          = Execution_Mode_t::DETERMINISTIC;
     Time_Policy_t    time_policy             = Time_Policy_t::INGRESS_TIME;
-    unsigned         source_parallelism      = 1;
-    unsigned         observer_parallelism    = 1;
-    unsigned         anomaly_scorer_parallelism  = 1;
-    unsigned         alert_triggerer_parallelism = 1;
-    unsigned         sink_parallelism            = 1;
-    unsigned         batch_size                  = 0;
-    unsigned         duration                    = 60;
-    unsigned         tuple_rate                  = 1000;
-    unsigned         sampling_rate               = 100;
-    bool             use_chaining                = false;
+    unsigned         parallelism[num_nodes]  = {1, 1, 1, 1, 1};
+    unsigned         output_batch_sizes[num_nodes - 1] = {0, 0, 0, 0};
+    unsigned         batch_size                        = 0;
+    unsigned         duration                          = 60;
+    unsigned         tuple_rate                        = 1000;
+    unsigned         sampling_rate                     = 100;
+    bool             use_chaining                      = false;
 };
 
 struct MachineMetadata {
@@ -238,16 +244,15 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
             break;
         case 'p': {
             const auto degrees = get_nums_split_by_commas(optarg);
-            if (degrees.size() != 5) {
+            if (degrees.size() != num_nodes) {
                 cerr << "Error in parsing the input arguments.  Parallelism "
-                        "degree string requires exactly 5 elements.\n";
+                        "degree string requires exactly "
+                     << num_nodes << " elements.\n";
                 exit(EXIT_FAILURE);
             } else {
-                parameters.source_parallelism          = degrees[0];
-                parameters.observer_parallelism        = degrees[1];
-                parameters.anomaly_scorer_parallelism  = degrees[2];
-                parameters.alert_triggerer_parallelism = degrees[3];
-                parameters.sink_parallelism            = degrees[4];
+                for (unsigned i = 0; i < num_nodes; ++i) {
+                    parameters.parallelism[i] = degrees[i];
+                }
             }
         } break;
         case 'c':
@@ -287,60 +292,31 @@ static inline void validate_args(const Parameters &parameters) {
         exit(EXIT_FAILURE);
     }
 
+    for (unsigned i = 0; i < num_nodes; ++i) {
+        if (parameters.parallelism[i] == 0) {
+            cerr << "Error: parallelism degree for node " << i
+                 << " must be positive\n";
+            exit(EXIT_FAILURE);
+        }
+    }
+
     const auto max_threads = thread::hardware_concurrency();
 
-    if (parameters.source_parallelism == 0
-        || parameters.observer_parallelism == 0
-        || parameters.anomaly_scorer_parallelism == 0
-        || parameters.alert_triggerer_parallelism == 0
-        || parameters.sink_parallelism == 0) {
-        cerr << "Error: parallelism degree must be positive\n";
-        exit(EXIT_FAILURE);
+    for (unsigned i = 0; i < num_nodes; ++i) {
+        if (parameters.parallelism[i] > max_threads) {
+            cerr << "Error:  parallelism degree for node " << i
+                 << " is too large\n"
+                    "Maximum available number of threads is: "
+                 << max_threads << '\n';
+        }
     }
 
-    if (parameters.source_parallelism > max_threads) {
-        cerr << "Error: source parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.observer_parallelism > max_threads) {
-        cerr << "Error: observer parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.anomaly_scorer_parallelism > max_threads) {
-        cerr << "Error: anomaly scorer parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.alert_triggerer_parallelism > max_threads) {
-        cerr << "Error: alert triggerer parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.sink_parallelism > max_threads) {
-        cerr << "Error: sink parallelism degree is too large\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-
-    if (parameters.source_parallelism + parameters.observer_parallelism
-                + parameters.anomaly_scorer_parallelism
-                + parameters.alert_triggerer_parallelism
-                + parameters.sink_parallelism
+    if (accumulate(cbegin(parameters.parallelism),
+                   cend(parameters.parallelism), 0u)
             >= max_threads
         && !parameters.use_chaining) {
-        cerr << "Error: the total number of hardware threads specified is too "
-                "high to be used without chaining.\n"
+        cerr << "Error: the total number of hardware threads specified is "
+                "too high to be used without chaining.\n"
                 "Maximum available number of threads is: "
              << max_threads << '\n';
         exit(EXIT_FAILURE);
@@ -349,13 +325,14 @@ static inline void validate_args(const Parameters &parameters) {
 
 static inline void print_initial_parameters(const Parameters &parameters) {
     cout << "Running graph with the following parameters:\n"
-         << "Source parallelism: " << parameters.source_parallelism << '\n'
-         << "Observer parallelism: " << parameters.observer_parallelism << '\n'
+         << "Source parallelism: " << parameters.parallelism[source_id] << '\n'
+         << "Observer parallelism: " << parameters.parallelism[observer_id]
+         << '\n'
          << "Anomaly scorer parallelism: "
-         << parameters.anomaly_scorer_parallelism << '\n'
+         << parameters.parallelism[anomaly_scorer_id] << '\n'
          << "Alert triggerer parallelism: "
-         << parameters.alert_triggerer_parallelism << '\n'
-         << "Sink parallelism: " << parameters.sink_parallelism << '\n'
+         << parameters.parallelism[alert_triggerer_id] << '\n'
+         << "Sink parallelism: " << parameters.parallelism[sink_id] << '\n'
          << "Batching: ";
     if (parameters.batch_size > 0) {
         cout << parameters.batch_size << '\n';
@@ -999,7 +976,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
     SourceFunctor source_functor {parameters.duration, parameters.tuple_rate};
     auto          source = Source_Builder {source_functor}
-                      .withParallelism(parameters.source_parallelism)
+                      .withParallelism(parameters.parallelism[source_id])
                       .withName("source")
                       .withOutputBatchSize(parameters.batch_size)
                       .build();
@@ -1007,7 +984,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     ObserverScorerFunctor<MachineMetadataScorer> observer_functor;
     auto                                         observer_scorer_node =
         FlatMap_Builder {observer_functor}
-            .withParallelism(parameters.observer_parallelism)
+            .withParallelism(parameters.parallelism[observer_id])
             .withName("observation scorer")
             .withOutputBatchSize(parameters.batch_size)
             .build();
@@ -1015,7 +992,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     SlidingWindowStreamAnomalyScoreFunctor anomaly_scorer_functor;
     auto                                   anomaly_scorer_node =
         Map_Builder {anomaly_scorer_functor}
-            .withParallelism(parameters.anomaly_scorer_parallelism)
+            .withParallelism(parameters.parallelism[anomaly_scorer_id])
             .withName("anomaly scorer")
             .withKeyBy([](const ObservationResultTuple &tuple) -> string {
                 return tuple.id;
@@ -1026,14 +1003,14 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     AlertTriggererFunctor alert_triggerer_functor;
     auto                  alert_triggerer_node =
         FlatMap_Builder {alert_triggerer_functor}
-            .withParallelism(parameters.alert_triggerer_parallelism)
+            .withParallelism(parameters.parallelism[alert_triggerer_id])
             .withName("alert triggerer")
             .withOutputBatchSize(parameters.batch_size)
             .build();
 
     SinkFunctor sink_functor {parameters.sampling_rate};
     auto        sink = Sink_Builder {sink_functor}
-                    .withParallelism(parameters.sink_parallelism)
+                    .withParallelism(parameters.parallelism[sink_id])
                     .withName("sink")
                     .build();
 
