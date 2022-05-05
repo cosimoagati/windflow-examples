@@ -80,12 +80,11 @@ struct Parameters {
     Execution_Mode_t execution_mode          = Execution_Mode_t::DETERMINISTIC;
     Time_Policy_t    time_policy             = Time_Policy_t::INGRESS_TIME;
     unsigned         parallelism[num_nodes]  = {1, 1, 1, 1, 1};
-    unsigned         output_batch_sizes[num_nodes - 1] = {0, 0, 0, 0};
-    unsigned         batch_size                        = 0;
-    unsigned         duration                          = 60;
-    unsigned         tuple_rate                        = 1000;
-    unsigned         sampling_rate                     = 100;
-    bool             use_chaining                      = false;
+    unsigned         batch_size[num_nodes - 1] = {0, 0, 0, 0};
+    unsigned         duration                  = 60;
+    unsigned         tuple_rate                = 1000;
+    unsigned         sampling_rate             = 100;
+    bool             use_chaining              = false;
 };
 
 struct MachineMetadata {
@@ -240,9 +239,19 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
         case 's':
             parameters.sampling_rate = atoi(optarg);
             break;
-        case 'b':
-            parameters.batch_size = atoi(optarg);
-            break;
+        case 'b': {
+            const auto batches = get_nums_split_by_commas(optarg);
+            if (batches.size() != num_nodes - 1) {
+                cerr << "Error in parsing the input arguments.  Batch sizes "
+                        "string requires exactly "
+                     << (num_nodes - 1) << " elements\n";
+                exit(EXIT_FAILURE);
+            } else {
+                for (unsigned i = 0; i < num_nodes - 1; ++i) {
+                    parameters.batch_size[i] = batches[i];
+                }
+            }
+        } break;
         case 'p': {
             const auto degrees = get_nums_split_by_commas(optarg);
             if (degrees.size() != num_nodes) {
@@ -334,11 +343,15 @@ static inline void print_initial_parameters(const Parameters &parameters) {
          << "Alert triggerer parallelism: "
          << parameters.parallelism[alert_triggerer_id] << '\n'
          << "Sink parallelism: " << parameters.parallelism[sink_id] << '\n'
-         << "Batching: ";
-    if (parameters.batch_size > 0) {
-        cout << parameters.batch_size << '\n';
-    } else {
-        cout << "None\n";
+         << "Batching:\n";
+
+    for (unsigned i = 0; i < num_nodes - 1; ++i) {
+        cout << "\tNode " << i << ": ";
+        if (parameters.batch_size[i] != 0) {
+            cout << parameters.batch_size[i] << '\n';
+        } else {
+            cout << "none\n";
+        }
     }
 
     cout << "Execution mode: "
@@ -979,7 +992,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     auto          source = Source_Builder {source_functor}
                       .withParallelism(parameters.parallelism[source_id])
                       .withName("source")
-                      .withOutputBatchSize(parameters.batch_size)
+                      .withOutputBatchSize(parameters.batch_size[source_id])
                       .build();
 
     ObserverScorerFunctor<MachineMetadataScorer> observer_functor;
@@ -987,7 +1000,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         FlatMap_Builder {observer_functor}
             .withParallelism(parameters.parallelism[observer_id])
             .withName("observation scorer")
-            .withOutputBatchSize(parameters.batch_size)
+            .withOutputBatchSize(parameters.batch_size[observer_id])
             .build();
 
     SlidingWindowStreamAnomalyScoreFunctor anomaly_scorer_functor;
@@ -998,7 +1011,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withKeyBy([](const ObservationResultTuple &tuple) -> string {
                 return tuple.id;
             })
-            .withOutputBatchSize(parameters.batch_size)
+            .withOutputBatchSize(parameters.batch_size[anomaly_scorer_id])
             .build();
 
     AlertTriggererFunctor alert_triggerer_functor;
@@ -1006,7 +1019,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         FlatMap_Builder {alert_triggerer_functor}
             .withParallelism(parameters.parallelism[alert_triggerer_id])
             .withName("alert triggerer")
-            .withOutputBatchSize(parameters.batch_size)
+            .withOutputBatchSize(parameters.batch_size[alert_triggerer_id])
             .build();
 
     SinkFunctor sink_functor {parameters.sampling_rate};

@@ -73,16 +73,15 @@ enum NodeId : unsigned {
 };
 
 struct Parameters {
-    const char *     metric_output_directory = ".";
-    Execution_Mode_t execution_mode          = Execution_Mode_t::DEFAULT;
-    Time_Policy_t    time_policy             = Time_Policy_t::INGRESS_TIME;
-    unsigned         parallelism[num_nodes]  = {1, 1, 1, 1, 1, 1};
-    unsigned         output_batch_sizes[num_nodes - 1] = {0, 0, 0, 0, 0};
-    unsigned         batch_size                        = 0;
-    unsigned         duration                          = 60;
-    unsigned         tuple_rate                        = 1000;
-    unsigned         sampling_rate                     = 100;
-    bool             use_chaining                      = false;
+    const char *     metric_output_directory   = ".";
+    Execution_Mode_t execution_mode            = Execution_Mode_t::DEFAULT;
+    Time_Policy_t    time_policy               = Time_Policy_t::INGRESS_TIME;
+    unsigned         parallelism[num_nodes]    = {1, 1, 1, 1, 1, 1};
+    unsigned         batch_size[num_nodes - 1] = {0, 0, 0, 0, 0};
+    unsigned         duration                  = 60;
+    unsigned         tuple_rate                = 1000;
+    unsigned         sampling_rate             = 100;
+    bool             use_chaining              = false;
 };
 
 enum class TupleTag { Volume, Status, Geo };
@@ -325,9 +324,19 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
         case 's':
             parameters.sampling_rate = atoi(optarg);
             break;
-        case 'b':
-            parameters.batch_size = atoi(optarg);
-            break;
+        case 'b': {
+            const auto batches = get_nums_split_by_commas(optarg);
+            if (batches.size() != num_nodes - 1) {
+                cerr << "Error in parsing the input arguments.  Batch sizes "
+                        "string requires exactly "
+                     << (num_nodes - 1) << " elements\n";
+                exit(EXIT_FAILURE);
+            } else {
+                for (unsigned i = 0; i < num_nodes - 1; ++i) {
+                    parameters.batch_size[i] = batches[i];
+                }
+            }
+        } break;
         case 'p': {
             const auto degrees = get_nums_split_by_commas(optarg);
             if (degrees.size() != num_nodes) {
@@ -423,11 +432,15 @@ static inline void print_initial_parameters(const Parameters &parameters) {
          << "Geo stats parallelism: " << parameters.parallelism[geo_stats_id]
          << '\n'
          << "Sink parallelism: " << parameters.parallelism[sink_id] << '\n'
-         << "Batching: ";
-    if (parameters.batch_size > 0) {
-        cout << parameters.batch_size << '\n';
-    } else {
-        cout << "None\n";
+         << "Batching:\n";
+
+    for (unsigned i = 0; i < num_nodes - 1; ++i) {
+        cout << "\tNode " << i << ": ";
+        if (parameters.batch_size[i] != 0) {
+            cout << parameters.batch_size[i] << '\n';
+        } else {
+            cout << "none\n";
+        }
     }
 
     cout << "Execution mode: "
@@ -881,18 +894,19 @@ public:
 static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
     SourceFunctor source_functor {parameters.duration, parameters.tuple_rate};
-    auto          source_node = Source_Builder {source_functor}
-                           .withParallelism(parameters.parallelism[source_id])
-                           .withName("source")
-                           .withOutputBatchSize(parameters.batch_size)
-                           .build();
+    auto          source_node =
+        Source_Builder {source_functor}
+            .withParallelism(parameters.parallelism[source_id])
+            .withName("source")
+            .withOutputBatchSize(parameters.batch_size[source_id])
+            .build();
 
     VolumeCounterFunctor volume_counter_functor;
     auto                 volume_counter_node =
         Map_Builder {volume_counter_functor}
             .withParallelism(parameters.parallelism[volume_counter_id])
             .withName("volume counter")
-            .withOutputBatchSize(parameters.batch_size)
+            .withOutputBatchSize(parameters.batch_size[volume_counter_id])
             .withKeyBy([](const SourceTuple &t) -> unsigned long {
                 return t.minute_timestamp;
             })
@@ -903,7 +917,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         Map_Builder {status_counter_functor}
             .withParallelism(parameters.parallelism[status_counter_id])
             .withName("status counter")
-            .withOutputBatchSize(parameters.batch_size)
+            .withOutputBatchSize(parameters.batch_size[status_counter_id])
             .withKeyBy(
                 [](const SourceTuple &t) -> unsigned { return t.response; })
             .build();
@@ -913,7 +927,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         FlatMap_Builder {geo_finder_functor}
             .withParallelism(parameters.parallelism[geo_finder_id])
             .withName("geo finder")
-            .withOutputBatchSize(parameters.batch_size)
+            .withOutputBatchSize(parameters.batch_size[geo_finder_id])
             .build();
 
     GeoStatsFunctor geo_stats_functor;
@@ -921,7 +935,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         Map_Builder {geo_stats_functor}
             .withParallelism(parameters.parallelism[geo_stats_id])
             .withName("geo stats")
-            .withOutputBatchSize(parameters.batch_size)
+            .withOutputBatchSize(parameters.batch_size[geo_stats_id])
             .withKeyBy([](const GeoFinderOutputTuple &t) -> string {
                 return t.country;
             })

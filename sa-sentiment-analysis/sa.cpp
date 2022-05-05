@@ -69,16 +69,15 @@ enum NodeId : unsigned {
 };
 
 struct Parameters {
-    const char *     metric_output_directory = ".";
-    Execution_Mode_t execution_mode          = Execution_Mode_t::DEFAULT;
-    Time_Policy_t    time_policy             = Time_Policy_t::INGRESS_TIME;
-    unsigned         parallelism[num_nodes]  = {1, 1, 1};
-    unsigned         output_batch_sizes[num_nodes - 1] = {0, 0};
-    unsigned         batch_size                        = 0;
-    unsigned         duration                          = 60;
-    unsigned         tuple_rate                        = 1000;
-    unsigned         sampling_rate                     = 100;
-    bool             use_chaining                      = false;
+    const char *     metric_output_directory   = ".";
+    Execution_Mode_t execution_mode            = Execution_Mode_t::DEFAULT;
+    Time_Policy_t    time_policy               = Time_Policy_t::INGRESS_TIME;
+    unsigned         parallelism[num_nodes]    = {1, 1, 1};
+    unsigned         batch_size[num_nodes - 1] = {0, 0};
+    unsigned         duration                  = 60;
+    unsigned         tuple_rate                = 1000;
+    unsigned         sampling_rate             = 100;
+    bool             use_chaining              = false;
 };
 
 enum class Sentiment { Positive, Negative, Neutral };
@@ -213,9 +212,19 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
         case 's':
             parameters.sampling_rate = atoi(optarg);
             break;
-        case 'b':
-            parameters.batch_size = atoi(optarg);
-            break;
+        case 'b': {
+            const auto batches = get_nums_split_by_commas(optarg);
+            if (batches.size() != num_nodes - 1) {
+                cerr << "Error in parsing the input arguments.  Batch sizes "
+                        "string requires exactly "
+                     << (num_nodes - 1) << " elements\n";
+                exit(EXIT_FAILURE);
+            } else {
+                for (unsigned i = 0; i < num_nodes - 1; ++i) {
+                    parameters.batch_size[i] = batches[i];
+                }
+            }
+        } break;
         case 'p': {
             const auto degrees = get_nums_split_by_commas(optarg);
             if (degrees.size() != num_nodes) {
@@ -303,11 +312,15 @@ static inline void print_initial_parameters(const Parameters &parameters) {
          << "Classifier parallelism: " << parameters.parallelism[classifier_id]
          << '\n'
          << "Sink parallelism: " << parameters.parallelism[sink_id] << '\n'
-         << "Batching: ";
-    if (parameters.batch_size > 0) {
-        cout << parameters.batch_size << '\n';
-    } else {
-        cout << "None\n";
+         << "Batching:\n";
+
+    for (unsigned i = 0; i < num_nodes - 1; ++i) {
+        cout << "\tNode " << i << ": ";
+        if (parameters.batch_size[i] != 0) {
+            cout << parameters.batch_size[i] << '\n';
+        } else {
+            cout << "none\n";
+        }
     }
 
     cout << "Execution mode: "
@@ -549,7 +562,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     auto          source = Source_Builder {source_functor}
                       .withParallelism(parameters.parallelism[source_id])
                       .withName("source")
-                      .withOutputBatchSize(parameters.batch_size)
+                      .withOutputBatchSize(parameters.batch_size[source_id])
                       .build();
 
     MapFunctor<BasicClassifier> map_functor;
@@ -557,7 +570,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         Map_Builder {map_functor}
             .withParallelism(parameters.parallelism[classifier_id])
             .withName("classifier")
-            .withOutputBatchSize(parameters.batch_size)
+            .withOutputBatchSize(parameters.batch_size[classifier_id])
             .build();
 
     SinkFunctor sink_functor {parameters.sampling_rate};

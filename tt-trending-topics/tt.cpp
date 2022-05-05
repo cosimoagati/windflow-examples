@@ -68,19 +68,18 @@ enum NodeId : unsigned {
 };
 
 struct Parameters {
-    const char *     metric_output_directory = ".";
-    Execution_Mode_t execution_mode          = Execution_Mode_t::DEFAULT;
-    Time_Policy_t    time_policy             = Time_Policy_t::INGRESS_TIME;
-    unsigned         parallelism[num_nodes]  = {1, 1, 1, 1, 1, 1};
-    unsigned         output_batch_sizes[num_nodes - 1] = {0, 0, 0, 0, 0};
-    unsigned         rolling_counter_frequency         = 2;
-    unsigned         intermediate_ranker_frequency     = 2;
-    unsigned         total_ranker_frequency            = 2;
-    unsigned         batch_size                        = 0;
-    unsigned         duration                          = 60;
-    unsigned         tuple_rate                        = 1000;
-    unsigned         sampling_rate                     = 100;
-    bool             use_chaining                      = false;
+    const char *     metric_output_directory   = ".";
+    Execution_Mode_t execution_mode            = Execution_Mode_t::DEFAULT;
+    Time_Policy_t    time_policy               = Time_Policy_t::INGRESS_TIME;
+    unsigned         parallelism[num_nodes]    = {1, 1, 1, 1, 1, 1};
+    unsigned         batch_size[num_nodes - 1] = {0, 0, 0, 0, 0};
+    unsigned         rolling_counter_frequency = 2;
+    unsigned         intermediate_ranker_frequency = 2;
+    unsigned         total_ranker_frequency        = 2;
+    unsigned         duration                      = 60;
+    unsigned         tuple_rate                    = 1000;
+    unsigned         sampling_rate                 = 100;
+    bool             use_chaining                  = false;
 };
 
 struct TupleMetadata {
@@ -445,9 +444,19 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
         case 's':
             parameters.sampling_rate = atoi(optarg);
             break;
-        case 'b':
-            parameters.batch_size = atoi(optarg);
-            break;
+        case 'b': {
+            const auto batches = get_nums_split_by_commas(optarg);
+            if (batches.size() != num_nodes - 1) {
+                cerr << "Error in parsing the input arguments.  Batch sizes "
+                        "string requires exactly "
+                     << (num_nodes - 1) << " elements\n";
+                exit(EXIT_FAILURE);
+            } else {
+                for (unsigned i = 0; i < num_nodes - 1; ++i) {
+                    parameters.batch_size[i] = batches[i];
+                }
+            }
+        } break;
         case 'f': {
             const auto frequencies = get_nums_split_by_commas(optarg);
             if (frequencies.size() != 3) {
@@ -553,11 +562,15 @@ static inline void print_initial_parameters(const Parameters &parameters) {
          << "Total ranker parallelism: "
          << parameters.parallelism[total_ranker_id] << '\n'
          << "Sink parallelism: " << parameters.parallelism[sink_id] << '\n'
-         << "Batching: ";
-    if (parameters.batch_size > 0) {
-        cout << parameters.batch_size << '\n';
-    } else {
-        cout << "None\n";
+         << "Batching:\n";
+
+    for (unsigned i = 0; i < num_nodes - 1; ++i) {
+        cout << "\tNode " << i << ": ";
+        if (parameters.batch_size[i] != 0) {
+            cout << parameters.batch_size[i] << '\n';
+        } else {
+            cout << "none\n";
+        }
     }
 
     cout << "Execution mode: "
@@ -1028,7 +1041,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     auto          source = Source_Builder {source_functor}
                       .withParallelism(parameters.parallelism[source_id])
                       .withName("source")
-                      .withOutputBatchSize(parameters.batch_size)
+                      .withOutputBatchSize(parameters.batch_size[source_id])
                       .build();
 
     TopicExtractorFunctor topic_extractor_functor;
@@ -1036,7 +1049,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         FlatMap_Builder {topic_extractor_functor}
             .withParallelism(parameters.parallelism[topic_extractor_id])
             .withName("topic extractor")
-            .withOutputBatchSize(parameters.batch_size)
+            .withOutputBatchSize(parameters.batch_size[topic_extractor_id])
             .build();
 
     RollingCounterTimerFunctor rolling_counter_timer_functor {
@@ -1055,7 +1068,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         FlatMap_Builder {rolling_counter_functor}
             .withParallelism(parameters.parallelism[rolling_counter_id])
             .withName("rolling counter")
-            .withOutputBatchSize(parameters.batch_size)
+            .withOutputBatchSize(parameters.batch_size[rolling_counter_id])
             .withKeyBy([](const Topic &topic) -> string { return topic.word; })
             .build();
 
@@ -1074,7 +1087,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         FlatMap_Builder {intermediate_ranker_functor}
             .withParallelism(parameters.parallelism[intermediate_ranker_id])
             .withName("intermediate ranker")
-            .withOutputBatchSize(parameters.batch_size)
+            .withOutputBatchSize(parameters.batch_size[intermediate_ranker_id])
             .withKeyBy(
                 [](const Counts &count) -> string { return count.word; })
             .build();
@@ -1093,7 +1106,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         FlatMap_Builder {total_ranker_functor}
             .withParallelism(parameters.parallelism[total_ranker_id])
             .withName("total ranker")
-            .withOutputBatchSize(parameters.batch_size)
+            .withOutputBatchSize(parameters.batch_size[total_ranker_id])
             .build();
 
     SinkFunctor sink_functor {parameters.sampling_rate};
