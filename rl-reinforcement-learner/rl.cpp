@@ -43,6 +43,7 @@
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wall"
+#pragma clang diagnostic ignored "-Wunused-private-field"
 #endif
 
 #include <wf/windflow.hpp>

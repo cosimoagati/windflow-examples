@@ -32,7 +32,7 @@
 
 #include "../util.hpp"
 
-#if defined(__GNUC__) || defined(__clang__)
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -40,16 +40,23 @@
 #pragma GCC diagnostic ignored "-Wextra"
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wsign-compare"
-#if defined(__clang__) || !defined(__GNUC__)
-#pragma GCC diagnostic ignored "-Wmismatched-tags"
-#endif
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wall"
+#pragma clang diagnostic ignored "-Wunused-private-field"
 #endif
 
 #include <wf/windflow.hpp>
 
-#if defined(__GNUC__) || defined(__clang__)
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic pop
 #endif
 
 using namespace std;
