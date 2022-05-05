@@ -335,14 +335,15 @@ static inline void validate_args(const Parameters &parameters) {
 
 static inline void print_initial_parameters(const Parameters &parameters) {
     cout << "Running graph with the following parameters:\n"
-         << "Source parallelism: " << parameters.parallelism[source_id] << '\n'
-         << "Observer parallelism: " << parameters.parallelism[observer_id]
+         << "Source parallelism:\t" << parameters.parallelism[source_id]
          << '\n'
-         << "Anomaly scorer parallelism: "
+         << "Observer parallelism:\t" << parameters.parallelism[observer_id]
+         << '\n'
+         << "Anomaly scorer parallelism:\t"
          << parameters.parallelism[anomaly_scorer_id] << '\n'
-         << "Alert triggerer parallelism: "
+         << "Alert triggerer parallelism:\t"
          << parameters.parallelism[alert_triggerer_id] << '\n'
-         << "Sink parallelism: " << parameters.parallelism[sink_id] << '\n'
+         << "Sink parallelism:\t" << parameters.parallelism[sink_id] << '\n'
          << "Batching:\n";
 
     for (unsigned i = 0; i < num_nodes - 1; ++i) {
@@ -354,12 +355,12 @@ static inline void print_initial_parameters(const Parameters &parameters) {
         }
     }
 
-    cout << "Execution mode: "
+    cout << "Execution mode:\t"
          << get_string_from_execution_mode(parameters.execution_mode) << '\n';
-    cout << "Time policy: "
+    cout << "Time policy:\t"
          << get_string_from_time_policy(parameters.time_policy) << '\n';
 
-    cout << "Duration: " << parameters.duration << " second"
+    cout << "Duration:\t" << parameters.duration << " second"
          << (parameters.duration == 1 ? "" : "s") << '\n'
          << "Tuple generation rate: ";
     if (parameters.tuple_rate > 0) {
@@ -369,7 +370,7 @@ static inline void print_initial_parameters(const Parameters &parameters) {
         cout << "unlimited (BEWARE OF QUEUE CONGESTION)\n";
     }
 
-    cout << "Sampling rate: ";
+    cout << "Sampling rate:\t";
     if (parameters.sampling_rate > 0) {
         cout << parameters.sampling_rate << " measurement"
              << (parameters.sampling_rate == 1 ? "" : "s") << " per second\n";
@@ -377,7 +378,7 @@ static inline void print_initial_parameters(const Parameters &parameters) {
         cout << "unlimited (sample every incoming tuple)\n";
     }
 
-    cout << "Chaining: " << (parameters.use_chaining ? "enabled" : "disabled")
+    cout << "Chaining:\t" << (parameters.use_chaining ? "enabled" : "disabled")
          << '\n';
 }
 
