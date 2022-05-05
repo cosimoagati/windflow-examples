@@ -108,27 +108,67 @@ static inline std::string get_datetime_string() {
     return date_string;
 }
 
-static const std::unordered_map<std::string, wf::Execution_Mode_t>
-    string_to_execution_mode_map {
-        {"default", wf::Execution_Mode_t::DEFAULT},
-        {"deterministic", wf::Execution_Mode_t::DETERMINISTIC},
-        {"probabilistic", wf::Execution_Mode_t::PROBABILISTIC}};
+static inline wf::Execution_Mode_t
+get_execution_mode_from_string(const std::string &s) {
+    if (s == "default") {
+        return wf::Execution_Mode_t::DEFAULT;
+    } else if (s == "deterministic") {
+        return wf::Execution_Mode_t::DETERMINISTIC;
+    } else if (s == "probabilistic") {
+        return wf::Execution_Mode_t::PROBABILISTIC;
+    } else {
+        std::cerr
+            << "get_execution_mode_from_string:  error, invalid string\n";
+        std::exit(EXIT_FAILURE);
+    }
+    return wf::Execution_Mode_t::DEFAULT; // Make the compiler happy
+}
 
-static const std::unordered_map<std::string, wf::Time_Policy_t>
-    string_to_time_policy_map {
-        {"ingress_time", wf::Time_Policy_t::INGRESS_TIME},
-        {"event_time", wf::Time_Policy_t::EVENT_TIME}};
+static inline wf::Time_Policy_t
+get_time_policy_from_string(const std::string &s) {
+    if (s == "ingress_time") {
+        return wf::Time_Policy_t::INGRESS_TIME;
+    } else if (s == "event_time") {
+        return wf::Time_Policy_t::EVENT_TIME;
+    } else {
+        std::cerr << "get_time_policy_from_string:  error, invalid string\n";
+        std::exit(EXIT_FAILURE);
+    }
+    return wf::Time_Policy_t::INGRESS_TIME; // Make the compiler happy
+}
 
-static const std::unordered_map<wf::Execution_Mode_t, std::string>
-    execution_mode_to_string_map {
-        {wf::Execution_Mode_t::DEFAULT, "default"},
-        {wf::Execution_Mode_t::DETERMINISTIC, "deterministic"},
-        {wf::Execution_Mode_t::PROBABILISTIC, "probabilistic"}};
+static inline const char *
+get_string_from_execution_mode(wf::Execution_Mode_t e) {
+    switch (e) {
+    case wf::Execution_Mode_t::DEFAULT:
+        return "default";
+    case wf::Execution_Mode_t::DETERMINISTIC:
+        return "deterministic";
+    case wf::Execution_Mode_t::PROBABILISTIC:
+        return "probabilistic";
+    default:
+        std::cerr << "get_string_from_execution_mode:  error, invalid "
+                     "execution mode\n";
+        std::exit(EXIT_FAILURE);
+        break;
+    }
+    return ""; // Make the compiler happy
+}
 
-static const std::unordered_map<wf::Time_Policy_t, std::string>
-    time_policy_to_string_map {
-        {wf::Time_Policy_t::INGRESS_TIME, "ingress time"},
-        {wf::Time_Policy_t::EVENT_TIME, "event time"}};
+static inline const char *get_string_from_time_policy(wf::Time_Policy_t p) {
+    switch (p) {
+    case wf::Time_Policy_t::INGRESS_TIME:
+        return "ingress time";
+    case wf::Time_Policy_t::EVENT_TIME:
+        return "event time";
+    default:
+        std::cerr
+            << "get_string_from_time_policy: error, invalid time policy\n";
+        std::exit(EXIT_FAILURE);
+        break;
+    }
+    return ""; // Make the compiler happy
+}
 
 template<typename T>
 class Metric {
