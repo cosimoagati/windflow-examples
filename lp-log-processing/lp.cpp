@@ -304,14 +304,6 @@ static inline string get_log_output_message(const OutputTuple &input,
 }
 #endif
 
-static inline vector<size_t> get_parallelism_degrees(const char *degrees) {
-    vector<size_t> parallelism_degrees;
-    for (const auto &s : string_split(degrees, ',')) {
-        parallelism_degrees.push_back(atoi(s.data()));
-    }
-    return parallelism_degrees;
-}
-
 static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     int option;
     int index;
