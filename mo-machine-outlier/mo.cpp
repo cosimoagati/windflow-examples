@@ -258,19 +258,12 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
         case 'o':
             parameters.metric_output_directory = optarg;
             break;
-        case 'e': {
-            const auto entry =
-                string_to_execution_mode_map.find(string {optarg});
-            if (entry != string_to_execution_mode_map.end()) {
-                parameters.execution_mode = entry->second;
-            }
-        } break;
-        case 't': {
-            const auto entry = string_to_time_policy_map.find(string {optarg});
-            if (entry != string_to_time_policy_map.end()) {
-                parameters.time_policy = entry->second;
-            }
-        } break;
+        case 'e':
+            parameters.execution_mode = get_execution_mode_from_string(optarg);
+            break;
+        case 't':
+            parameters.time_policy = get_time_policy_from_string(optarg);
+            break;
         case 'h':
             cout << "Parameters: --rate <value> --sampling "
                     "<value> --batch <size> --parallelism "
@@ -369,21 +362,10 @@ static inline void print_initial_parameters(const Parameters &parameters) {
         cout << "None\n";
     }
 
-    cout << "Execution mode: ";
-    const auto exec_mode_entry =
-        execution_mode_to_string_map.find(parameters.execution_mode);
-    cout << (exec_mode_entry != execution_mode_to_string_map.end()
-                 ? exec_mode_entry->second
-                 : "unknown")
-         << '\n';
-
-    cout << "Time policy: ";
-    const auto time_policy_entry =
-        time_policy_to_string_map.find(parameters.time_policy);
-    cout << (time_policy_entry != time_policy_to_string_map.end()
-                 ? time_policy_entry->second
-                 : "unknown")
-         << '\n';
+    cout << "Execution mode: "
+         << get_string_from_execution_mode(parameters.execution_mode) << '\n';
+    cout << "Time policy: "
+         << get_string_from_time_policy(parameters.time_policy) << '\n';
 
     cout << "Duration: " << parameters.duration << " second"
          << (parameters.duration == 1 ? "" : "s") << '\n'

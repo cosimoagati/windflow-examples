@@ -112,15 +112,25 @@ static inline Sentiment score_to_sentiment(int score) {
  * Return a string literal representation of a tweet sentiment.
  */
 static inline const char *sentiment_to_string(Sentiment sentiment) {
-    return sentiment == Sentiment::Positive   ? "Positive"
-           : sentiment == Sentiment::Negative ? "Negative"
-                                              : "Neutral";
+    switch (sentiment) {
+    case Sentiment::Positive:
+        return "Positive";
+    case Sentiment::Negative:
+        return "Negative";
+    case Sentiment::Neutral:
+        return "Neutral";
+    default:
+        cerr << "sentiment_to_string:  invalid sentiment value\n";
+        exit(EXIT_FAILURE);
+        break;
+    }
+    return "UNREACHABLE"; // Make the compiler happy
 }
 #endif
 
 /*
- * Replaces non-alphanumeric characters with a space. The input string s itself
- * is modified. Return a reference to s.
+ * Replaces non-alphanumeric characters with a space. The input string s
+ * itself is modified. Return a reference to s.
  */
 static inline string &replace_non_alnum_with_spaces_in_place(string &s) {
     constexpr auto is_not_alnum = [](char c) { return !isalnum(c); };
@@ -140,8 +150,8 @@ static inline string &lowercase_in_place(string &s) {
 }
 
 /*
- * Return a std::vector of std::string_views, each representing the "words" in
- * a tweet.  The input string may be modified.
+ * Return a std::vector of std::string_views, each representing the "words"
+ * in a tweet.  The input string may be modified.
  */
 static inline vector<string_view> split_in_words_in_place(string &text) {
     replace_non_alnum_with_spaces_in_place(text);
@@ -219,19 +229,12 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
         case 'o':
             parameters.metric_output_directory = optarg;
             break;
-        case 'e': {
-            const auto entry =
-                string_to_execution_mode_map.find(string {optarg});
-            if (entry != string_to_execution_mode_map.end()) {
-                parameters.execution_mode = entry->second;
-            }
-        } break;
-        case 't': {
-            const auto entry = string_to_time_policy_map.find(string {optarg});
-            if (entry != string_to_time_policy_map.end()) {
-                parameters.time_policy = entry->second;
-            }
-        } break;
+        case 'e':
+            parameters.execution_mode = get_execution_mode_from_string(optarg);
+            break;
+        case 't':
+            parameters.time_policy = get_time_policy_from_string(optarg);
+            break;
         case 'h':
             cout << "Parameters: --rate <value> --sampling "
                     "<value> --batch <size> --parallelism "
@@ -287,7 +290,8 @@ static inline void validate_args(const Parameters &parameters) {
                 + parameters.sink_parallelism
             >= max_threads
         && !parameters.use_chaining) {
-        cerr << "Error: the total number of hardware threads specified is too "
+        cerr << "Error: the total number of hardware threads specified is "
+                "too "
                 "high to be used without chaining.\n"
                 "Maximum available number of threads is: "
              << max_threads << '\n';
@@ -307,21 +311,10 @@ static inline void print_initial_parameters(const Parameters &parameters) {
         cout << "None\n";
     }
 
-    cout << "Execution mode: ";
-    const auto exec_mode_entry =
-        execution_mode_to_string_map.find(parameters.execution_mode);
-    cout << (exec_mode_entry != execution_mode_to_string_map.end()
-                 ? exec_mode_entry->second
-                 : "unknown")
-         << '\n';
-
-    cout << "Time policy: ";
-    const auto time_policy_entry =
-        time_policy_to_string_map.find(parameters.time_policy);
-    cout << (time_policy_entry != time_policy_to_string_map.end()
-                 ? time_policy_entry->second
-                 : "unknown")
-         << '\n';
+    cout << "Execution mode: "
+         << get_string_from_execution_mode(parameters.execution_mode) << '\n';
+    cout << "Time policy: "
+         << get_string_from_time_policy(parameters.time_policy) << '\n';
 
     cout << "Duration: " << parameters.duration << " second"
          << (parameters.duration == 1 ? "" : "s") << '\n'
@@ -402,7 +395,8 @@ public:
         : tweets {get_tweets_from_file(path)},
           duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {
         if (tweets.empty()) {
-            cerr << "Error: empty tweet stream.  Check whether dataset file "
+            cerr << "Error: empty tweet stream.  Check whether dataset "
+                    "file "
                     "exists and is readable\n";
             exit(EXIT_FAILURE);
         }
@@ -537,7 +531,7 @@ public:
                      << ", received tweet with score " << input->result.score
                      << " and classification "
                      << sentiment_to_string(input->result.sentiment)
-                     << " with contents after trimming: " << input->tweet
+                     << "with contents after trimming: " << input->tweet
                      << '\n';
             }
 #endif
