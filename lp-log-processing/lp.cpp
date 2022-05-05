@@ -21,6 +21,7 @@
 #include <getopt.h>
 #include <maxminddb.h>
 #include <mutex>
+#include <numeric>
 #include <optional>
 #include <regex>
 #include <sstream>

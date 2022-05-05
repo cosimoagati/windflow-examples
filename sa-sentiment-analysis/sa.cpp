@@ -19,6 +19,7 @@
 #include <getopt.h>
 #include <iostream>
 #include <mutex>
+#include <numeric>
 #include <optional>
 #include <string>
 #include <string_view>

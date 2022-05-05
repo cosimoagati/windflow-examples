@@ -18,6 +18,7 @@
 #include <getopt.h>
 #include <initializer_list>
 #include <mutex>
+#include <numeric>
 #include <optional>
 #include <random>
 #include <stduuid/uuid.h>

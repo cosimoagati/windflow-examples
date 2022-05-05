@@ -22,6 +22,7 @@
 #include <iostream>
 #include <limits>
 #include <mutex>
+#include <numeric>
 #include <optional>
 #include <sstream>
 #include <string>
