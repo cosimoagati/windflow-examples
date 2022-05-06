@@ -928,7 +928,6 @@ public:
 template<typename InputType,
          void update_rankings(const InputType &, Rankings<string> &)>
 class RankerFunctor {
-    unsigned long    last_shipping_time = current_time_msecs();
     unsigned         count;
     Rankings<string> rankings;
     TupleMetadata    first_parent {0, 0};
