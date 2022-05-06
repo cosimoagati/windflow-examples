@@ -687,10 +687,9 @@ public:
                 }
                 delta -= time_units_between_ticks;
                 last_tick_time += time_units_between_ticks;
-                usleep(time_units_between_ticks / timeunit_scale_factor
-                       * 1000000);
-                now = current_time();
             }
+            usleep(time_units_between_ticks / timeunit_scale_factor * 1000000);
+            now = current_time();
         }
     }
 };
