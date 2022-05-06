@@ -22,6 +22,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unistd.h>
 #include <unordered_map>
 #include <vector>
 
@@ -672,10 +673,11 @@ public:
     }
 
     void operator()(Source_Shipper<OutputTuple> &shipper) {
-        const auto end_time = current_time() + duration;
+        unsigned long       now      = current_time();
+        const unsigned long end_time = now + duration;
 
-        while (current_time() < end_time) {
-            auto delta = difference(current_time(), last_tick_time);
+        while (now < end_time) {
+            unsigned long delta = difference(current_time(), last_tick_time);
             while (delta >= time_units_between_ticks) {
                 for (unsigned i = 0; i < replicas; ++i) {
                     OutputTuple tuple;
@@ -684,6 +686,9 @@ public:
                 }
                 delta -= time_units_between_ticks;
                 last_tick_time += time_units_between_ticks;
+                usleep(time_units_between_ticks / timeunit_scale_factor
+                       * 1000000);
+                now = current_time();
             }
         }
     }
