@@ -666,8 +666,7 @@ public:
           replicas {replicas} {
         if (time_units_between_ticks == 0) {
             cerr << "Error: the amount of time units between ticks "
-                    "must be "
-                    "positive\n";
+                    "must be positive\n";
             exit(EXIT_FAILURE);
         }
     }
