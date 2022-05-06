@@ -910,8 +910,7 @@ public:
             {
                 lock_guard lock {print_mutex};
                 clog << "[ROLLING COUNTER] Received tick tuple at "
-                        "time (in "
-                        "miliseconds) "
+                        "time (in miliseconds) "
                      << current_time_msecs() << '\n';
             }
 #endif
