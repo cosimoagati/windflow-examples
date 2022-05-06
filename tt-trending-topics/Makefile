@@ -8,7 +8,7 @@ INCLUDE_FLAGS = -I$(HOME)/.local/include -I$(HOME)/fastflow \
 
 LIBS = -pthread
 
-TT := tt
+TT := tt-timer-functors
 TT_SRCS := $(TT:=.cpp)
 TT_OBJS := $(TT_SRCS:.cpp=.o)
 
