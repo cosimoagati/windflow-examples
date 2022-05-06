@@ -23,6 +23,7 @@
 #include <random>
 #include <stduuid/uuid.h>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>

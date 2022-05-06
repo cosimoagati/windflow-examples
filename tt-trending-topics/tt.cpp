@@ -22,6 +22,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <unistd.h>
 #include <unordered_map>
 #include <vector>

@@ -26,6 +26,7 @@
 #include <regex>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <utility>
 #include <vector>
