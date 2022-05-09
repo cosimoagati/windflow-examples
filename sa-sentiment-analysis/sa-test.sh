@@ -1,7 +1,7 @@
 #!/bin/sh
 
 duration=120
-datecmd="date +%Y+%m-%d-%H-%M"
+datecmd="date +%Y-%m-%d-%H-%M"
 
 echo "Test started on $(date)"
 
