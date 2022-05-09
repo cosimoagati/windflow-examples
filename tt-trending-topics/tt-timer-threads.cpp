@@ -23,6 +23,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <type_traits>
 #include <unistd.h>
 #include <unordered_map>
 #include <vector>
@@ -884,6 +885,7 @@ public:
 
     void operator()(const Topic &topic, Shipper<Counts> &shipper) {
         if (!was_timer_thread_created) {
+            shipper.push({}); // Dummy tuple to wake up next node
             thread timer_thread {&RollingCounterFunctor::periodic_ship, this,
                                  ref(shipper)};
             timer_thread.detach();
@@ -940,6 +942,10 @@ public:
 
     void operator()(const InputType &counts, Shipper<RankingsTuple> &shipper) {
         if (!was_timer_thread_created) {
+            if constexpr (is_same_v<InputType, Counts>) {
+                shipper.push({}); // Dummy tuple to wake up next node
+            }
+
             thread timer_thread {
                 &RankerFunctor<InputType, update_rankings>::periodic_ship,
                 this, ref(shipper)};
