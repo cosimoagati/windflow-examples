@@ -13,7 +13,6 @@
 #include <string_view>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <system_error>
 #include <vector>
 
 #if defined(__GNUC__) || defined(__clang__)
