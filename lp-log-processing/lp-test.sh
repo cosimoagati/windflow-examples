@@ -9,7 +9,7 @@ for chaining in false true; do
     for i in $(seq 1 22); do
         outputdir="testresults-$($datecmd)"
         mkdir $outputdir
-        ./lp --duration="$duration" --parallelism="$i,$i,$i" \
+        ./lp --duration="$duration" --parallelism="$i,$i,$i,$i,$i,$i" \
              --chaining="$chaining" \
              --outputdir="$outputdir" >> "$outputdir/output.txt"
     done
