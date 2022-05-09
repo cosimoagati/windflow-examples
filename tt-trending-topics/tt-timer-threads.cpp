@@ -75,13 +75,14 @@ struct Parameters {
     Time_Policy_t    time_policy               = Time_Policy_t::INGRESS_TIME;
     unsigned         parallelism[num_nodes]    = {1, 1, 1, 1, 1, 1};
     unsigned         batch_size[num_nodes - 1] = {0, 0, 0, 0, 0};
-    unsigned         rolling_counter_frequency = 2;
-    unsigned         intermediate_ranker_frequency = 2;
-    unsigned         total_ranker_frequency        = 2;
-    unsigned         duration                      = 60;
-    unsigned         tuple_rate                    = 1000;
-    unsigned         sampling_rate                 = 100;
-    bool             use_chaining                  = false;
+
+    unsigned rolling_counter_frequency     = 2;
+    unsigned intermediate_ranker_frequency = 2;
+    unsigned total_ranker_frequency        = 2;
+    unsigned duration                      = 60;
+    unsigned tuple_rate                    = 1000;
+    unsigned sampling_rate                 = 100;
+    bool     use_chaining                  = false;
 };
 
 struct TupleMetadata {
