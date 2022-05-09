@@ -815,25 +815,18 @@ class RollingCounterFunctor {
     bool                         was_timer_thread_created = false;
 
     void periodic_ship(Shipper<Counts> &shipper) {
-        unsigned long last_tick_time = current_time();
-
         while (true) { // TODO:  is this stopped automatically by the runtime?
-            unsigned long delta = difference(current_time(), last_tick_time);
-            while (delta >= time_units_between_ticks) {
-#ifndef NDEBUG
-                {
-                    lock_guard lock {print_mutex};
-                    clog << "[ROLLING COUNTER] Received tick tuple at "
-                            "time (in miliseconds) "
-                         << current_time_msecs() << '\n';
-                }
-#endif
-                lock_guard lock {emit_mutex};
-                ship_all(shipper);
-                delta -= time_units_between_ticks;
-                last_tick_time += time_units_between_ticks;
-            }
             usleep(time_units_between_ticks / timeunit_scale_factor * 1000000);
+#ifndef NDEBUG
+            {
+                lock_guard lock {print_mutex};
+                clog << "[ROLLING COUNTER] Received tick tuple at "
+                        "time (in miliseconds) "
+                     << current_time_msecs() << '\n';
+            }
+#endif
+            lock_guard lock {emit_mutex};
+            ship_all(shipper);
         }
     }
 
@@ -918,25 +911,17 @@ class RankerFunctor {
     bool             was_timer_thread_created = false;
 
     void periodic_ship(Shipper<RankingsTuple> &shipper) {
-        unsigned long last_tick_time = current_time();
-
         while (true) {
-            unsigned long delta = difference(current_time(), last_tick_time);
-            while (delta >= time_units_between_ticks) {
-                lock_guard lock {emit_mutex};
-                shipper.push({first_parent, rankings});
-                first_parent = {0, 0};
-#ifndef NDEBUG
-                {
-                    lock_guard lock {print_mutex};
-                    clog << "[RANKER] Current rankings are " << rankings
-                         << '\n';
-                }
-#endif
-                delta -= time_units_between_ticks;
-                last_tick_time += time_units_between_ticks;
-            }
             usleep(time_units_between_ticks / timeunit_scale_factor * 1000000);
+            lock_guard lock {emit_mutex};
+            shipper.push({first_parent, rankings});
+            first_parent = {0, 0};
+#ifndef NDEBUG
+            {
+                lock_guard lock {print_mutex};
+                clog << "[RANKER] Current rankings are " << rankings << '\n';
+            }
+#endif
         }
     }
 

@@ -657,7 +657,6 @@ static mutex print_mutex;
 
 template<typename OutputTuple>
 class TimerFunctor {
-    unsigned long last_tick_time = current_time();
     unsigned long duration;
     unsigned long time_units_between_ticks;
     unsigned      replicas;
@@ -679,17 +678,12 @@ public:
         const unsigned long end_time = now + duration;
 
         while (now < end_time) {
-            unsigned long delta = difference(current_time(), last_tick_time);
-            while (delta >= time_units_between_ticks) {
-                for (unsigned i = 0; i < replicas; ++i) {
-                    OutputTuple tuple;
-                    tuple.is_tick_tuple = true;
-                    shipper.push(move(tuple));
-                }
-                delta -= time_units_between_ticks;
-                last_tick_time += time_units_between_ticks;
-            }
             usleep(time_units_between_ticks / timeunit_scale_factor * 1000000);
+            for (unsigned i = 0; i < replicas; ++i) {
+                OutputTuple tuple;
+                tuple.is_tick_tuple = true;
+                shipper.push(move(tuple));
+            }
             now = current_time();
         }
     }
