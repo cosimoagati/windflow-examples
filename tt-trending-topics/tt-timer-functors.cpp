@@ -868,14 +868,11 @@ class RollingCounterFunctor {
         if (actual_window_length_in_seconds != window_length_in_seconds) {
             {
                 lock_guard lock {print_mutex};
-                clog << "[ROLLING COUNTER] Warning: actual window "
-                        "length "
-                        "is "
+                clog << "[ROLLING COUNTER] Warning: actual window length is "
                      << actual_window_length_in_seconds
                      << " when it should be " << window_length_in_seconds
                      << " seconds (you can safely ignore this warning "
-                        "during "
-                        "the startup phase)\n";
+                        "during the startup phase)\n";
             }
         }
 #endif
