@@ -890,7 +890,7 @@ public:
 
     void operator()(const Topic &topic, Shipper<Counts> &shipper) {
         if (!was_timer_thread_created) {
-            thread timer_thread {&RollingCounterFunctor::periodic_ship, *this,
+            thread timer_thread {&RollingCounterFunctor::periodic_ship, this,
                                  ref(shipper)};
             timer_thread.detach();
             was_timer_thread_created = true;
@@ -956,7 +956,7 @@ public:
         if (!was_timer_thread_created) {
             thread timer_thread {
                 &RankerFunctor<InputType, update_rankings>::periodic_ship,
-                *this, ref(shipper)};
+                this, ref(shipper)};
             timer_thread.detach();
             was_timer_thread_created = true;
 #ifndef NDEBUG
