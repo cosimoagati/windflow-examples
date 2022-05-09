@@ -968,7 +968,6 @@ public:
 #endif
         }
 
-        cout << "culo\n";
         lock_guard lock {emit_mutex};
         update_rankings(counts, rankings);
         if (first_parent.id == 0 && first_parent.timestamp == 0) {
