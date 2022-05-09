@@ -1078,7 +1078,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .build();
 
     RollingCounterFunctor rolling_counter_functor {
-        parameters.intermediate_ranker_frequency};
+        parameters.rolling_counter_frequency};
     auto rolling_counter_node =
         FlatMap_Builder {rolling_counter_functor}
             .withParallelism(parameters.parallelism[rolling_counter_id])
