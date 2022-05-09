@@ -21,6 +21,7 @@
 #include <getopt.h>
 #include <maxminddb.h>
 #include <mutex>
+#include <nlohmann/json.hpp>
 #include <numeric>
 #include <optional>
 #include <regex>
@@ -985,6 +986,76 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     return graph;
 }
 
+static inline void serialize_to_json(const Metric<unsigned long> &metric,
+                                     const Parameters &           parameters,
+                                     unsigned long total_measurements) {
+    nlohmann::ordered_json json_stats;
+    json_stats["date"]                 = get_datetime_string();
+    json_stats["name"]                 = metric.name();
+    json_stats["time policy"]          = parameters.time_policy;
+    json_stats["parallelism"]          = parameters.parallelism;
+    json_stats["batch size"]           = parameters.batch_size;
+    json_stats["duration"]             = parameters.duration;
+    json_stats["tuple_rate"]           = parameters.tuple_rate;
+    json_stats["sampling_rate"]        = parameters.sampling_rate;
+    json_stats["chaining enabled"]     = parameters.use_chaining;
+    json_stats["time unit"]            = std::string {timeunit_string} + 's';
+    json_stats["sampled measurements"] = metric.size();
+    json_stats["total measurements"]   = total_measurements;
+
+    switch (parameters.execution_mode) {
+    case Execution_Mode_t::DEFAULT:
+        json_stats["execution mode"] = "default";
+        break;
+    case Execution_Mode_t::DETERMINISTIC:
+        json_stats["execution mode"] = "deterministic";
+        break;
+    case Execution_Mode_t::PROBABILISTIC:
+        json_stats["execution mode"] = "probabilistic";
+        break;
+    default:
+        assert(false);
+        break;
+    }
+
+    switch (parameters.time_policy) {
+    case Time_Policy_t::INGRESS_TIME:
+        json_stats["time policy"] = "ingress time";
+        break;
+    case Time_Policy_t::EVENT_TIME:
+        json_stats["time policy"] = "event time";
+        break;
+    default:
+        assert(false);
+        break;
+    }
+
+    if (!metric.empty()) {
+        const auto mean =
+            accumulate(metric.begin(), metric.end(), 0.0) / metric.size();
+        json_stats["mean"] = mean;
+
+        for (const auto percentile : {0.0, 0.05, 0.25, 0.5, 0.75, 0.95, 1.0}) {
+            const auto percentile_value_position =
+                metric.begin() + (metric.size() - 1) * percentile;
+            const auto label =
+                std::to_string(static_cast<int>(percentile * 100))
+                + "th percentile ";
+            json_stats[label] = *percentile_value_position;
+        }
+    } else {
+        json_stats["mean"] = 0;
+        for (const auto percentile : {"0", "25", "50", "75", "95", "100"}) {
+            const auto label  = std::string {percentile} + "th percentile";
+            json_stats[label] = 0;
+        }
+    }
+    create_directory_if_not_exists(parameters.metric_output_directory);
+    ofstream fs {string {parameters.metric_output_directory}
+                 + std::string {"/metric-"} + metric.name() + ".json"};
+    fs << json_stats.dump(4) << '\n';
+}
+
 int main(int argc, char *argv[]) {
     Parameters parameters;
     parse_args(argc, argv, parameters);
@@ -999,23 +1070,17 @@ int main(int argc, char *argv[]) {
     graph.run();
     const auto elapsed_time = difference(current_time(), start_time);
 
-    serialize_to_json(global_latency_metric,
-                      parameters.metric_output_directory,
+    serialize_to_json(global_latency_metric, parameters,
                       global_received_tuples);
-    serialize_to_json(global_volume_latency_metric,
-                      parameters.metric_output_directory,
+    serialize_to_json(global_volume_latency_metric, parameters,
                       global_volume_received_tuples);
-    serialize_to_json(global_status_latency_metric,
-                      parameters.metric_output_directory,
+    serialize_to_json(global_status_latency_metric, parameters,
                       global_status_received_tuples);
-    serialize_to_json(global_geo_latency_metric,
-                      parameters.metric_output_directory,
+    serialize_to_json(global_geo_latency_metric, parameters,
                       global_geo_received_tuples);
-    serialize_to_json(global_interdeparture_metric,
-                      parameters.metric_output_directory,
+    serialize_to_json(global_interdeparture_metric, parameters,
                       global_received_tuples);
-    serialize_to_json(global_service_time_metric,
-                      parameters.metric_output_directory,
+    serialize_to_json(global_service_time_metric, parameters,
                       global_received_tuples);
 
     const auto average_latency =
