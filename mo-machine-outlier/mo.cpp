@@ -592,17 +592,16 @@ class ObserverScorerFunctor {
 public:
     void operator()(const SourceTuple &              tuple,
                     Shipper<ObservationResultTuple> &shipper) {
-        const auto current_measurement_timestamp =
-            tuple.observation.measurement_timestamp;
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
             clog << "[OBSERVER SCORER] Received tuple with observation "
                     "timestamp: "
-                 << current_measurement_timestamp << '\n';
+                 << tuple.observation.measurement_timestamp << '\n';
         }
 #endif
-        if (current_measurement_timestamp > last_measurement_timestamp) {
+        if (tuple.observation.measurement_timestamp
+            > last_measurement_timestamp) {
             if (!observation_list.empty()) {
                 const auto score_package_list =
                     scorer.get_scores(observation_list);
@@ -621,7 +620,8 @@ public:
                 }
                 observation_list.clear();
             }
-            last_measurement_timestamp = current_measurement_timestamp;
+            last_measurement_timestamp =
+                tuple.observation.measurement_timestamp;
         }
 
         if (observation_list.empty()) {
