@@ -185,16 +185,16 @@ parse_google_trace(const string &trace) {
 
 static inline optional<MachineMetadata>
 parse_alibaba_trace(const string &trace) {
-    const auto      values             = string_split(trace, ',');
+    const auto values = string_split(trace, ',');
+    if (values.size() != 7) {
+        return {};
+    }
+
     const unsigned  timestamp_index    = 1;
     const unsigned  machine_id_index   = 0;
     const unsigned  cpu_usage_index    = 2;
     const unsigned  memory_usage_index = 3;
     MachineMetadata metadata;
-
-    if (values.size() != 7) {
-        return {};
-    }
 
     metadata.machine_ip = values[machine_id_index];
     metadata.measurement_timestamp =
