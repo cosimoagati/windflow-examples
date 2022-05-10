@@ -93,7 +93,7 @@ struct MachineMetadata {
     double        cpu_usage;
     double        memory_usage;
     double        score;
-    unsigned long measurement_timestamp;
+    unsigned long timestamp;
 };
 
 #ifndef NDEBUG
@@ -101,7 +101,7 @@ ostream &operator<<(ostream &stream, const MachineMetadata &metadata) {
     stream << "Machine ip: " << metadata.machine_ip
            << ", CPU usage: " << metadata.cpu_usage
            << ", memory usage: " << metadata.memory_usage
-           << ", observation timestamp: " << metadata.measurement_timestamp;
+           << ", observation timestamp: " << metadata.timestamp;
     return stream;
 }
 #endif
@@ -176,9 +176,9 @@ parse_google_trace(const string &trace) {
         return {};
     }
 
-    metadata.machine_ip            = values[machine_id_index];
-    metadata.measurement_timestamp = stoul(values[timestamp_index].data());
-    metadata.cpu_usage             = stod(values[cpu_usage_index].data()) * 10;
+    metadata.machine_ip   = values[machine_id_index];
+    metadata.timestamp    = stoul(values[timestamp_index].data());
+    metadata.cpu_usage    = stod(values[cpu_usage_index].data()) * 10;
     metadata.memory_usage = stod(values[memory_usage_index].data()) * 10;
     return metadata;
 }
@@ -196,9 +196,8 @@ parse_alibaba_trace(const string &trace) {
     const unsigned  memory_usage_index = 3;
     MachineMetadata metadata;
 
-    metadata.machine_ip = values[machine_id_index];
-    metadata.measurement_timestamp =
-        stoul(values[timestamp_index].data()) * 1000;
+    metadata.machine_ip   = values[machine_id_index];
+    metadata.timestamp    = stoul(values[timestamp_index].data()) * 1000;
     metadata.cpu_usage    = stod(values[cpu_usage_index].data());
     metadata.memory_usage = stod(values[memory_usage_index].data());
     return metadata;
@@ -455,7 +454,7 @@ public:
 
         while (current_time() < end_time) {
             auto current_observation = machine_metadata[index];
-            current_observation.measurement_timestamp +=
+            current_observation.timestamp +=
                 measurement_timestamp_additional_amount;
 #ifndef NDEBUG
             {
@@ -469,7 +468,7 @@ public:
             if (index == 0) {
                 if (measurement_timestamp_additional_amount == 0) {
                     measurement_timestamp_increase_step =
-                        current_observation.measurement_timestamp;
+                        current_observation.timestamp;
                 }
                 measurement_timestamp_additional_amount +=
                     measurement_timestamp_increase_step;
@@ -597,11 +596,10 @@ public:
             lock_guard lock {print_mutex};
             clog << "[OBSERVER SCORER] Received tuple with observation "
                     "timestamp: "
-                 << tuple.observation.measurement_timestamp << '\n';
+                 << tuple.observation.timestamp << '\n';
         }
 #endif
-        if (tuple.observation.measurement_timestamp
-            > last_measurement_timestamp) {
+        if (tuple.observation.timestamp > last_measurement_timestamp) {
             if (!observation_list.empty()) {
                 const auto score_package_list =
                     scorer.get_scores(observation_list);
@@ -620,8 +618,7 @@ public:
                 }
                 observation_list.clear();
             }
-            last_measurement_timestamp =
-                tuple.observation.measurement_timestamp;
+            last_measurement_timestamp = tuple.observation.timestamp;
         }
 
         if (observation_list.empty()) {
