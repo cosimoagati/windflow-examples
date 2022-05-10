@@ -584,10 +584,10 @@ public:
 
 template<typename Scorer>
 class ObserverScorerFunctor {
-    Scorer                  scorer {};
-    vector<MachineMetadata> observation_list {};
-    TupleMetadata           parent_tuple_metadata;
-    unsigned long           last_measurement_timestamp {0};
+    Scorer                  scorer;
+    vector<MachineMetadata> observation_list;
+    TupleMetadata           parent_tuple_metadata {0, 0};
+    unsigned long           last_measurement_timestamp = 0;
 
 public:
     void operator()(const SourceTuple &              tuple,
@@ -865,18 +865,16 @@ public:
     void operator()(const AnomalyResultTuple &          input,
                     Shipper<AlertTriggererResultTuple> &shipper) {
         const auto timestamp = input.timestamp;
-
         if (timestamp > previous_timestamp) {
             if (!stream_list.empty()) {
                 const auto abnormal_streams =
                     identify_abnormal_streams(stream_list);
-                const size_t median_idx {stream_list.size() / 2};
-                const auto   min_score = abnormal_streams[0].anomaly_score;
+                const size_t median_idx = stream_list.size() / 2;
+                const double min_score  = abnormal_streams[0].anomaly_score;
 
                 assert(median_idx < abnormal_streams.size());
                 const auto median_score =
                     abnormal_streams[median_idx].anomaly_score;
-
 #ifndef NDEBUG
                 {
                     lock_guard lock {print_mutex};
@@ -885,7 +883,6 @@ public:
                          << ", median score: " << median_score << '\n';
                 }
 #endif
-
                 for (size_t i = 0; i < abnormal_streams.size(); ++i) {
                     const auto &stream_profile = abnormal_streams[i];
                     const auto  stream_score   = stream_profile.anomaly_score;
