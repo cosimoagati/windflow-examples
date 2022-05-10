@@ -996,7 +996,8 @@ public:
                      << " arrival time: " << arrival_time
                      << " observation ts: " << input->observation_timestamp
                      << " execution ts: " << input->execution_timestamp
-                     << " latency: " << latency << '\n';
+                     << " latency: " << latency << ' ' << timeunit_string
+                     << "s\n";
             }
 #endif
         } else {
