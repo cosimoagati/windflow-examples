@@ -113,38 +113,33 @@ struct ScorePackage {
     T      data;
 };
 
-struct TupleMetadata {
-    unsigned long id;
-    unsigned long timestamp;
-};
-
 struct SourceTuple {
-    TupleMetadata   metadata;
     MachineMetadata observation;
+    unsigned long   execution_timestamp;
 };
 
 struct ObservationResultTuple {
-    TupleMetadata   metadata;
     string          id;
     double          score;
-    unsigned long   timestamp;
+    unsigned long   observation_timestamp;
+    unsigned long   execution_timestamp;
     MachineMetadata observation;
 };
 
 struct AnomalyResultTuple {
-    TupleMetadata   metadata;
     string          id;
     double          anomaly_score;
-    unsigned long   timestamp;
+    unsigned long   observation_timestamp;
+    unsigned long   execution_timestamp;
     MachineMetadata observation;
     double          individual_score;
 };
 
 struct AlertTriggererResultTuple {
-    TupleMetadata   metadata;
     string          id;
     double          anomaly_score;
-    unsigned long   timestamp;
+    unsigned long   observation_timestamp;
+    unsigned long   execution_timestamp;
     bool            is_abnormal;
     MachineMetadata observation; // XXX This field may not be correct!
 };
@@ -474,10 +469,8 @@ public:
                     measurement_timestamp_increase_step;
             }
 
-            const auto          timestamp = current_time();
-            const TupleMetadata tuple_metadata {
-                timestamp, timestamp}; // Using timestamp as ID
-            shipper.push({tuple_metadata, current_observation});
+            const auto execution_timestamp = current_time();
+            shipper.push({current_observation, execution_timestamp});
             ++sent_tuples;
 
             if (tuple_rate_per_second > 0) {
@@ -585,8 +578,8 @@ template<typename Scorer>
 class ObserverScorerFunctor {
     Scorer                  scorer;
     vector<MachineMetadata> observation_list;
-    TupleMetadata           parent_tuple_metadata {0, 0};
     unsigned long           last_measurement_timestamp = 0;
+    unsigned long           last_execution_timestamp   = 0;
 
 public:
     void operator()(const SourceTuple &              tuple,
@@ -612,9 +605,9 @@ public:
                              << '\n';
                     }
 #endif
-                    shipper.push({parent_tuple_metadata, package.id,
-                                  package.score, last_measurement_timestamp,
-                                  package.data});
+                    shipper.push({package.id, package.score,
+                                  last_measurement_timestamp,
+                                  last_execution_timestamp, package.data});
                 }
                 observation_list.clear();
             }
@@ -622,7 +615,7 @@ public:
         }
 
         if (observation_list.empty()) {
-            parent_tuple_metadata = tuple.metadata;
+            last_execution_timestamp = tuple.execution_timestamp;
         }
         observation_list.push_back(tuple.observation);
     }
@@ -734,8 +727,12 @@ public:
                  << ", individual score: " << tuple.score << '\n';
         }
 #endif
-        return {tuple.metadata,  tuple.id,          score_sum,
-                tuple.timestamp, tuple.observation, tuple.score};
+        return {tuple.id,
+                score_sum,
+                tuple.observation_timestamp,
+                tuple.execution_timestamp,
+                tuple.observation,
+                tuple.score};
     }
 };
 
@@ -853,7 +850,7 @@ identify_abnormal_streams(vector<AnomalyResultTuple> &stream_list) {
 class AlertTriggererFunctor {
     inline static const double dupper = sqrt(2);
 
-    unsigned long              previous_timestamp = 0;
+    unsigned long              previous_observation_timestamp = 0;
     vector<AnomalyResultTuple> stream_list;
     double min_data_instance_score = numeric_limits<double>::max();
     double max_data_instance_score = 0.0;
@@ -861,16 +858,15 @@ class AlertTriggererFunctor {
 public:
     void operator()(const AnomalyResultTuple &          input,
                     Shipper<AlertTriggererResultTuple> &shipper) {
-        const auto timestamp = input.timestamp;
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
             clog << "[ALERT TRIGGERER] Received input with observation "
                     "timestamp: "
-                 << input.timestamp << '\n';
+                 << input.observation_timestamp << '\n';
         }
 #endif
-        if (timestamp > previous_timestamp) {
+        if (input.observation_timestamp > previous_observation_timestamp) {
             if (!stream_list.empty()) {
                 const auto abnormal_streams =
                     identify_abnormal_streams(stream_list);
@@ -907,28 +903,29 @@ public:
                                  << stream_profile.id
                                  << ", stream score: " << stream_score
                                  << ", stream profile timestamp: "
-                                 << stream_profile.timestamp
+                                 << stream_profile.observation_timestamp
                                  << ", is_abnormal: "
                                  << (is_abnormal ? "true" : "false")
                                  << ", with observation (" << input.observation
                                  << ")\n";
                         }
 #endif
-                        shipper.push({input.metadata, stream_profile.id,
-                                      stream_score, stream_profile.timestamp,
-                                      is_abnormal, input.observation});
+                        shipper.push({stream_profile.id, stream_score,
+                                      stream_profile.observation_timestamp,
+                                      input.execution_timestamp, is_abnormal,
+                                      input.observation});
                     }
                 }
                 stream_list.clear();
                 min_data_instance_score = numeric_limits<double>::max();
                 max_data_instance_score = 0.0;
             }
-            previous_timestamp = timestamp;
+            previous_observation_timestamp = input.observation_timestamp;
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
                 clog << "[ALERT TRIGGERER] Previous timestamp is now: "
-                     << previous_timestamp << '\n';
+                     << previous_observation_timestamp << '\n';
             }
 #endif
         }
@@ -971,7 +968,7 @@ public:
         if (input) {
             const auto arrival_time = current_time();
             const auto latency =
-                difference(arrival_time, input->metadata.timestamp);
+                difference(arrival_time, input->execution_timestamp);
             const auto interdeparture_time =
                 difference(arrival_time, last_arrival_time);
 
@@ -997,8 +994,8 @@ public:
                      << "anomaly score: " << input->anomaly_score
                      << " is_abnormal: " << input->is_abnormal
                      << " arrival time: " << arrival_time
-                     << " observation ts: " << input->timestamp
-                     << " execution ts: " << input->metadata.timestamp
+                     << " observation ts: " << input->observation_timestamp
+                     << " execution ts: " << input->execution_timestamp
                      << " latency: " << latency << '\n';
             }
 #endif
