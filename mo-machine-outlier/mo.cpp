@@ -478,7 +478,6 @@ public:
             const auto          timestamp = current_time();
             const TupleMetadata tuple_metadata {
                 timestamp, timestamp}; // Using timestamp as ID
-
             shipper.push({tuple_metadata, current_observation});
             ++sent_tuples;
 
