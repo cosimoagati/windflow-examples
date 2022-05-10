@@ -865,6 +865,14 @@ public:
     void operator()(const AnomalyResultTuple &          input,
                     Shipper<AlertTriggererResultTuple> &shipper) {
         const auto timestamp = input.timestamp;
+#ifndef NDEBUG
+        {
+            lock_guard lock {print_mutex};
+            clog << "[ALERT TRIGGERER] Received input with observation "
+                    "timestamp: "
+                 << input.timestamp << '\n';
+        }
+#endif
         if (timestamp > previous_timestamp) {
             if (!stream_list.empty()) {
                 const auto abnormal_streams =
@@ -919,6 +927,13 @@ public:
                 max_data_instance_score = 0.0;
             }
             previous_timestamp = timestamp;
+#ifndef NDEBUG
+            {
+                lock_guard lock {print_mutex};
+                clog << "[ALERT TRIGGERER] Previous timestamp is now: "
+                     << previous_timestamp << '\n';
+            }
+#endif
         }
 
         if (input.individual_score > max_data_instance_score) {
