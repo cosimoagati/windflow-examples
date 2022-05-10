@@ -432,6 +432,8 @@ static mutex print_mutex;
 class SourceFunctor {
     static constexpr auto   default_path = "machine-usage.csv";
     vector<MachineMetadata> machine_metadata;
+    unsigned long           measurement_timestamp_additional_amount = 0;
+    unsigned long           measurement_timestamp_increase_step;
     unsigned long           duration;
     unsigned                tuple_rate_per_second;
 
@@ -452,8 +454,9 @@ public:
         size_t        index       = 0;
 
         while (current_time() < end_time) {
-            const auto current_observation = machine_metadata[index];
-            const auto timestamp           = current_time();
+            auto current_observation = machine_metadata[index];
+            current_observation.measurement_timestamp +=
+                measurement_timestamp_additional_amount;
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
@@ -462,12 +465,22 @@ public:
                      << current_observation << '\n';
             }
 #endif
+            index = (index + 1) % machine_metadata.size();
+            if (index == 0) {
+                if (measurement_timestamp_additional_amount == 0) {
+                    measurement_timestamp_increase_step =
+                        current_observation.measurement_timestamp;
+                }
+                measurement_timestamp_additional_amount +=
+                    measurement_timestamp_increase_step;
+            }
+
+            const auto          timestamp = current_time();
             const TupleMetadata tuple_metadata {
                 timestamp, timestamp}; // Using timestamp as ID
 
             shipper.push({tuple_metadata, current_observation});
             ++sent_tuples;
-            index = (index + 1) % machine_metadata.size();
 
             if (tuple_rate_per_second > 0) {
                 const unsigned long delay =
