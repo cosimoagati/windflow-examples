@@ -984,8 +984,9 @@ public:
                      << "anomaly score: " << input->anomaly_score
                      << " is_abnormal: " << input->is_abnormal
                      << " arrival time: " << arrival_time
-                     << " ts:" << input->timestamp << " latency: " << latency
-                     << '\n';
+                     << " observation ts: " << input->timestamp
+                     << " execution ts: " << input->metadata.timestamp
+                     << " latency: " << latency << '\n';
             }
 #endif
         } else {
