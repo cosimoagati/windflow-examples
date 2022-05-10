@@ -186,10 +186,10 @@ parse_google_trace(const string &trace) {
 static inline optional<MachineMetadata>
 parse_alibaba_trace(const string &trace) {
     const auto      values             = string_split(trace, ',');
-    const auto      timestamp_index    = 1;
-    const auto      machine_id_index   = 0;
-    const auto      cpu_usage_index    = 2;
-    const auto      memory_usage_index = 3;
+    const unsigned  timestamp_index    = 1;
+    const unsigned  machine_id_index   = 0;
+    const unsigned  cpu_usage_index    = 2;
+    const unsigned  memory_usage_index = 3;
     MachineMetadata metadata;
 
     if (values.size() != 7) {
@@ -973,7 +973,8 @@ public:
                     RuntimeContext &                     context) {
         if (input) {
             const auto arrival_time = current_time();
-            const auto latency = difference(arrival_time, input->timestamp);
+            const auto latency =
+                difference(arrival_time, input->metadata.timestamp);
             const auto interdeparture_time =
                 difference(arrival_time, last_arrival_time);
 
