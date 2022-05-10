@@ -205,7 +205,7 @@ parse_alibaba_trace(const string &trace) {
 }
 
 static inline double eucledean_norm(const valarray<double> &elements) {
-    double result {0.0};
+    double result = 0.0;
     for (const auto &x : elements) {
         result += pow(x, 2.0);
     }
