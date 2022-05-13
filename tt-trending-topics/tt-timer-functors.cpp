@@ -86,29 +86,23 @@ struct Parameters {
     bool     use_chaining                  = false;
 };
 
-struct TupleMetadata {
-    unsigned long id;
-    unsigned long timestamp;
-};
-
 struct Tweet {
-    TupleMetadata metadata;
     string        id;
     string        text;
     unsigned long timestamp;
 };
 
 struct Topic {
-    TupleMetadata metadata;
     string        word;
+    unsigned long timestamp;
     bool          is_tick_tuple;
 };
 
 struct Counts {
-    TupleMetadata metadata;
     string        word;
     unsigned long count;
     size_t        window_length;
+    unsigned long timestamp;
     bool          is_tick_tuple;
 };
 
@@ -263,8 +257,8 @@ ostream &operator<<(ostream &stream, const Rankings<T> &rankings) {
 #endif
 
 struct RankingsTuple {
-    TupleMetadata    metadata;
     Rankings<string> rankings;
+    unsigned long    timestamp;
     bool             is_tick_tuple;
 };
 
@@ -811,7 +805,7 @@ public:
             }
 #endif
             const auto timestamp = current_time();
-            shipper.push({{timestamp, timestamp}, "", move(tweet), timestamp});
+            shipper.push({"", move(tweet), timestamp});
             ++sent_tuples;
             index = (index + 1) % tweets.size();
 
@@ -840,7 +834,7 @@ public:
                              << '\n';
                     }
 #endif
-                    shipper.push({tweet.metadata, string {word}, false});
+                    shipper.push({string {word}, tweet.timestamp, false});
                 }
             }
         }
@@ -851,8 +845,7 @@ class RollingCounterFunctor {
     unsigned                     window_length_in_seconds;
     SlidingWindowCounter<string> counter;
     NthLastModifiedTimeTracker   last_modified_tracker;
-
-    TupleMetadata first_parent {0, 0};
+    unsigned long                parent_timestamp = 0;
 
     void ship_all(Shipper<Counts> &shipper) {
         const auto counts = counter.get_counts_then_advance_window();
@@ -882,10 +875,10 @@ class RollingCounterFunctor {
                      << " with count: " << count << '\n';
             }
 #endif
-            shipper.push({first_parent, word, count,
-                          actual_window_length_in_seconds, false});
+            shipper.push({word, count, actual_window_length_in_seconds,
+                          parent_timestamp, false});
         }
-        first_parent = {0, 0};
+        parent_timestamp = 0;
     }
 
 public:
@@ -906,12 +899,14 @@ public:
                      << current_time_msecs() << '\n';
             }
 #endif
-            ship_all(shipper);
+            if (parent_timestamp != 0) {
+                ship_all(shipper);
+            }
         } else {
             const auto obj = topic.word;
             counter.increment_count(obj);
-            if (first_parent.id == 0 && first_parent.timestamp == 0) {
-                first_parent = topic.metadata;
+            if (parent_timestamp == 0) {
+                parent_timestamp = topic.timestamp;
             }
         }
     }
@@ -922,15 +917,17 @@ template<typename InputType,
 class RankerFunctor {
     unsigned         count;
     Rankings<string> rankings;
-    TupleMetadata    first_parent {0, 0};
+    unsigned long    parent_timestamp = 0;
 
 public:
     RankerFunctor(unsigned count = 10) : count {count} {}
 
     void operator()(const InputType &counts, Shipper<RankingsTuple> &shipper) {
         if (counts.is_tick_tuple) {
-            shipper.push({first_parent, rankings, false});
-            first_parent = {0, 0};
+            if (parent_timestamp != 0) {
+                shipper.push({rankings, parent_timestamp, false});
+                parent_timestamp = 0;
+            }
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
@@ -939,8 +936,8 @@ public:
 #endif
         } else {
             update_rankings(counts, rankings);
-            if (first_parent.id == 0 && first_parent.timestamp == 0) {
-                first_parent = counts.metadata;
+            if (parent_timestamp == 0) {
+                parent_timestamp = counts.timestamp;
             }
         }
     }
@@ -991,8 +988,7 @@ public:
     void operator()(optional<RankingsTuple> &input, RuntimeContext &context) {
         if (input) {
             const auto arrival_time = current_time();
-            const auto latency =
-                difference(arrival_time, input->metadata.timestamp);
+            const auto latency = difference(arrival_time, input->timestamp);
             const auto interdeparture_time =
                 difference(arrival_time, last_arrival_time);
 
@@ -1018,8 +1014,8 @@ public:
                         "following "
                         "rankings: "
                      << input->rankings << ", arrival time: " << arrival_time
-                     << " ts:" << input->metadata.timestamp
-                     << " latency: " << latency << '\n';
+                     << " ts: " << input->timestamp << " latency: " << latency
+                     << '\n';
             }
 #endif
         } else {

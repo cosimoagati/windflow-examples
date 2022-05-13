@@ -87,28 +87,22 @@ struct Parameters {
     bool     use_chaining                  = false;
 };
 
-struct TupleMetadata {
-    unsigned long id;
-    unsigned long timestamp;
-};
-
 struct Tweet {
-    TupleMetadata metadata;
     string        id;
     string        text;
     unsigned long timestamp;
 };
 
 struct Topic {
-    TupleMetadata metadata;
     string        word;
+    unsigned long timestamp;
 };
 
 struct Counts {
-    TupleMetadata metadata;
     string        word;
     unsigned long count;
     size_t        window_length;
+    unsigned long timestamp;
 };
 
 static const struct option long_opts[] = {
@@ -262,8 +256,8 @@ ostream &operator<<(ostream &stream, const Rankings<T> &rankings) {
 #endif
 
 struct RankingsTuple {
-    TupleMetadata    metadata;
     Rankings<string> rankings;
+    unsigned long    timestamp;
 };
 
 template<typename T>
@@ -771,7 +765,7 @@ public:
             }
 #endif
             const auto timestamp = current_time();
-            shipper.push({{timestamp, timestamp}, "", move(tweet), timestamp});
+            shipper.push({"", move(tweet), timestamp});
             ++sent_tuples;
             index = (index + 1) % tweets.size();
 
@@ -800,7 +794,7 @@ public:
                              << '\n';
                     }
 #endif
-                    shipper.push({tweet.metadata, string {word}});
+                    shipper.push({string {word}, tweet.timestamp});
                 }
             }
         }
@@ -812,7 +806,7 @@ class RollingCounterFunctor {
     unsigned                     window_length_in_seconds;
     SlidingWindowCounter<string> counter;
     NthLastModifiedTimeTracker   last_modified_tracker;
-    TupleMetadata                first_parent {0, 0};
+    unsigned long                parent_timestamp = 0;
     mutex                        emit_mutex;
     bool                         was_timer_thread_created = false;
 
@@ -828,7 +822,9 @@ class RollingCounterFunctor {
             }
 #endif
             lock_guard lock {emit_mutex};
-            ship_all(shipper);
+            if (parent_timestamp != 0) {
+                ship_all(shipper);
+            }
         }
     }
 
@@ -860,10 +856,10 @@ class RollingCounterFunctor {
                      << " with count: " << count << '\n';
             }
 #endif
-            shipper.push(
-                {first_parent, word, count, actual_window_length_in_seconds});
+            shipper.push({word, count, actual_window_length_in_seconds,
+                          parent_timestamp});
         }
-        first_parent = {0, 0};
+        parent_timestamp = 0;
     }
 
 public:
@@ -881,7 +877,7 @@ public:
           window_length_in_seconds {other.window_length_in_seconds},
           counter {other.counter},
           last_modified_tracker {other.last_modified_tracker},
-          first_parent {other.first_parent}, emit_mutex {},
+          parent_timestamp {other.parent_timestamp}, emit_mutex {},
           was_timer_thread_created {other.was_timer_thread_created} {}
 
     void operator()(const Topic &topic, Shipper<Counts> &shipper) {
@@ -896,8 +892,8 @@ public:
         lock_guard lock {emit_mutex};
         const auto obj = topic.word;
         counter.increment_count(obj);
-        if (first_parent.id == 0 && first_parent.timestamp == 0) {
-            first_parent = topic.metadata;
+        if (parent_timestamp == 0) {
+            parent_timestamp = topic.timestamp;
         }
     }
 };
@@ -909,7 +905,7 @@ class RankerFunctor {
     unsigned long    last_shipping_time = current_time_msecs();
     unsigned         count;
     Rankings<string> rankings;
-    TupleMetadata    first_parent {0, 0};
+    unsigned long    parent_timestamp = 0;
     mutex            emit_mutex;
     bool             was_timer_thread_created = false;
 
@@ -917,8 +913,10 @@ class RankerFunctor {
         while (true) {
             usleep(time_units_between_ticks / timeunit_scale_factor * 1000000);
             lock_guard lock {emit_mutex};
-            shipper.push({first_parent, rankings});
-            first_parent = {0, 0};
+            if (parent_timestamp != 0) {
+                shipper.push({rankings, parent_timestamp});
+                parent_timestamp = 0;
+            }
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
@@ -937,7 +935,7 @@ public:
     RankerFunctor(const RankerFunctor<InputType, update_rankings> &other)
         : time_units_between_ticks {other.time_units_between_ticks},
           last_shipping_time {other.last_shipping_time}, count {other.count},
-          rankings {other.rankings}, first_parent {other.first_parent},
+          rankings {other.rankings}, parent_timestamp {other.parent_timestamp},
           emit_mutex {}, was_timer_thread_created {
                              other.was_timer_thread_created} {}
 
@@ -962,8 +960,8 @@ public:
 
         lock_guard lock {emit_mutex};
         update_rankings(counts, rankings);
-        if (first_parent.id == 0 && first_parent.timestamp == 0) {
-            first_parent = counts.metadata;
+        if (parent_timestamp == 0) {
+            parent_timestamp = counts.timestamp;
         }
     }
 };
@@ -1013,8 +1011,7 @@ public:
     void operator()(optional<RankingsTuple> &input, RuntimeContext &context) {
         if (input) {
             const auto arrival_time = current_time();
-            const auto latency =
-                difference(arrival_time, input->metadata.timestamp);
+            const auto latency = difference(arrival_time, input->timestamp);
             const auto interdeparture_time =
                 difference(arrival_time, last_arrival_time);
 
@@ -1040,8 +1037,8 @@ public:
                         "following "
                         "rankings: "
                      << input->rankings << ", arrival time: " << arrival_time
-                     << " ts:" << input->metadata.timestamp
-                     << " latency: " << latency << '\n';
+                     << " ts: " << input->timestamp << " latency: " << latency
+                     << '\n';
             }
 #endif
         } else {
