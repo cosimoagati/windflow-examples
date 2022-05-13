@@ -9,7 +9,7 @@ for batching in 0 10 100 1000 1000; do
     for chaining in false true; do
         for i in $(seq 1 22); do
             outputdir="testresults-$($datecmd)"
-            mkdir $outputdir
+            mkdir -p $outputdir
             set -x
             ./sa --duration="$duration" --parallelism="$i,$i,$i" \
                  --batch="$batching,$batching" \
