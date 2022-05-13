@@ -415,10 +415,10 @@ static inline void print_statistics(unsigned long elapsed_time,
  */
 static atomic_ulong          global_sent_tuples {0};
 static atomic_ulong          global_received_tuples {0};
-static Metric<unsigned long> global_latency_metric {"latency"};
+static Metric<unsigned long> global_latency_metric {"mo-latency"};
 static Metric<unsigned long> global_interdeparture_metric {
-    "interdeparture-time"};
-static Metric<unsigned long> global_service_time_metric {"service-time"};
+    "mo-interdeparture-time"};
+static Metric<unsigned long> global_service_time_metric {"mo-service-time"};
 #ifndef NDEBUG
 static mutex print_mutex;
 #endif

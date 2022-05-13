@@ -530,13 +530,15 @@ static atomic_ulong global_volume_received_tuples {0};
 static atomic_ulong global_status_received_tuples {0};
 static atomic_ulong global_geo_received_tuples {0};
 
-static Metric<unsigned long> global_latency_metric {"latency"};
-static Metric<unsigned long> global_volume_latency_metric {"volume-latency"};
-static Metric<unsigned long> global_status_latency_metric {"status-latency"};
-static Metric<unsigned long> global_geo_latency_metric {"geo-latency"};
+static Metric<unsigned long> global_latency_metric {"lp-latency"};
+static Metric<unsigned long> global_volume_latency_metric {
+    "lp-volume-latency"};
+static Metric<unsigned long> global_status_latency_metric {
+    "lp-status-latency"};
+static Metric<unsigned long> global_geo_latency_metric {"lp-geo-latency"};
 static Metric<unsigned long> global_interdeparture_metric {
-    "interdeparture-time"};
-static Metric<unsigned long> global_service_time_metric {"service-time"};
+    "lp-interdeparture-time"};
+static Metric<unsigned long> global_service_time_metric {"lp-service-time"};
 #ifndef NDEBUG
 static mutex print_mutex;
 #endif
