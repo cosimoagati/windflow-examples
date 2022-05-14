@@ -11,8 +11,8 @@ for batching in 0 10 100 1000 10000; do
             outputdir="testresults-$($datecmd)"
             mkdir -p $outputdir
             set -x
-            ./sa --duration="$duration" --parallelism="$i,$i,$i" \
-                 --batch="$batching,$batching" \
+            ./sa --duration="$duration" --parallelism="$i,$i,$i,$i,$i" \
+                 --batch="$batching,$batching,$batching,$batching" \
                  --chaining="$chaining" \
                  --outputdir="$outputdir" >> "$outputdir/output.txt"
             set +x
