@@ -428,19 +428,19 @@ class RewardSourceFunctor {
     unsigned                      reinforcement_learner_replicas;
 
     void send_new_reward(Source_Shipper<InputTuple> &shipper) {
-        optional<string> action_queue_handle;
+        optional<string> action_handle;
         unsigned         tries = 0;
         do {
-            action_queue_handle = global_action_queue.pop();
+            action_handle = global_action_queue.pop();
             ++tries;
-        } while (!action_queue_handle && tries < 1000);
+        } while (!action_handle && tries < 1000);
 
-        if (!action_queue_handle) {
+        if (!action_handle) {
             shipper.push({});
             return;
         }
 
-        const auto action = *action_queue_handle;
+        const auto action = *action_handle;
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
