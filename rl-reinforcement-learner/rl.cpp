@@ -429,9 +429,17 @@ class RewardSourceFunctor {
 
     void send_new_reward(Source_Shipper<InputTuple> &shipper) {
         optional<string> action_queue_handle;
+        unsigned         tries = 0;
         do {
             action_queue_handle = global_action_queue.pop();
-        } while (!action_queue_handle);
+            ++tries;
+        } while (!action_queue_handle && tries < 1000);
+
+        if (!action_queue_handle) {
+            shipper.push({});
+            return;
+        }
+
         const auto action = *action_queue_handle;
 #ifndef NDEBUG
         {
