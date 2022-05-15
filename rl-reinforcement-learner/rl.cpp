@@ -356,8 +356,8 @@ static atomic_ulong          global_received_tuples {0};
 static Metric<unsigned long> global_latency_metric {"rl-latency"};
 static Metric<unsigned long> global_interdeparture_metric {
     "rl-interdeparture-time"};
-static Metric<unsigned long> global_service_time_metric {"rl-service-time"};
-static BlockingQueue<string> global_action_queue;
+static Metric<unsigned long>    global_service_time_metric {"rl-service-time"};
+static NonBlockingQueue<string> global_action_queue;
 #ifndef NDEBUG
 static mutex print_mutex;
 #endif
@@ -428,7 +428,11 @@ class RewardSourceFunctor {
     unsigned                      reinforcement_learner_replicas;
 
     void send_new_reward(Source_Shipper<InputTuple> &shipper) {
-        const auto action = global_action_queue.pop();
+        optional<string> action_queue_handle;
+        do {
+            action_queue_handle = global_action_queue.pop();
+        } while (!action_queue_handle);
+        const auto action = *action_queue_handle;
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
