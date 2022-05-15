@@ -436,7 +436,6 @@ class RewardSourceFunctor {
         } while (!action_handle && tries < 1000);
 
         if (!action_handle) {
-            shipper.push({});
             return;
         }
 
