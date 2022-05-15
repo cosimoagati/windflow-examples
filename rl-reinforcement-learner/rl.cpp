@@ -117,7 +117,7 @@ private:
     queue<T>           internal_queue;
 
 public:
-    void push(T const &value) {
+    void push(const T &value) {
         {
             lock_guard<mutex> lock {internal_mutex};
             internal_queue.push(value);
