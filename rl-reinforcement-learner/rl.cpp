@@ -136,6 +136,29 @@ public:
     }
 };
 
+template<typename T>
+class NonBlockingQueue {
+private:
+    mutex    internal_mutex;
+    queue<T> internal_queue;
+
+public:
+    void push(const T &value) {
+        lock_guard lock {internal_mutex};
+        internal_queue.push(value);
+    }
+
+    optional<T> pop() {
+        lock_guard lock {internal_mutex};
+        if (internal_queue.empty()) {
+            return {};
+        }
+        const auto element = move(internal_queue.front());
+        internal_queue.pop();
+        return element;
+    }
+};
+
 static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     int option;
     int index;
