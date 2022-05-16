@@ -825,6 +825,7 @@ class RollingCounterFunctor {
             lock_guard lock {emit_mutex};
             if (parent_timestamp != 0) {
                 ship_all(shipper);
+                parent_timestamp = 0;
             }
         }
     }
@@ -860,7 +861,6 @@ class RollingCounterFunctor {
             shipper.push({word, count, actual_window_length_in_seconds,
                           parent_timestamp});
         }
-        parent_timestamp = 0;
     }
 
 public:

@@ -879,7 +879,6 @@ class RollingCounterFunctor {
             shipper.push({word, count, actual_window_length_in_seconds,
                           parent_timestamp, false});
         }
-        parent_timestamp = 0;
     }
 
 public:
@@ -902,6 +901,7 @@ public:
 #endif
             if (parent_timestamp != 0) {
                 ship_all(shipper);
+                parent_timestamp = 0;
             }
         } else {
             const auto obj = topic.word;
