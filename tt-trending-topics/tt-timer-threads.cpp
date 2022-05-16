@@ -883,7 +883,9 @@ public:
 
     void operator()(const Topic &topic, Shipper<Counts> &shipper) {
         if (!was_timer_thread_created) {
-            shipper.push({}); // Dummy tuple to wake up next node
+            Counts dummy_tuple_to_wakeup_next_node;
+            shipper.push(move(dummy_tuple_to_wakeup_next_node));
+
             thread timer_thread {&RollingCounterFunctor::periodic_ship, this,
                                  ref(shipper)};
             timer_thread.detach();
@@ -943,7 +945,8 @@ public:
     void operator()(const InputType &counts, Shipper<RankingsTuple> &shipper) {
         if (!was_timer_thread_created) {
             if constexpr (is_same_v<InputType, Counts>) {
-                shipper.push({}); // Dummy tuple to wake up next node
+                RankingsTuple dummy_tuple_to_wakeup_next_node;
+                shipper.push(move(dummy_tuple_to_wakeup_next_node));
             }
 
             thread timer_thread {
