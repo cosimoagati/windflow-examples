@@ -3,6 +3,7 @@
 duration=120
 datecmd="date +%Y-%m-%d-%H-%M"
 
+cd $(dirname $0)
 echo "Test started on $(date)"
 
 for batching in 0 10 100 1000 10000; do
