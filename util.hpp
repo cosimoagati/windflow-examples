@@ -12,6 +12,7 @@
 #include <string>
 #include <string_view>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <vector>
 
@@ -52,6 +53,11 @@ static const unsigned long timeunit_scale_factor =
     : current_time == wf::current_time_nsecs ? 1000000000
                                              : 1;
 
+static uint64_t current_time_secs() {
+    struct timespec t;
+    clock_gettime(CLOCK_REALTIME, &t);
+    return t.tv_sec;
+}
 /*
  * Return difference between a and b, accounting for unsigned arithmetic
  * wraparound.
