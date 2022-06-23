@@ -10,7 +10,7 @@ mkdir -p "$outputdir"
 
 for batching in 0 10 100 1000 10000; do
     for chaining in false true; do
-        for i in $(seq 1 22); do
+        for i in $(seq 1 $(expr $(nproc) / 3)); do
             set -x
             ./sa --duration="$duration" --parallelism="$i,$i,$i" \
                  --batch="$batching,$batching" \
