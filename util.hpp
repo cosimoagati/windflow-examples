@@ -183,7 +183,7 @@ class Metric {
     std::mutex     metric_mutex;
 
 public:
-    Metric(const char *name = "name") : metric_name {name} {}
+    Metric(const std::string &name = "name") : metric_name {name} {}
 
     Metric &merge(const std::vector<T> &new_samples) {
         std::lock_guard guard {metric_mutex};
