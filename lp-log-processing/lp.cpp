@@ -1001,7 +1001,7 @@ static inline void serialize_to_json(const Metric<unsigned long> &metric,
     json_stats["tuple_rate"]           = parameters.tuple_rate;
     json_stats["sampling_rate"]        = parameters.sampling_rate;
     json_stats["chaining enabled"]     = parameters.use_chaining;
-    json_stats["time unit"]            = std::string {timeunit_string} + 's';
+    json_stats["time unit"]            = string {timeunit_string} + 's';
     json_stats["sampled measurements"] = metric.size();
     json_stats["total measurements"]   = total_measurements;
 
@@ -1048,13 +1048,13 @@ static inline void serialize_to_json(const Metric<unsigned long> &metric,
     } else {
         json_stats["mean"] = 0;
         for (const auto percentile : {"0", "25", "50", "75", "95", "100"}) {
-            const auto label  = std::string {percentile} + "th percentile";
+            const auto label  = string {percentile} + "th percentile";
             json_stats[label] = 0;
         }
     }
     create_directory_if_not_exists(parameters.metric_output_directory);
     ofstream fs {string {parameters.metric_output_directory}
-                 + std::string {"/metric-"} + metric.name() + "-"
+                 + string {"/metric-"} + metric.name() + "-"
                  + to_string(current_time_secs()) + ".json"};
     fs << json_stats.dump(4) << '\n';
 }
