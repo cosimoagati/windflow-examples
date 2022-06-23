@@ -58,6 +58,7 @@ static uint64_t current_time_secs() {
     clock_gettime(CLOCK_REALTIME, &t);
     return t.tv_sec;
 }
+
 /*
  * Return difference between a and b, accounting for unsigned arithmetic
  * wraparound.
