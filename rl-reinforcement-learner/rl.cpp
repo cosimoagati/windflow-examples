@@ -1145,7 +1145,8 @@ static inline void serialize_to_json(const Metric<unsigned long> &metric,
     }
     create_directory_if_not_exists(parameters.metric_output_directory);
     ofstream fs {string {parameters.metric_output_directory}
-                 + std::string {"/metric-"} + metric.name() + ".json"};
+                 + std::string {"/metric-"} + metric.name() + "-"
+                 + to_string(current_time_secs()) + ".json"};
     fs << json_stats.dump(4) << '\n';
 }
 
