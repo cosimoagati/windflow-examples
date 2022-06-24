@@ -176,6 +176,13 @@ static inline const char *get_string_from_time_policy(wf::Time_Policy_t p) {
     return ""; // Make the compiler happy
 }
 
+static inline bool get_chaining_value_from_string(const std::string &arg) {
+    return arg == "true"           ? true
+           : arg == "false"        ? false
+           : std::atoi(optarg) > 0 ? true
+                                   : false;
+}
+
 template<typename T>
 class Metric {
     std::vector<T> sorted_samples;
