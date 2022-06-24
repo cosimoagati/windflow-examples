@@ -1185,7 +1185,7 @@ static inline void serialize_to_json(const Metric<unsigned long> &metric,
                 metric.begin() + (metric.size() - 1) * percentile;
             const auto label =
                 std::to_string(static_cast<int>(percentile * 100))
-                + "th percentile ";
+                + "th percentile";
             json_stats[label] = *percentile_value_position;
         }
     } else {
