@@ -100,7 +100,7 @@ static inline std::vector<size_t>
 get_nums_split_by_commas(const char *degrees) {
     std::vector<std::size_t> parallelism_degrees;
     for (const auto &s : string_split(degrees, ',')) {
-        parallelism_degrees.push_back(atoi(s.data()));
+        parallelism_degrees.push_back(std::atoi(s.data()));
     }
     return parallelism_degrees;
 }
