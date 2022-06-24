@@ -530,7 +530,7 @@ static atomic_ulong global_volume_received_tuples {0};
 static atomic_ulong global_status_received_tuples {0};
 static atomic_ulong global_geo_received_tuples {0};
 
-static Metric<unsigned long> global_latency_metric {"lp-latency"};
+static Metric<unsigned long> global_latency_metric {"lp-total-latency"};
 static Metric<unsigned long> global_volume_latency_metric {
     "lp-volume-latency"};
 static Metric<unsigned long> global_status_latency_metric {
