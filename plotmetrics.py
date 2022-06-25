@@ -74,18 +74,39 @@ def get_y_label(name, time_unit):
         if time_unit in unit_to_abbrev else 'unknown unit') + ')'
 
 
-def show_graphs(x_axis, y_axis, title='', xlabel=[], ylabel=[]):
+def show_graphs(x_axis, y_axis, title, xlabel, ylabel):
+    plt.figure()
     plt.title(title, loc='right', y=1.08)
     plt.grid(True)
     plt.plot(x_axis, y_axis, color='maroon', marker='o')
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.figure()
 
+    plt.figure()
+    plt.title(title, loc='right', y=1.08)
+    plt.grid(False)
+    plt.bar(x_axis, y_axis, color='maroon')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.show()
+    plt.close('all')
+
+
+def save_graph_images(x_axis, y_axis, title, xlabel, ylabel):
+    plt.figure()
+    plt.title(title, loc='right', y=1.08)
+    plt.grid(True)
+    plt.plot(x_axis, y_axis, color='maroon', marker='o')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.savefig(title + ' (plot).png')
+
+    plt.figure()
     plt.grid(False)
     plt.title(title, loc='right', y=1.08)
     plt.bar(x_axis, y_axis, color='maroon')
-    plt.show()
+    plt.savefig(title + ' (bar).png')
+    plt.close('all')
 
 
 def plot_by_parallelism(percentile,
@@ -94,8 +115,11 @@ def plot_by_parallelism(percentile,
                         batchsize,
                         chaining,
                         sampling_rate=100,
-                        tuple_rate=1000):
-    json_list = get_json_objs_from_directory(directory, name)
+                        tuple_rate=1000,
+                        json_list=[],
+                        save_images=False):
+    if not json_list:
+        json_list = get_json_objs_from_directory(directory, name)
     json_list = filter_jsons_by_chaining(json_list, chaining)
     json_list = filter_jsons_by_batch_size(json_list, batchsize)
     json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
@@ -117,7 +141,14 @@ def plot_by_parallelism(percentile,
              str(batchsize) + ') ' + '(chaining: ' + str(chaining) + ') ')
     xlabel = 'Parallelism degree for each node'
     ylabel = get_y_label(name, time_unit)
-    show_graphs(x_axis, y_axis, title=title, xlabel=xlabel, ylabel=ylabel)
+    if save_images:
+        save_graph_images(x_axis,
+                          y_axis,
+                          title=title,
+                          xlabel=xlabel,
+                          ylabel=ylabel)
+    else:
+        show_graphs(x_axis, y_axis, title=title, xlabel=xlabel, ylabel=ylabel)
 
 
 def plot_by_batch_size(percentile,
@@ -126,8 +157,11 @@ def plot_by_batch_size(percentile,
                        parallelism,
                        chaining,
                        sampling_rate=100,
-                       tuple_rate=1000):
-    json_list = get_json_objs_from_directory(directory, name)
+                       tuple_rate=1000,
+                       json_list=[],
+                       save_images=False):
+    if not json_list:
+        json_list = get_json_objs_from_directory(directory, name)
     json_list = filter_jsons_by_parallelism(json_list, parallelism)
     json_list = filter_jsons_by_chaining(json_list, chaining)
     json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
@@ -149,4 +183,58 @@ def plot_by_batch_size(percentile,
              str(parallelism) + ') ' + '(chaining: ' + str(chaining) + ') ')
     xlabel = 'Batch size for each node'
     ylabel = get_y_label(name, time_unit)
-    show_graphs(x_axis, y_axis, title=title, xlabel=xlabel, ylabel=ylabel)
+    if save_images:
+        save_graph_images(x_axis,
+                          y_axis,
+                          title=title,
+                          xlabel=xlabel,
+                          ylabel=ylabel)
+    else:
+        show_graphs(x_axis, y_axis, title=title, xlabel=xlabel, ylabel=ylabel)
+
+
+def plot_by_chaining(percentile,
+                     directory,
+                     name,
+                     parallelism,
+                     batchsize,
+                     sampling_rate=100,
+                     tuple_rate=1000,
+                     json_list=[],
+                     save_images=False):
+    CHAINING = 'chaining enabled'
+
+    if not json_list:
+        json_list = get_json_objs_from_directory(directory, name)
+    json_list = filter_jsons_by_parallelism(json_list, parallelism)
+    json_list = filter_jsons_by_batch_size(json_list, batchsize)
+    json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
+    json_list = filter_jsons_by_tuple_rate(json_list, tuple_rate)
+
+    for j in json_list:
+        j[CHAINING] = int(j[CHAINING])
+    json_list.sort(key=lambda j: j[CHAINING])
+
+    if not json_list:
+        print('No data found with the specified parameters, not plotting...')
+        return
+    time_unit = json_list[0]['time unit']
+    x_axis = [j[CHAINING] for j in json_list]
+    y_axis = [j[percentile_to_dictkey(percentile)] for j in json_list]
+    if DEBUG:
+        print(x_axis)
+        print(y_axis)
+
+    title = (name.capitalize() + '(' + percentile + ') ' + '(parallelism: ' +
+             str(parallelism) + ') ' + '(batch size: ' + str(batchsize) + ') ')
+    xlabel = 'Chaining enabled ?'
+    ylabel = get_y_label(name, time_unit)
+
+    if save_images:
+        save_graph_images(x_axis,
+                          y_axis,
+                          title=title,
+                          xlabel=xlabel,
+                          ylabel=ylabel)
+    else:
+        show_graphs(x_axis, y_axis, title=title, xlabel=xlabel, ylabel=ylabel)
