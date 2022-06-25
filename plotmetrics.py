@@ -20,6 +20,10 @@ def filter_jsons_by_name(json_list, name):
     return [j for j in json_list if j['name'] == name]
 
 
+def filter_jsons_by_parallelism(json_list, parallelism):
+    return [j for j in json_list if j['parallelism'][0] == parallelism]
+
+
 def filter_jsons_by_batch_size(json_list, batch_size):
     return [j for j in json_list if j['batch size'][0] == batch_size]
 
@@ -70,6 +74,20 @@ def get_y_label(name, time_unit):
         if time_unit in unit_to_abbrev else 'unknown unit') + ')'
 
 
+def show_graphs(x_axis, y_axis, title='', xlabel=[], ylabel=[]):
+    plt.title(title, loc='right', y=1.08)
+    plt.grid(True)
+    plt.plot(x_axis, y_axis, color='maroon', marker='o')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.figure()
+
+    plt.grid(False)
+    plt.title(title, loc='right', y=1.08)
+    plt.bar(x_axis, y_axis, color='maroon')
+    plt.show()
+
+
 def plot_by_parallelism(percentile,
                         directory,
                         name,
@@ -95,22 +113,40 @@ def plot_by_parallelism(percentile,
     if DEBUG:
         print(x_axis)
         print(y_axis)
-
-    plt.title(name.capitalize() + '(' + percentile + ') ' + '(batch size: ' +
-              str(batchsize) + ') ' + '(chaining: ' + str(chaining) + ') ',
-              loc='right', y=1.08)
-    plt.grid()
-    plt.plot(x_axis, y_axis, color='maroon', marker='o')
-    plt.xlabel('Parallelism degree for each node')
-    plt.ylabel(get_y_label(name, time_unit))
-    plt.show()
+    title = (name.capitalize() + '(' + percentile + ') ' + '(batch size: ' +
+             str(batchsize) + ') ' + '(chaining: ' + str(chaining) + ') ')
+    xlabel = 'Parallelism degree for each node'
+    ylabel = get_y_label(name, time_unit)
+    show_graphs(x_axis, y_axis, title=title, xlabel=xlabel, ylabel=ylabel)
 
 
-def plot_mean_by_parallelism(directory,
-                             name,
-                             batchsize,
-                             chaining,
-                             sampling_rate=100,
-                             tuple_rate=1000):
-    plot_by_parallelism('mean', directory, name, batchsize, chaining,
-                        sampling_rate, tuple_rate)
+def plot_by_batch_size(percentile,
+                       directory,
+                       name,
+                       parallelism,
+                       chaining,
+                       sampling_rate=100,
+                       tuple_rate=1000):
+    json_list = get_json_objs_from_directory(directory, name)
+    json_list = filter_jsons_by_parallelism(json_list, parallelism)
+    json_list = filter_jsons_by_chaining(json_list, chaining)
+    json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
+    json_list = filter_jsons_by_tuple_rate(json_list, tuple_rate)
+
+    json_list.sort(key=lambda j: j['batch size'][0])
+
+    if not json_list:
+        print('No data found with the specified parameters, not plotting...')
+        return
+    time_unit = json_list[0]['time unit']
+    x_axis = [j['batch size'][0] for j in json_list]
+    y_axis = [j[percentile_to_dictkey(percentile)] for j in json_list]
+    if DEBUG:
+        print(x_axis)
+        print(y_axis)
+
+    title = (name.capitalize() + '(' + percentile + ') ' + '(parallelism: ' +
+             str(parallelism) + ') ' + '(chaining: ' + str(chaining) + ') ')
+    xlabel = 'Batch size for each node'
+    ylabel = get_y_label(name, time_unit)
+    show_graphs(x_axis, y_axis, title=title, xlabel=xlabel, ylabel=ylabel)
