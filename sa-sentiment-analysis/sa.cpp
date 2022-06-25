@@ -599,8 +599,8 @@ static inline void serialize_to_json(const Metric<unsigned long> &metric,
     json_stats["parallelism"]          = parameters.parallelism;
     json_stats["batch size"]           = parameters.batch_size;
     json_stats["duration"]             = parameters.duration;
-    json_stats["tuple_rate"]           = parameters.tuple_rate;
-    json_stats["sampling_rate"]        = parameters.sampling_rate;
+    json_stats["tuple rate"]           = parameters.tuple_rate;
+    json_stats["sampling rate"]        = parameters.sampling_rate;
     json_stats["chaining enabled"]     = parameters.use_chaining;
     json_stats["time unit"]            = string {timeunit_string} + 's';
     json_stats["sampled measurements"] = metric.size();
