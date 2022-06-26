@@ -43,7 +43,11 @@ def filter_jsons_by_sampling_rate(json_list, sampling_rate):
 
 
 def filter_jsons_by_tuple_rate(json_list, tuple_rate):
-    return [j for j in json_list if j['tuple_rate'] == tuple_rate]
+    return [
+        j for j in json_list
+        if ('tuple_rate' in j and j['tuple_rate'] == tuple_rate) or (
+            'tuple rate' in j and j['tuple rate'] == tuple_rate)
+    ]
 
 
 def percentile_to_dictkey(kind):
