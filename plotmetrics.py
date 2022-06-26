@@ -122,6 +122,7 @@ def plot_by_parallelism(percentile,
                         save_images=False):
     if not json_list:
         json_list = get_json_objs_from_directory(directory, name)
+    json_list = filter_jsons_by_name(json_list, 'service-time')
     json_list = filter_jsons_by_chaining(json_list, chaining)
     json_list = filter_jsons_by_batch_size(json_list, batchsize)
     json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
@@ -164,6 +165,7 @@ def plot_by_batch_size(percentile,
                        save_images=False):
     if not json_list:
         json_list = get_json_objs_from_directory(directory, name)
+    json_list = filter_jsons_by_name(json_list, 'service-time')
     json_list = filter_jsons_by_parallelism(json_list, parallelism)
     json_list = filter_jsons_by_chaining(json_list, chaining)
     json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
@@ -208,6 +210,7 @@ def plot_by_chaining(percentile,
 
     if not json_list:
         json_list = get_json_objs_from_directory(directory, name)
+    json_list = filter_jsons_by_name(json_list, 'service-time')
     json_list = filter_jsons_by_parallelism(json_list, parallelism)
     json_list = filter_jsons_by_batch_size(json_list, batchsize)
     json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
