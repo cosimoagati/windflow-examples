@@ -243,3 +243,39 @@ def plot_by_chaining(percentile,
                           ylabel=ylabel)
     else:
         show_graphs(x_axis, y_axis, title=title, xlabel=xlabel, ylabel=ylabel)
+
+
+def generate_all_images(directory):
+    parallelism_degrees = range(1, 25)
+    batchsizes = [0, 10, 100, 1000, 10000]
+    chaining_vals = [False, True]
+    metrics = ['service-time', 'latency']
+
+    json_list = get_json_objs_from_directory(directory)
+    for batchsize in batchsizes:
+        for chaining in chaining_vals:
+            for metric in metrics:
+                plot_by_parallelism('mean',
+                                    metric,
+                                    batchsize,
+                                    chaining,
+                                    json_list=json_list,
+                                    save_images=True)
+    for parallelism in parallelism_degrees:
+        for chaining in chaining_vals:
+            for metric in metrics:
+                plot_by_batch_size('mean',
+                                   metric,
+                                   parallelism,
+                                   chaining,
+                                   json_list=json_list,
+                                   save_images=True)
+    for parallelism in parallelism_degrees:
+        for batchsize in batchsizes:
+            for metric in metrics:
+                plot_by_chaining('mean',
+                                 metric,
+                                 parallelism,
+                                 batchsize,
+                                 json_list=json_list,
+                                 save_images=True)
