@@ -293,5 +293,6 @@ if __name__ == '__main__':
     if len(sys.argv) < 2:
         sys.exit('Run as ' + sys.argv[0] + ' <test result directory>')
     directory = sys.argv[1]
-    print('Generating graphs and saving images to' + directory + '...')
+    if DEBUG:
+        print('Generating graphs and saving images to' + directory + '...')
     generate_all_images(directory)
