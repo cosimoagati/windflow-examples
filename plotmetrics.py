@@ -7,8 +7,10 @@ import matplotlib.pyplot as plt
 DEBUG = True
 
 
-def get_json_objs_from_directory(directory, wildcard):
-    file_list = [name for name in os.listdir(directory) if wildcard in name]
+def get_json_objs_from_directory(directory):
+    file_list = [
+        name for name in os.listdir(directory) if name.endswith('.json')
+    ]
     json_list = []
     for name in file_list:
         with open(os.path.join(directory, name)) as f:
