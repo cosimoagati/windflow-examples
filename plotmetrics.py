@@ -94,20 +94,20 @@ def show_graphs(x_axis, y_axis, title, xlabel, ylabel):
     plt.close('all')
 
 
-def save_graph_images(x_axis, y_axis, title, xlabel, ylabel):
+def save_graph_images(x_axis, y_axis, title, xlabel, ylabel, directory=''):
     plt.figure()
     plt.title(title, loc='right', y=1.08)
     plt.grid(True)
     plt.plot(x_axis, y_axis, color='maroon', marker='o')
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.savefig(title + ' (plot).png')
+    plt.savefig(os.path.join(directory, title + ' (plot).png'))
 
     plt.figure()
     plt.grid(False)
     plt.title(title, loc='right', y=1.08)
     plt.bar(x_axis, y_axis, color='maroon')
-    plt.savefig(title + ' (bar).png')
+    plt.savefig(os.path.join(directory, title + ' (bar).png'))
     plt.close('all')
 
 
@@ -119,9 +119,9 @@ def plot_by_parallelism(percentile,
                         sampling_rate=100,
                         tuple_rate=1000,
                         json_list=None,
-                        save_images=False):
+                        image_path=None):
     if not json_list:
-        json_list = get_json_objs_from_directory(directory, name)
+        json_list = get_json_objs_from_directory(directory)
     json_list = filter_jsons_by_name(json_list, 'service-time')
     json_list = filter_jsons_by_chaining(json_list, chaining)
     json_list = filter_jsons_by_batch_size(json_list, batchsize)
@@ -144,12 +144,13 @@ def plot_by_parallelism(percentile,
              str(batchsize) + ') ' + '(chaining: ' + str(chaining) + ') ')
     xlabel = 'Parallelism degree for each node'
     ylabel = get_y_label(name, time_unit)
-    if save_images:
+    if image_path:
         save_graph_images(x_axis,
                           y_axis,
                           title=title,
                           xlabel=xlabel,
-                          ylabel=ylabel)
+                          ylabel=ylabel,
+                          directory=image_path)
     else:
         show_graphs(x_axis, y_axis, title=title, xlabel=xlabel, ylabel=ylabel)
 
@@ -162,9 +163,9 @@ def plot_by_batch_size(percentile,
                        sampling_rate=100,
                        tuple_rate=1000,
                        json_list=None,
-                       save_images=False):
+                       image_path=None):
     if not json_list:
-        json_list = get_json_objs_from_directory(directory, name)
+        json_list = get_json_objs_from_directory(directory)
     json_list = filter_jsons_by_name(json_list, 'service-time')
     json_list = filter_jsons_by_parallelism(json_list, parallelism)
     json_list = filter_jsons_by_chaining(json_list, chaining)
@@ -187,12 +188,13 @@ def plot_by_batch_size(percentile,
              str(parallelism) + ') ' + '(chaining: ' + str(chaining) + ') ')
     xlabel = 'Batch size for each node'
     ylabel = get_y_label(name, time_unit)
-    if save_images:
+    if image_path:
         save_graph_images(x_axis,
                           y_axis,
                           title=title,
                           xlabel=xlabel,
-                          ylabel=ylabel)
+                          ylabel=ylabel,
+                          directory=image_path)
     else:
         show_graphs(x_axis, y_axis, title=title, xlabel=xlabel, ylabel=ylabel)
 
@@ -205,11 +207,11 @@ def plot_by_chaining(percentile,
                      sampling_rate=100,
                      tuple_rate=1000,
                      json_list=None,
-                     save_images=False):
+                     image_path=None):
     CHAINING = 'chaining enabled'
 
     if not json_list:
-        json_list = get_json_objs_from_directory(directory, name)
+        json_list = get_json_objs_from_directory(directory)
     json_list = filter_jsons_by_name(json_list, 'service-time')
     json_list = filter_jsons_by_parallelism(json_list, parallelism)
     json_list = filter_jsons_by_batch_size(json_list, batchsize)
@@ -235,12 +237,13 @@ def plot_by_chaining(percentile,
     xlabel = 'Chaining enabled ?'
     ylabel = get_y_label(name, time_unit)
 
-    if save_images:
+    if image_path:
         save_graph_images(x_axis,
                           y_axis,
                           title=title,
                           xlabel=xlabel,
-                          ylabel=ylabel)
+                          ylabel=ylabel,
+                          directory=image_path)
     else:
         show_graphs(x_axis, y_axis, title=title, xlabel=xlabel, ylabel=ylabel)
 
@@ -260,7 +263,7 @@ def generate_all_images(directory):
                                     batchsize,
                                     chaining,
                                     json_list=json_list,
-                                    save_images=True)
+                                    image_path=directory)
     for parallelism in parallelism_degrees:
         for chaining in chaining_vals:
             for metric in metrics:
@@ -269,7 +272,7 @@ def generate_all_images(directory):
                                    parallelism,
                                    chaining,
                                    json_list=json_list,
-                                   save_images=True)
+                                   image_path=directory)
     for parallelism in parallelism_degrees:
         for batchsize in batchsizes:
             for metric in metrics:
@@ -278,4 +281,4 @@ def generate_all_images(directory):
                                  parallelism,
                                  batchsize,
                                  json_list=json_list,
-                                 save_images=True)
+                                 image_path=directory)
