@@ -3,6 +3,7 @@
 import json
 import os
 import matplotlib.pyplot as plt
+import sys
 
 DEBUG = True
 
@@ -286,3 +287,11 @@ def generate_all_images(directory):
                                  batchsize,
                                  json_list=json_list,
                                  image_path=directory)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        sys.exit('Run as ' + sys.argv[0] + ' <test result directory>')
+    directory = sys.argv[1]
+    print('Generating graphs and saving images to' + directory + '...')
+    generate_all_images(directory)
