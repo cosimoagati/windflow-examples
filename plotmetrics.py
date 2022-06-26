@@ -112,13 +112,13 @@ def save_graph_images(x_axis, y_axis, title, xlabel, ylabel):
 
 
 def plot_by_parallelism(percentile,
-                        directory,
                         name,
                         batchsize,
                         chaining,
+                        directory='',
                         sampling_rate=100,
                         tuple_rate=1000,
-                        json_list=[],
+                        json_list=None,
                         save_images=False):
     if not json_list:
         json_list = get_json_objs_from_directory(directory, name)
@@ -154,13 +154,13 @@ def plot_by_parallelism(percentile,
 
 
 def plot_by_batch_size(percentile,
-                       directory,
                        name,
                        parallelism,
                        chaining,
+                       directory='',
                        sampling_rate=100,
                        tuple_rate=1000,
-                       json_list=[],
+                       json_list=None,
                        save_images=False):
     if not json_list:
         json_list = get_json_objs_from_directory(directory, name)
@@ -196,13 +196,13 @@ def plot_by_batch_size(percentile,
 
 
 def plot_by_chaining(percentile,
-                     directory,
                      name,
                      parallelism,
                      batchsize,
+                     directory='',
                      sampling_rate=100,
                      tuple_rate=1000,
-                     json_list=[],
+                     json_list=None,
                      save_images=False):
     CHAINING = 'chaining enabled'
 
