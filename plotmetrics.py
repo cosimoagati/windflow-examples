@@ -19,7 +19,7 @@ def get_json_objs_from_directory(directory):
 
 
 def filter_jsons_by_name(json_list, name):
-    return [j for j in json_list if j['name'] == name]
+    return [j for j in json_list if j['name'].endswith(name)]
 
 
 def filter_jsons_by_parallelism(json_list, parallelism):
