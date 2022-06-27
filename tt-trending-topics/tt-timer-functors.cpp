@@ -978,7 +978,7 @@ public:
 
 static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
-    Sourcefunctor source_functor {parameters.duration, parameters.tuple_rate};
+    SourceFunctor source_functor {parameters.duration, parameters.tuple_rate};
     auto          source = Source_Builder {source_functor}
                       .withParallelism(parameters.parallelism[source_id])
                       .withName("source")
