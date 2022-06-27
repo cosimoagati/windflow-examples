@@ -318,12 +318,9 @@ static void print_initial_parameters(const Parameters &parameters) {
 /*
  * Global variables
  */
-static atomic_ulong          global_sent_tuples {0};
-static atomic_ulong          global_received_tuples {0};
-static Metric<unsigned long> global_latency_metric {"rl-latency"};
-static Metric<unsigned long> global_interdeparture_metric {
-    "rl-interdeparture-time"};
-static Metric<unsigned long>    global_service_time_metric {"rl-service-time"};
+static atomic_ulong             global_sent_tuples {0};
+static atomic_ulong             global_received_tuples {0};
+static Metric<unsigned long>    global_latency_metric {"rl-latency"};
 static NonBlockingQueue<string> global_action_queue;
 #ifndef NDEBUG
 static mutex print_mutex;
@@ -924,8 +921,6 @@ public:
 
 class SinkFunctor {
     vector<unsigned long> latency_samples;
-    vector<unsigned long> interdeparture_samples;
-    vector<unsigned long> service_time_samples;
     unsigned long         tuples_received    = 0;
     unsigned long         last_sampling_time = current_time();
     unsigned long         last_arrival_time  = last_sampling_time;
@@ -965,27 +960,16 @@ public:
 
             const auto arrival_time = current_time();
             const auto latency = difference(arrival_time, input->timestamp);
-            const auto interdeparture_time =
-                difference(arrival_time, last_arrival_time);
 
             ++tuples_received;
             last_arrival_time = arrival_time;
-
             if (is_time_to_sample(arrival_time)) {
                 latency_samples.push_back(latency);
-                interdeparture_samples.push_back(interdeparture_time);
-
-                const double service_time =
-                    interdeparture_time
-                    / static_cast<double>(context.getParallelism());
-                service_time_samples.push_back(service_time);
                 last_sampling_time = arrival_time;
             }
         } else {
             global_received_tuples.fetch_add(tuples_received);
             global_latency_metric.merge(latency_samples);
-            global_interdeparture_metric.merge(interdeparture_samples);
-            global_service_time_metric.merge(service_time_samples);
         }
     }
 };
@@ -1129,13 +1113,27 @@ int main(int argc, char *argv[]) {
 
     const auto start_time = current_time();
     graph.run();
-    const auto elapsed_time = difference(current_time(), start_time);
-    serialize_to_json(global_latency_metric, parameters,
-                      global_received_tuples);
-    serialize_to_json(global_interdeparture_metric, parameters,
-                      global_received_tuples);
-    serialize_to_json(global_service_time_metric, parameters,
-                      global_received_tuples);
+    const auto   elapsed_time = difference(current_time(), start_time);
+    const double throughput =
+        elapsed_time > 0
+            ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
+            : global_sent_tuples.load();
+    const double service_time = 1 / throughput;
+
+    const auto latency_stats = get_distribution_stats(
+        global_latency_metric, parameters, global_received_tuples);
+    serialize_json(latency_stats, "rl-latency",
+                   parameters.metric_output_directory);
+
+    const auto throughput_stats = get_single_value_stats(
+        throughput, "throughput", parameters, global_sent_tuples.load());
+    serialize_json(throughput_stats, "rl-throughput",
+                   parameters.metric_output_directory);
+
+    const auto service_time_stats = get_single_value_stats(
+        service_time, "service time", parameters, global_sent_tuples.load());
+    serialize_json(service_time_stats, "rl-service-time",
+                   parameters.metric_output_directory);
 
     const auto average_latency =
         accumulate(global_latency_metric.begin(), global_latency_metric.end(),
