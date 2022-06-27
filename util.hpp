@@ -237,7 +237,7 @@ static inline void create_directory_if_not_exists(const char *path) noexcept {
         const int status = mkdir(path, S_IRWXU | S_IRGRP | S_IROTH);
         if (status != 0) {
             std::cerr << "Error creating directory\n";
-            exit(EXIT_FAILURE);
+            std::exit(EXIT_FAILURE);
         }
     }
 }
