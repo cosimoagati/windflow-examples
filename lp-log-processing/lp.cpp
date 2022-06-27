@@ -1065,7 +1065,7 @@ int main(int argc, char *argv[]) {
     validate_args(parameters);
     print_initial_parameters(parameters);
 
-    PipeGraph graph {"sa-sentiment-analysis", parameters.execution_mode,
+    PipeGraph graph {"lp-log-processing", parameters.execution_mode,
                      parameters.time_policy};
     build_graph(parameters, graph);
 
