@@ -536,9 +536,6 @@ static Metric<unsigned long> global_volume_latency_metric {
 static Metric<unsigned long> global_status_latency_metric {
     "lp-status-latency"};
 static Metric<unsigned long> global_geo_latency_metric {"lp-geo-latency"};
-static Metric<unsigned long> global_interdeparture_metric {
-    "lp-interdeparture-time"};
-static Metric<unsigned long> global_service_time_metric {"lp-service-time"};
 #ifndef NDEBUG
 static mutex print_mutex;
 #endif
@@ -814,8 +811,6 @@ class SinkFunctor {
     vector<unsigned long>                          latency_samples;
     unordered_map<TupleTag, vector<unsigned long>> specific_latency_samples {
         {TupleTag::Volume, {}}, {TupleTag::Status, {}}, {TupleTag::Geo, {}}};
-    vector<unsigned long> interdeparture_samples;
-    vector<unsigned long> service_time_samples;
 
     unsigned long                          tuples_received = 0;
     unordered_map<TupleTag, unsigned long> specific_tuples_received {
@@ -839,7 +834,7 @@ class SinkFunctor {
 public:
     SinkFunctor(unsigned rate) : sampling_rate {rate} {}
 
-    void operator()(optional<OutputTuple> &input, RuntimeContext &context) {
+    void operator()(optional<OutputTuple> &input) {
         if (input) {
             assert(input->tag == TupleTag::Volume
                    || input->tag == TupleTag::Status
@@ -847,8 +842,6 @@ public:
 
             const auto arrival_time = current_time();
             const auto latency = difference(arrival_time, input->timestamp);
-            const auto interdeparture_time =
-                difference(arrival_time, last_arrival_time);
 
             ++tuples_received;
             ++specific_tuples_received[input->tag];
@@ -857,14 +850,6 @@ public:
             if (is_time_to_sample(arrival_time)) {
                 latency_samples.push_back(latency);
                 specific_latency_samples[input->tag].push_back(latency);
-                interdeparture_samples.push_back(interdeparture_time);
-
-                // The current service time is computed via this heuristic,
-                // it MIGHT not be reliable.
-                const auto service_time =
-                    interdeparture_time
-                    / static_cast<double>(context.getParallelism());
-                service_time_samples.push_back(service_time);
                 last_sampling_time = arrival_time;
             }
 #ifndef NDEBUG
@@ -889,9 +874,6 @@ public:
                 specific_latency_samples[TupleTag::Status]);
             global_geo_latency_metric.merge(
                 specific_latency_samples[TupleTag::Geo]);
-
-            global_interdeparture_metric.merge(interdeparture_samples);
-            global_service_time_metric.merge(service_time_samples);
         }
     }
 };
@@ -1071,20 +1053,44 @@ int main(int argc, char *argv[]) {
 
     const auto start_time = current_time();
     graph.run();
-    const auto elapsed_time = difference(current_time(), start_time);
+    const auto   elapsed_time = difference(current_time(), start_time);
+    const double throughput =
+        elapsed_time > 0
+            ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
+            : global_sent_tuples.load();
+    const double service_time = 1 / throughput;
 
-    serialize_to_json(global_latency_metric, parameters,
-                      global_received_tuples);
-    serialize_to_json(global_volume_latency_metric, parameters,
-                      global_volume_received_tuples);
-    serialize_to_json(global_status_latency_metric, parameters,
-                      global_status_received_tuples);
-    serialize_to_json(global_geo_latency_metric, parameters,
-                      global_geo_received_tuples);
-    serialize_to_json(global_interdeparture_metric, parameters,
-                      global_received_tuples);
-    serialize_to_json(global_service_time_metric, parameters,
-                      global_received_tuples);
+    const auto latency_stats = get_distribution_stats(
+        global_latency_metric, parameters, global_received_tuples);
+    serialize_json(latency_stats, "lp-latency",
+                   parameters.metric_output_directory);
+
+    const auto volume_latency_stats =
+        get_distribution_stats(global_volume_latency_metric, parameters,
+                               global_volume_received_tuples);
+    serialize_json(volume_latency_stats, "lp-volume-latency",
+                   parameters.metric_output_directory);
+
+    const auto status_latency_stats =
+        get_distribution_stats(global_status_latency_metric, parameters,
+                               global_status_received_tuples);
+    serialize_json(status_latency_stats, "lp-status-latency",
+                   parameters.metric_output_directory);
+
+    const auto geo_latency_stats = get_distribution_stats(
+        global_geo_latency_metric, parameters, global_geo_received_tuples);
+    serialize_json(geo_latency_stats, "lp-geo-latency",
+                   parameters.metric_output_directory);
+
+    const auto throughput_stats = get_single_value_stats(
+        throughput, "throughput", parameters, global_sent_tuples);
+    serialize_json(throughput_stats, "lp-throughput",
+                   parameters.metric_output_directory);
+
+    const auto service_time_stats = get_single_value_stats(
+        service_time, "service time", parameters, global_sent_tuples);
+    serialize_json(service_time_stats, "lp-service-time",
+                   parameters.metric_output_directory);
 
     const auto average_latency =
         accumulate(global_latency_metric.begin(), global_latency_metric.end(),
