@@ -573,9 +573,10 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     return graph;
 }
 
-static inline void serialize_to_json(const Metric<unsigned long> &metric,
-                                     const Parameters &           parameters,
-                                     unsigned long total_measurements) {
+static inline nlohmann::ordered_json
+get_distribution_stats(const Metric<unsigned long> &metric,
+                       const Parameters &           parameters,
+                       unsigned long                total_measurements) {
     nlohmann::ordered_json json_stats;
     json_stats["date"]                 = get_datetime_string();
     json_stats["name"]                 = metric.name();
@@ -615,17 +616,14 @@ static inline void serialize_to_json(const Metric<unsigned long> &metric,
             json_stats[label] = 0;
         }
     }
-    create_directory_if_not_exists(parameters.metric_output_directory);
-    ofstream fs {string {parameters.metric_output_directory}
-                 + string {"/metric-"} + metric.name() + "-"
-                 + to_string(current_time_secs()) + ".json"};
-    fs << json_stats.dump(4) << '\n';
+
+    return json_stats;
 }
 
-static void serialize_single_value(const Parameters &parameters,
-                                   const string &    name,
-                                   const string &    output_directory,
-                                   unsigned long     value) {
+template<typename T>
+static inline nlohmann::ordered_json
+get_single_value_stats(T value, const string &name,
+                       const Parameters &parameters) {
     nlohmann::ordered_json json_stats;
     json_stats["date"]             = get_datetime_string();
     json_stats["name"]             = name;
@@ -643,10 +641,7 @@ static void serialize_single_value(const Parameters &parameters,
         get_string_from_time_policy(parameters.time_policy);
     json_stats["mean"] = value;
 
-    create_directory_if_not_exists(output_directory.c_str());
-    ofstream fs {string {output_directory} + string {"/metric-"} + name + "-"
-                 + to_string(current_time_secs()) + ".json"};
-    fs << json_stats.dump(4) << '\n';
+    return json_stats;
 }
 
 int main(int argc, char *argv[]) {
@@ -668,10 +663,20 @@ int main(int argc, char *argv[]) {
             : global_sent_tuples.load();
     const double service_time = 1 / throughput;
 
-    serialize_to_json(global_latency_metric, parameters,
-                      global_received_tuples);
-    serialize_single_value(parameters, "throughput", throughput);
-    serialize_single_value(parameters, "service time", service_time);
+    const auto latency_stats = get_distribution_stats(
+        global_latency_metric, parameters, global_received_tuples);
+    serialize_json(latency_stats, "sa-latency",
+                   parameters.metric_output_directory);
+
+    const auto throughput_stats =
+        get_single_value_stats(throughput, "throughput", parameters);
+    serialize_json(throughput_stats, "sa-throughput",
+                   parameters.metric_output_directory);
+
+    const auto service_time_stats =
+        get_single_value_stats(service_time, "service time", parameters);
+    serialize_json(service_time_stats, "sa-service-time",
+                   parameters.metric_output_directory);
 
     const auto average_latency =
         accumulate(global_latency_metric.begin(), global_latency_metric.end(),
