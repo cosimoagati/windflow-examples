@@ -645,7 +645,9 @@ static inline void serialize_to_json(const Metric<unsigned long> &metric,
 }
 
 static void serialize_single_value(const Parameters &parameters,
-                                   const string &name, unsigned long value) {
+                                   const string &    name,
+                                   const string &    output_directory,
+                                   unsigned long     value) {
     nlohmann::ordered_json json_stats;
     json_stats["date"]             = get_datetime_string();
     json_stats["name"]             = name;
@@ -662,6 +664,11 @@ static void serialize_single_value(const Parameters &parameters,
     json_stats["time policy"] =
         get_string_from_time_policy(parameters.time_policy);
     json_stats["mean"] = value;
+
+    create_directory_if_not_exists(output_directory.c_str());
+    ofstream fs {string {output_directory} + string {"/metric-"} + name + "-"
+                 + to_string(current_time_secs()) + ".json"};
+    fs << json_stats.dump(4) << '\n';
 }
 
 int main(int argc, char *argv[]) {
