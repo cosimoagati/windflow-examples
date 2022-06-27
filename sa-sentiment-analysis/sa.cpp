@@ -511,7 +511,7 @@ class SinkFunctor {
 public:
     SinkFunctor(unsigned rate) : sampling_rate {rate} {}
 
-    void operator()(optional<Tuple> &input, RuntimeContext &context) {
+    void operator()(optional<Tuple> &input) {
         if (input) {
             const auto arrival_time = current_time();
             const auto latency = difference(arrival_time, input->timestamp);
