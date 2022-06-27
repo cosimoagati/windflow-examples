@@ -644,31 +644,6 @@ static inline void serialize_to_json(const Metric<unsigned long> &metric,
     fs << json_stats.dump(4) << '\n';
 }
 
-static void serialize_throughput(const Parameters &parameters,
-                                 unsigned long     sent_tuples,
-                                 unsigned long     elapsed_time) {
-    nlohmann::ordered_json json_stats;
-    json_stats["date"]             = get_datetime_string();
-    json_stats["name"]             = "throughput";
-    json_stats["time policy"]      = parameters.time_policy;
-    json_stats["parallelism"]      = parameters.parallelism;
-    json_stats["batch size"]       = parameters.batch_size;
-    json_stats["duration"]         = parameters.duration;
-    json_stats["tuple rate"]       = parameters.tuple_rate;
-    json_stats["sampling rate"]    = parameters.sampling_rate;
-    json_stats["chaining enabled"] = parameters.use_chaining;
-    json_stats["time unit"]        = string {timeunit_string} + 's';
-    json_stats["execution mode"] =
-        get_string_from_execution_mode(parameters.execution_mode);
-    json_stats["time policy"] =
-        get_string_from_time_policy(parameters.time_policy);
-
-    const unsigned long throughput =
-        elapsed_time > 0 ? sent_tuples / static_cast<double>(elapsed_time)
-                         : sent_tuples;
-    json_stats["mean"] = throughput;
-}
-
 static void serialize_single_value(const Parameters &parameters,
                                    const string &name, unsigned long value) {
     nlohmann::ordered_json json_stats;
