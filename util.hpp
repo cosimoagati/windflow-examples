@@ -243,9 +243,9 @@ static inline void create_directory_if_not_exists(const char *path) noexcept {
     }
 }
 
-static inline void serialize_json(const nlohmann::json &json_stats,
-                                  const std::string &   file_name,
-                                  const std::string &   output_directory) {
+static inline void serialize_json(const nlohmann::ordered_json &json_stats,
+                                  const std::string &           file_name,
+                                  const std::string &output_directory) {
     create_directory_if_not_exists(output_directory.c_str());
     std::ofstream fs {output_directory + "/metric-" + file_name + "-"
                       + std::to_string(current_time_secs()) + ".json"};
