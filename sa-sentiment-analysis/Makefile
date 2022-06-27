@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -Wpedantic -pedantic -O3 -g3 \
+CXXFLAGS = -std=c++17 -Wall -Wextra -Wpedantic -pedantic -O3 \
 -fno-exceptions -flto -fno-permissive -DNDEBUG -DFF_BOUNDED_BUFFER \
 -DDEFAULT_BUFFER_CAPACITY=32786
 
