@@ -485,7 +485,6 @@ public:
 
             ++tuples_received;
             last_arrival_time = arrival_time;
-
             if (is_time_to_sample(arrival_time)) {
                 latency_samples.push_back(latency);
                 last_sampling_time = arrival_time;
