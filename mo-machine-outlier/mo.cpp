@@ -857,8 +857,7 @@ class SinkFunctor {
 public:
     SinkFunctor(unsigned rate) : sampling_rate {rate} {}
 
-    void operator()(optional<AlertTriggererResultTuple> &input,
-                    RuntimeContext &                     context) {
+    void operator()(optional<AlertTriggererResultTuple> &input) {
         if (input) {
             const auto arrival_time = current_time();
             const auto latency =
