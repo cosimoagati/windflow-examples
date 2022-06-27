@@ -391,9 +391,6 @@ static inline void print_statistics(unsigned long elapsed_time,
 static atomic_ulong          global_sent_tuples {0};
 static atomic_ulong          global_received_tuples {0};
 static Metric<unsigned long> global_latency_metric {"sa-latency"};
-static Metric<unsigned long> global_interdeparture_metric {
-    "sa-interdeparture-time"};
-static Metric<unsigned long> global_service_time_metric {"sa-service-time"};
 #ifndef NDEBUG
 static mutex print_mutex;
 #endif
@@ -494,7 +491,6 @@ public:
 
 class SinkFunctor {
     vector<unsigned long> latency_samples;
-    vector<unsigned long> interdeparture_samples;
     vector<unsigned long> service_time_samples;
     unsigned long         tuples_received    = 0;
     unsigned long         last_sampling_time = current_time();
@@ -519,22 +515,12 @@ public:
         if (input) {
             const auto arrival_time = current_time();
             const auto latency = difference(arrival_time, input->timestamp);
-            const auto interdeparture_time =
-                difference(arrival_time, last_arrival_time);
 
             ++tuples_received;
             last_arrival_time = arrival_time;
 
             if (is_time_to_sample(arrival_time)) {
                 latency_samples.push_back(latency);
-                interdeparture_samples.push_back(interdeparture_time);
-
-                // The current service time is computed via this heuristic,
-                // it MIGHT not be reliable.
-                const auto service_time =
-                    interdeparture_time
-                    / static_cast<double>(context.getParallelism());
-                service_time_samples.push_back(service_time);
                 last_sampling_time = arrival_time;
             }
 #ifndef NDEBUG
@@ -552,8 +538,6 @@ public:
         } else {
             global_received_tuples.fetch_add(tuples_received);
             global_latency_metric.merge(latency_samples);
-            global_interdeparture_metric.merge(interdeparture_samples);
-            global_service_time_metric.merge(service_time_samples);
         }
     }
 };
@@ -675,10 +659,6 @@ int main(int argc, char *argv[]) {
     const auto elapsed_time = difference(current_time(), start_time);
 
     serialize_to_json(global_latency_metric, parameters,
-                      global_received_tuples);
-    serialize_to_json(global_interdeparture_metric, parameters,
-                      global_received_tuples);
-    serialize_to_json(global_service_time_metric, parameters,
                       global_received_tuples);
 
     const auto average_latency =
