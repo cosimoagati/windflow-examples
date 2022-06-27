@@ -838,8 +838,6 @@ public:
 
 class SinkFunctor {
     vector<unsigned long> latency_samples;
-    vector<unsigned long> interdeparture_samples;
-    vector<unsigned long> service_time_samples;
     unsigned long         tuples_received    = 0;
     unsigned long         last_sampling_time = current_time();
     unsigned long         last_arrival_time  = last_sampling_time;
@@ -865,22 +863,11 @@ public:
             const auto arrival_time = current_time();
             const auto latency =
                 difference(arrival_time, input->execution_timestamp);
-            const auto interdeparture_time =
-                difference(arrival_time, last_arrival_time);
 
             ++tuples_received;
             last_arrival_time = arrival_time;
-
             if (is_time_to_sample(arrival_time)) {
                 latency_samples.push_back(latency);
-                interdeparture_samples.push_back(interdeparture_time);
-
-                // The current service time is computed via this heuristic,
-                // it MIGHT not be reliable.
-                const auto service_time =
-                    interdeparture_time
-                    / static_cast<double>(context.getParallelism());
-                service_time_samples.push_back(service_time);
                 last_sampling_time = arrival_time;
             }
 #ifndef NDEBUG
