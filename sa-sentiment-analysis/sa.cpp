@@ -623,18 +623,20 @@ get_distribution_stats(const Metric<unsigned long> &metric,
 template<typename T>
 static inline nlohmann::ordered_json
 get_single_value_stats(T value, const string &name,
-                       const Parameters &parameters) {
+                       const Parameters &parameters,
+                       unsigned long     total_measurements) {
     nlohmann::ordered_json json_stats;
-    json_stats["date"]             = get_datetime_string();
-    json_stats["name"]             = name;
-    json_stats["time policy"]      = parameters.time_policy;
-    json_stats["parallelism"]      = parameters.parallelism;
-    json_stats["batch size"]       = parameters.batch_size;
-    json_stats["duration"]         = parameters.duration;
-    json_stats["tuple rate"]       = parameters.tuple_rate;
-    json_stats["sampling rate"]    = parameters.sampling_rate;
-    json_stats["chaining enabled"] = parameters.use_chaining;
-    json_stats["time unit"]        = string {timeunit_string} + 's';
+    json_stats["date"]               = get_datetime_string();
+    json_stats["name"]               = name;
+    json_stats["time policy"]        = parameters.time_policy;
+    json_stats["parallelism"]        = parameters.parallelism;
+    json_stats["batch size"]         = parameters.batch_size;
+    json_stats["duration"]           = parameters.duration;
+    json_stats["tuple rate"]         = parameters.tuple_rate;
+    json_stats["sampling rate"]      = parameters.sampling_rate;
+    json_stats["chaining enabled"]   = parameters.use_chaining;
+    json_stats["time unit"]          = string {timeunit_string} + 's';
+    json_stats["total measurements"] = total_measurements;
     json_stats["execution mode"] =
         get_string_from_execution_mode(parameters.execution_mode);
     json_stats["time policy"] =
@@ -668,13 +670,13 @@ int main(int argc, char *argv[]) {
     serialize_json(latency_stats, "sa-latency",
                    parameters.metric_output_directory);
 
-    const auto throughput_stats =
-        get_single_value_stats(throughput, "throughput", parameters);
+    const auto throughput_stats = get_single_value_stats(
+        throughput, "throughput", parameters, global_sent_tuples.load());
     serialize_json(throughput_stats, "sa-throughput",
                    parameters.metric_output_directory);
 
-    const auto service_time_stats =
-        get_single_value_stats(service_time, "service time", parameters);
+    const auto service_time_stats = get_single_value_stats(
+        service_time, "service time", parameters, global_sent_tuples.load());
     serialize_json(service_time_stats, "sa-service-time",
                    parameters.metric_output_directory);
 
