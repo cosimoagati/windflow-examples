@@ -590,32 +590,10 @@ static inline void serialize_to_json(const Metric<unsigned long> &metric,
     json_stats["sampled measurements"] = metric.size();
     json_stats["total measurements"]   = total_measurements;
 
-    switch (parameters.execution_mode) {
-    case Execution_Mode_t::DEFAULT:
-        json_stats["execution mode"] = "default";
-        break;
-    case Execution_Mode_t::DETERMINISTIC:
-        json_stats["execution mode"] = "deterministic";
-        break;
-    case Execution_Mode_t::PROBABILISTIC:
-        json_stats["execution mode"] = "probabilistic";
-        break;
-    default:
-        assert(false);
-        break;
-    }
-
-    switch (parameters.time_policy) {
-    case Time_Policy_t::INGRESS_TIME:
-        json_stats["time policy"] = "ingress time";
-        break;
-    case Time_Policy_t::EVENT_TIME:
-        json_stats["time policy"] = "event time";
-        break;
-    default:
-        assert(false);
-        break;
-    }
+    json_stats["execution mode"] =
+        get_string_from_execution_mode(parameters.execution_mode);
+    json_stats["time policy"] =
+        get_string_from_time_policy(parameters.time_policy);
 
     if (!metric.empty()) {
         const auto mean =
