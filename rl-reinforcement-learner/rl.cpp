@@ -940,7 +940,7 @@ class SinkFunctor {
 public:
     SinkFunctor(unsigned rate) : sampling_rate {rate} {}
 
-    void operator()(optional<OutputTuple> &input, RuntimeContext &context) {
+    void operator()(optional<OutputTuple> &input) {
         if (input) {
 #ifndef NDEBUG
             {
