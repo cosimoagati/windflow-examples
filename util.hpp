@@ -9,6 +9,7 @@
 #include <dirent.h>
 #include <iostream>
 #include <mutex>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <string_view>
 #include <sys/stat.h>
@@ -240,6 +241,15 @@ static inline void create_directory_if_not_exists(const char *path) noexcept {
             std::exit(EXIT_FAILURE);
         }
     }
+}
+
+static inline void serialize_json(const nlohmann::json &json_stats,
+                                  const std::string &   file_name,
+                                  const std::string &   output_directory) {
+    create_directory_if_not_exists(output_directory.c_str());
+    std::ofstream fs {output_directory + "/metric-" + file_name + "-"
+                      + std::to_string(current_time_secs()) + ".json"};
+    fs << json_stats.dump(4) << '\n';
 }
 
 #endif // #ifndef UTIL_HPP
