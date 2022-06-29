@@ -253,6 +253,58 @@ def plot_by_chaining(percentile,
         show_graphs(x_axis, y_axis, title=title, xlabel=xlabel, ylabel=ylabel)
 
 
+def get_percentile_values(percentile_dict):
+    percentile_values = []
+    for percentile in [0, 5, 25, 50, 75, 95, 100]:
+        index = str(percentile) + 'th percentile'
+        percentile_values.append(percentile_dict[index])
+    return percentile_values
+
+
+def boxplot_latency_by_parallelism(batchsize,
+                                   chaining,
+                                   directory='',
+                                   sampling_rate=100,
+                                   tuple_rate=1000,
+                                   json_list=None,
+                                   image_path=None):
+    if not json_list:
+        json_list = get_json_objs_from_directory(directory)
+    json_list = filter_jsons_by_name(json_list, 'service-time')
+    json_list = filter_jsons_by_chaining(json_list, chaining)
+    json_list = filter_jsons_by_batch_size(json_list, batchsize)
+    json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
+    json_list = filter_jsons_by_tuple_rate(json_list, tuple_rate)
+
+    json_list.sort(key=lambda j: j['parallelism'][0])
+
+    if not json_list:
+        print('No data found with the specified parameters, not plotting...')
+        return
+
+    time_unit = json_list[0]['time unit']
+    x_axis = [j['parallelism'][0] for j in json_list]
+    y_axis = [get_percentile_values(j) for j in json_list]
+    if DEBUG:
+        print(x_axis)
+        print(y_axis)
+
+    title = ('Latency (batch size: ' + str(batchsize) + ') ' + '(chaining: ' +
+             str(chaining) + ') ')
+    xlabel = 'Parallelism degree for each node'
+    ylabel = get_y_label('latency', time_unit)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title, loc='right', y=1.08)
+    plt.grid(True)
+    plt.boxplot(y_axis, positions=x_axis)
+    if image_path:
+        plt.savefig(os.path.join(image_path, title + ' (boxplot).png'))
+    else:
+        plt.show()
+    plt.close('all')
+
+
 def generate_all_images(directory):
     parallelism_degrees = range(1, 25)
     batchsizes = [0, 10, 100, 1000, 10000]
