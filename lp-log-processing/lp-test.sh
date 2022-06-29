@@ -22,5 +22,5 @@ for batching in 0 10 100 1000 10000; do
     done
 done
 
-    echo "Test completed on $(date)"
+echo "Test completed on $(date)"
 
