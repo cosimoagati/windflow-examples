@@ -19,7 +19,7 @@ for rate in 0; do
                 --rate=false \
                 --outputdir="$outputdir" >> "$outputdir/output-$($datecmd).txt"
             ./tt-timer-threads \
-                --duration="$duration" --parallelism="$i,$i,$i" \
+                --duration="$duration" --parallelism="$i,$i,$i,$i,$i,$i" \
                 --batch="$batching,$batching,$batching,$batching,$batching" \
                 --chaining="$chaining" \
                 --rate=false \
@@ -36,7 +36,7 @@ for rate in 0; do
                 --rate=true \
                 --outputdir="$outputdir" >> "$outputdir/output-$($datecmd).txt"
             ./tt-timer-threads \
-                --duration="$duration" --parallelism="$i,$i,$i" \
+                --duration="$duration" --parallelism="$i,$i,$i,$i,$i,$i" \
                 --batch="$batching,$batching,$batching,$batching,$batching" \
                 --chaining="$chaining" \
                 --rate=true \
