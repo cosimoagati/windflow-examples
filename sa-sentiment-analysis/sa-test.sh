@@ -21,11 +21,7 @@ for rate in 0; do
                  >> "$outputdir/output-$($datecmd).txt"
             set +x
         done
-    done
-done
 
-for rate in 0; do
-    for batching in 0 2 4 6 8 16 32 64 128; do
         for pardeg in $(seq 1 $(nproc)); do
             set -x
             ./sa --duration="$duration" \
