@@ -143,8 +143,9 @@ def plot_by_parallelism(percentile,
     x_axis = [j['parallelism'][0] for j in json_list]
     y_axis = [j[percentile_to_dictkey(percentile)] for j in json_list]
     if DEBUG:
-        print(x_axis)
-        print(y_axis)
+        print('x_axis: ' + str(x_axis))
+        print('y_axis: ' + str(y_axis))
+
     title = (name.capitalize() + '(' + percentile + ') ' + '(batch size: ' +
              str(batchsize) + ') ' + '(chaining: ' + str(chaining) + ') ')
     xlabel = 'Parallelism degree for each node'
@@ -186,8 +187,8 @@ def plot_by_batch_size(percentile,
     x_axis = [j['batch size'][0] for j in json_list]
     y_axis = [j[percentile_to_dictkey(percentile)] for j in json_list]
     if DEBUG:
-        print(x_axis)
-        print(y_axis)
+        print('x_axis: ' + str(x_axis))
+        print('y_axis: ' + str(y_axis))
 
     title = (name.capitalize() + '(' + percentile + ') ' + '(parallelism: ' +
              str(parallelism) + ') ' + '(chaining: ' + str(chaining) + ') ')
@@ -234,8 +235,8 @@ def plot_by_chaining(percentile,
     x_axis = [j[CHAINING] for j in json_list]
     y_axis = [j[percentile_to_dictkey(percentile)] for j in json_list]
     if DEBUG:
-        print(x_axis)
-        print(y_axis)
+        print('x_axis: ' + str(x_axis))
+        print('y_axis: ' + str(y_axis))
 
     title = (name.capitalize() + '(' + percentile + ') ' + '(parallelism: ' +
              str(parallelism) + ') ' + '(batch size: ' + str(batchsize) + ') ')
@@ -286,8 +287,8 @@ def boxplot_latency_by_parallelism(batchsize,
     x_axis = [j['parallelism'][0] for j in json_list]
     y_axis = [get_percentile_values(j) for j in json_list]
     if DEBUG:
-        print(x_axis)
-        print(y_axis)
+        print('x_axis: ' + str(x_axis))
+        print('y_axis: ' + str(y_axis))
 
     title = ('Latency (batch size: ' + str(batchsize) + ') ' + '(chaining: ' +
              str(chaining) + ') ')
