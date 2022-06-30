@@ -254,9 +254,9 @@ def plot_by_chaining(percentile,
         show_graphs(x_axis, y_axis, title=title, xlabel=xlabel, ylabel=ylabel)
 
 
-def get_percentile_values(percentile_dict):
+def get_percentile_values(percentile_dict, percentile_list):
     percentile_values = []
-    for percentile in [0, 5, 25, 50, 75, 95, 100]:
+    for percentile in percentile_list:
         index = str(percentile) + 'th percentile'
         percentile_values.append(percentile_dict[index])
     return percentile_values
@@ -267,6 +267,7 @@ def boxplot_latency_by_parallelism(batchsize,
                                    directory='',
                                    sampling_rate=100,
                                    tuple_rate=1000,
+                                   percentile_list=None,
                                    json_list=None,
                                    image_path=None):
     if not json_list:
@@ -285,18 +286,22 @@ def boxplot_latency_by_parallelism(batchsize,
 
     time_unit = json_list[0]['time unit']
     x_axis = [j['parallelism'][0] for j in json_list]
-    y_axis = [get_percentile_values(j) for j in json_list]
+    if not percentile_list:
+        percentile_list = [0, 5, 25, 50, 75, 95, 100]
+    y_axis = [get_percentile_values(j, percentile_list) for j in json_list]
     if DEBUG:
         print('x_axis: ' + str(x_axis))
         print('y_axis: ' + str(y_axis))
 
     title = ('Latency (batch size: ' + str(batchsize) + ') ' + '(chaining: ' +
-             str(chaining) + ') ')
+             str(chaining) + ')\nPercentiles: ' + str(percentile_list))
     xlabel = 'Parallelism degree for each node'
     ylabel = get_y_label('latency', time_unit)
+    
+    plt.figure()
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.title(title, loc='right', y=1.08)
+    plt.title(title, loc='right', y=1.00)
     plt.grid(True)
     plt.boxplot(y_axis, positions=x_axis)
     if image_path:
@@ -340,6 +345,22 @@ def generate_all_images(directory):
                                  batchsize,
                                  json_list=json_list,
                                  image_path=directory)
+
+
+def generate_boxplots(directory):
+    parallelism_degrees = range(1, 25)
+    batchsizes = [0, 10, 100, 1000, 10000]
+    chaining_vals = [False, True]
+
+    json_list = get_json_objs_from_directory(directory)
+
+    for batchsize in batchsizes:
+        for chaining in chaining_vals:
+            boxplot_latency_by_parallelism(batchsize,
+                                           chaining,
+                                           percentile_list=[25, 50, 75],
+                                           json_list=json_list,
+                                           image_path=directory)
 
 
 if __name__ == '__main__':
