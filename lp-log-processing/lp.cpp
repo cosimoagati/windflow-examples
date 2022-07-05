@@ -1063,7 +1063,7 @@ int main(int argc, char *argv[]) {
 
     const auto latency_stats = get_distribution_stats(
         global_total_latency_metric, parameters, global_received_tuples);
-    serialize_json(latency_stats, "lp-latency",
+    serialize_json(latency_stats, "lp-total-latency",
                    parameters.metric_output_directory);
 
     const auto volume_latency_stats =
