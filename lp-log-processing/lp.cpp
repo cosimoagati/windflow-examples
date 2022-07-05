@@ -996,10 +996,12 @@ int main(int argc, char *argv[]) {
     const auto start_time = current_time();
     graph.run();
     const auto elapsed_time = difference(current_time(), start_time);
+
     const double throughput =
         elapsed_time > 0
             ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
             : global_sent_tuples.load();
+
     const double service_time = 1 / throughput;
 
     const auto latency_stats = get_distribution_stats(
@@ -1040,6 +1042,7 @@ int main(int argc, char *argv[]) {
         / (!global_total_latency_metric.empty()
                ? global_total_latency_metric.size()
                : 1.0);
+
     const auto average_volume_latency =
         accumulate(global_volume_latency_metric.begin(),
                    global_volume_latency_metric.end(), 0.0)
@@ -1059,6 +1062,7 @@ int main(int argc, char *argv[]) {
         / (!global_geo_latency_metric.empty()
                ? global_geo_latency_metric.size()
                : 1.0);
+
     print_statistics(elapsed_time, parameters.duration, global_sent_tuples,
                      average_total_latency, average_volume_latency,
                      average_status_latency, average_geo_latency,
