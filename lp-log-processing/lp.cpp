@@ -475,7 +475,7 @@ static inline void print_initial_parameters(const Parameters &parameters) {
 
 static inline void
 print_statistics(unsigned long elapsed_time, unsigned long duration,
-                 unsigned long sent_tuples, double average_latency,
+                 unsigned long sent_tuples, double average_total_latency,
                  double average_volume_latency, double average_status_latency,
                  double average_geo_latency, unsigned long received_tuples) {
     const auto elapsed_time_in_seconds =
@@ -488,7 +488,8 @@ print_statistics(unsigned long elapsed_time, unsigned long duration,
     const auto throughput_in_seconds   = throughput * timeunit_scale_factor;
     const auto service_time            = 1 / throughput;
     const auto service_time_in_seconds = service_time / timeunit_scale_factor;
-    const auto latency_in_seconds = average_latency / timeunit_scale_factor;
+    const auto latency_in_seconds =
+        average_total_latency / timeunit_scale_factor;
     const auto volume_latency_in_seconds =
         average_volume_latency / timeunit_scale_factor;
     const auto status_latency_in_seconds =
@@ -508,8 +509,8 @@ print_statistics(unsigned long elapsed_time, unsigned long duration,
          << " tuples per second)\n"
          << "Service time: " << service_time << ' ' << timeunit_string << "s ("
          << service_time_in_seconds << " seconds)\n"
-         << "Average latency: " << average_latency << ' ' << timeunit_string
-         << "s (" << latency_in_seconds << " seconds)\n"
+         << "Average latency: " << average_total_latency << ' '
+         << timeunit_string << "s (" << latency_in_seconds << " seconds)\n"
          << "Average volume latency: " << average_volume_latency << ' '
          << timeunit_string << "s (" << volume_latency_in_seconds
          << " seoncds)\n"
@@ -530,7 +531,7 @@ static atomic_ulong global_volume_received_tuples {0};
 static atomic_ulong global_status_received_tuples {0};
 static atomic_ulong global_geo_received_tuples {0};
 
-static Metric<unsigned long> global_latency_metric {"lp-total-latency"};
+static Metric<unsigned long> global_total_latency_metric {"lp-total-latency"};
 static Metric<unsigned long> global_volume_latency_metric {
     "lp-volume-latency"};
 static Metric<unsigned long> global_status_latency_metric {
@@ -867,7 +868,7 @@ public:
             global_geo_received_tuples.fetch_add(
                 specific_tuples_received[TupleTag::Geo]);
 
-            global_latency_metric.merge(latency_samples);
+            global_total_latency_metric.merge(latency_samples);
             global_volume_latency_metric.merge(
                 specific_latency_samples[TupleTag::Volume]);
             global_status_latency_metric.merge(
@@ -1061,7 +1062,7 @@ int main(int argc, char *argv[]) {
     const double service_time = 1 / throughput;
 
     const auto latency_stats = get_distribution_stats(
-        global_latency_metric, parameters, global_received_tuples);
+        global_total_latency_metric, parameters, global_received_tuples);
     serialize_json(latency_stats, "lp-latency",
                    parameters.metric_output_directory);
 
@@ -1092,11 +1093,12 @@ int main(int argc, char *argv[]) {
     serialize_json(service_time_stats, "lp-service-time",
                    parameters.metric_output_directory);
 
-    const auto average_latency =
-        accumulate(global_latency_metric.begin(), global_latency_metric.end(),
-                   0.0)
-        / (!global_latency_metric.empty() ? global_latency_metric.size()
-                                          : 1.0);
+    const auto average_total_latency =
+        accumulate(global_total_latency_metric.begin(),
+                   global_total_latency_metric.end(), 0.0)
+        / (!global_total_latency_metric.empty()
+               ? global_total_latency_metric.size()
+               : 1.0);
     const auto average_volume_latency =
         accumulate(global_volume_latency_metric.begin(),
                    global_volume_latency_metric.end(), 0.0)
@@ -1117,7 +1119,7 @@ int main(int argc, char *argv[]) {
                ? global_geo_latency_metric.size()
                : 1.0);
     print_statistics(elapsed_time, parameters.duration, global_sent_tuples,
-                     average_latency, average_volume_latency,
+                     average_total_latency, average_volume_latency,
                      average_status_latency, average_geo_latency,
                      global_received_tuples);
     return 0;
