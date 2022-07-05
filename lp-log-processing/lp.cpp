@@ -995,7 +995,7 @@ int main(int argc, char *argv[]) {
 
     const auto start_time = current_time();
     graph.run();
-    const auto   elapsed_time = difference(current_time(), start_time);
+    const auto elapsed_time = difference(current_time(), start_time);
     const double throughput =
         elapsed_time > 0
             ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
