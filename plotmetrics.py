@@ -144,13 +144,13 @@ def get_y_axis(name, json_list, percentile, time_unit):
         ]
 
 
-def plot_by_parallelism(percentile,
-                        name,
+def plot_by_parallelism(name,
                         batchsize,
                         chaining,
                         directory='',
                         sampling_rate=100,
                         tuple_rate=0,
+                        percentile='mean',
                         json_list=None,
                         image_path=None):
     if not json_list:
