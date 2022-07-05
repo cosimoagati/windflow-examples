@@ -852,6 +852,18 @@ public:
                 latency_samples.push_back(latency);
                 specific_latency_samples[input->tag].push_back(latency);
                 last_sampling_time = arrival_time;
+#ifndef NDEBUG
+                {
+                    lock_guard lock {print_mutex};
+                    const auto tuple_tag_string =
+                        input->tag == TupleTag::Volume   ? "VOLUME"
+                        : input->tag == TupleTag::Status ? "STATUS"
+                        : input->tag == TupleTag::Geo    ? "GEO"
+                                                         : "UNKNOWN";
+                    clog << "[SINK] Sampled tuple of kind " << tuple_tag_string
+                         << '\n';
+                }
+#endif
             }
 #ifndef NDEBUG
             {
