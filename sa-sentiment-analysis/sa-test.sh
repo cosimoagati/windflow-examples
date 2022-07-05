@@ -26,7 +26,7 @@ for rate in 0; do
             set -x
             ./sa --duration="$duration" \
                  --parallelism="$pardeg,$pardeg,$pardeg" \
-                 --batch="$batching,$batching" \
+                 --batch="$batching",0 \
                  --chaining=true \
                  --rate="$rate" \
                  --outputdir="$outputdir" \
