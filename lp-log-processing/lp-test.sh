@@ -9,8 +9,8 @@ echo "Test started on $(date)"
 mkdir -p "$outputdir"
 
 for rate in 0; do
-    for batching in 0 10 100 1000 10000; do
         for i in $(seq 1 $(expr $(nproc) / 6)); do
+    for batching in 0 1 2 4 6 8 16 32 64 128; do
             set -x
             ./lp --duration="$duration" --parallelism="$i,$i,$i,$i,$i,$i" \
                  --batch="$batching,$batching,$batching,$batching,$batching" \
