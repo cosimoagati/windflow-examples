@@ -350,7 +350,7 @@ static inline void print_statistics(unsigned long elapsed_time,
               << timeunit_string << "s\n"
               << "Total number of tuples sent: " << sent_tuples << '\n'
               << "Total number of tuples recieved: " << received_tuples << '\n'
-              << "Processed about " << throughput << " tuples per "
+              << "Throughput: " << throughput << " tuples per "
               << timeunit_string << " (" << throughput_in_seconds
               << " tuples per second)\n"
               << "Service time: " << service_time << ' ' << timeunit_string
