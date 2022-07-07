@@ -501,6 +501,58 @@ def plot_by_batch_size_comparing_parallelism(name,
     plt.close('all')
 
 
+def plot_by_batch_size_comparing_chaining(name,
+                                          directory='',
+                                          parallelism_degree=1,
+                                          sampling_rate=100,
+                                          tuple_rate=0,
+                                          json_list=None,
+                                          image_path=None,
+                                          percentile='mean'):
+    if not json_list:
+        json_list = get_json_objs_from_directory(directory)
+    json_list = filter_jsons_by_name(json_list, name)
+    json_list = filter_jsons_by_parallelism(json_list, parallelism_degree)
+    json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
+    json_list = filter_jsons_by_tuple_rate(json_list, tuple_rate)
+
+    json_list.sort(key=lambda j: j['batch size'][0])
+    if not json_list:
+        print('No data found with the specified parameters, not plotting...')
+        return
+
+    time_unit = json_list[0]['time unit']
+    title = (name.capitalize() + ' (' + percentile + ') ' +
+             ' (parallelism degree per node: ' + str(parallelism_degree) +
+             ') (generation rate: ' +
+             (str(tuple_rate if tuple_rate > 0 else 'unlimited') + ')'))
+    xlabel = 'Batch size for each node'
+    ylabel = get_y_label(name, time_unit)
+
+    plt.figure()
+    plt.title(title, y=1.08)
+    plt.grid(True)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+
+    for chaining in [False, True]:
+        current_json_list = filter_jsons_by_chaining(json_list, chaining)
+        x_axis = [j['batch size'][0] for j in current_json_list]
+        y_axis = get_y_axis(name, current_json_list, percentile, time_unit)
+        if DEBUG:
+            print('x_axis: ' + str(x_axis))
+            print('y_axis: ' + str(y_axis))
+        plt.plot(x_axis, y_axis, label='Chaining: ' + str(chaining))
+    plt.legend()
+    if image_path:
+        plt.savefig(
+            os.path.join(image_path,
+                         title + ' (chaining comparison).png'))
+    else:
+        plt.show()
+    plt.close('all')
+
+
 def generate_all_images(directory,
                         by_parallelism=False,
                         by_batch_size=False,
