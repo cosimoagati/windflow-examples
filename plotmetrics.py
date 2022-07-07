@@ -384,7 +384,8 @@ def plot_by_parallelism_comparing_batch_sizes(name,
         if DEBUG:
             print('x_axis: ' + str(x_axis))
             print('y_axis: ' + str(y_axis))
-        plt.plot(x_axis, y_axis, label='Batch size: ' + str(batch_size))
+        batch_size_label = str(current_json_list[0]['batch size'])
+        plt.plot(x_axis, y_axis, label='Batch size: ' + batch_size_label)
     plt.legend()
     if image_path:
         plt.savefig(
