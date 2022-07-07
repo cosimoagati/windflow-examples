@@ -362,7 +362,7 @@ def plot_by_parallelism_comparing_batch_sizes(name,
         return
 
     time_unit = json_list[0]['time unit']
-    title = (name.capitalize() + ' (' + percentile + ') ' + ' (chaining: ' +
+    title = (name.capitalize() + ' (' + percentile + ') (chaining: ' +
              str(chaining) + ') (generation rate: ' +
              (str(tuple_rate if tuple_rate > 0 else 'unlimited') + ')'))
 
@@ -388,8 +388,10 @@ def plot_by_parallelism_comparing_batch_sizes(name,
         plt.plot(x_axis, y_axis, label='Batch size: ' + batch_size_label)
     plt.legend()
     if image_path:
-        plt.savefig(
-            os.path.join(image_path, title + ' (batch size comparison).png'))
+        suffix = ('-batch-sizes-' +
+                  str(batch_sizes).removeprefix('[').removesuffix(']').replace(
+                      ', ', '-') + '.png')
+        plt.savefig(os.path.join(image_path, title + suffix))
     else:
         plt.show()
     plt.close('all')
@@ -546,8 +548,7 @@ def plot_by_batch_size_comparing_chaining(name,
     plt.legend()
     if image_path:
         plt.savefig(
-            os.path.join(image_path,
-                         title + ' (chaining comparison).png'))
+            os.path.join(image_path, title + ' (chaining comparison).png'))
     else:
         plt.show()
     plt.close('all')
@@ -562,56 +563,26 @@ def generate_all_images(directory,
     batchsizes = [0, 2, 4, 8, 16, 32, 64, 128]
     chaining_vals = [False, True]
     if not metrics:
-        metrics = ['throughput', 'service-time', 'latency']
+        metrics = ['throughput', 'service time', 'latency']
 
     json_list = get_json_objs_from_directory(directory)
     if by_parallelism:
-        for batchsize in batchsizes:
-            for chaining in chaining_vals:
-                for metric in metrics:
-                    if DEBUG:
-                        print('Plotting by parallelism for batchsize=' +
-                              str(batchsize) + ', chaining=' + str(chaining) +
-                              ' and metric=' + metric)
-                    plot_by_parallelism(metric,
-                                        batchsize,
-                                        chaining,
-                                        percentile='mean',
-                                        json_list=json_list,
-                                        image_path=directory,
-                                        tuple_rate=0)
-    if by_batch_size:
-        for parallelism in parallelism_degrees:
-            for chaining in chaining_vals:
-                for metric in metrics:
-                    plot_by_batch_size(metric,
-                                       parallelism,
-                                       chaining,
-                                       percentile='mean',
-                                       json_list=json_list,
-                                       image_path=directory,
-                                       tuple_rate=0)
-    if by_chaining:
-        for parallelism in parallelism_degrees:
-            for batchsize in batchsizes:
-                for metric in metrics:
-                    plot_by_chaining(metric,
-                                     parallelism,
-                                     batchsize,
-                                     percentile='mean',
-                                     json_list=json_list,
-                                     image_path=directory,
-                                     tuple_rate=0)
-
-
-def save_images_by_parallelism_comparing_batch_sizes(directory,
-                                                     metric='throughput'):
-    for chaining in [False, True]:
-        plot_by_parallelism_comparing_batch_sizes('mean',
-                                                  metric,
-                                                  directory=directory,
-                                                  chaining=chaining,
-                                                  image_path=directory)
+        for chaining in chaining_vals:
+            for metric in metrics:
+                plot_by_parallelism_comparing_batch_sizes(metric,
+                                                          chaining=chaining,
+                                                          percentile='mean',
+                                                          json_list=json_list,
+                                                          image_path=directory,
+                                                          tuple_rate=0)
+        for batch_size in batchsizes:
+            for metric in metrics:
+                plot_by_parallelism_comparing_chaining(metric,
+                                                       batch_size=batch_size,
+                                                       percentile='mean',
+                                                       json_list=json_list,
+                                                       image_path=directory,
+                                                       tuple_rate=0)
 
 
 def generate_boxplots(directory):
