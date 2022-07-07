@@ -521,10 +521,10 @@ def generate_all_images(directory,
                         print('Plotting by parallelism for batchsize=' +
                               str(batchsize) + ', chaining=' + str(chaining) +
                               ' and metric=' + metric)
-                    plot_by_parallelism('mean',
-                                        metric,
+                    plot_by_parallelism(metric,
                                         batchsize,
                                         chaining,
+                                        percentile='mean',
                                         json_list=json_list,
                                         image_path=directory,
                                         tuple_rate=0)
@@ -532,10 +532,10 @@ def generate_all_images(directory,
         for parallelism in parallelism_degrees:
             for chaining in chaining_vals:
                 for metric in metrics:
-                    plot_by_batch_size('mean',
-                                       metric,
+                    plot_by_batch_size(metric,
                                        parallelism,
                                        chaining,
+                                       percentile='mean',
                                        json_list=json_list,
                                        image_path=directory,
                                        tuple_rate=0)
@@ -543,10 +543,10 @@ def generate_all_images(directory,
         for parallelism in parallelism_degrees:
             for batchsize in batchsizes:
                 for metric in metrics:
-                    plot_by_chaining('mean',
-                                     metric,
+                    plot_by_chaining(metric,
                                      parallelism,
                                      batchsize,
+                                     percentile='mean',
                                      json_list=json_list,
                                      image_path=directory,
                                      tuple_rate=0)
