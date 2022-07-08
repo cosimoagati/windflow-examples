@@ -4,7 +4,7 @@ duration=120
 datecmd="date +%Y-%m-%d-%H-%M"
 outputdir="testresults-$($datecmd)"
 
-cd $(dirname $0)
+cd $(dirname "$0")
 echo "Test started on $(date)"
 mkdir -p "$outputdir"
 
