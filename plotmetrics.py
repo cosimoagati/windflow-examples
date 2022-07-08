@@ -305,7 +305,7 @@ def plot_by_parallelism_comparing_chaining(name,
     plt.legend()
     if image_path:
         plt.savefig(
-            os.path.join(image_path, title + ' (batch size comparison).png'))
+            os.path.join(image_path, title + '-chaining-comparison.png'))
     else:
         plt.show()
     plt.close('all')
