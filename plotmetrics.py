@@ -98,6 +98,10 @@ def get_y_axis(name, json_list, percentile, time_unit):
         ]
 
 
+def scale_by_base_value(base_value, y, measure):
+    return y / base_value if measure == 'throughput' else base_value / y
+
+
 def get_percentile_values(percentile_dict, percentile_list):
     percentile_values = []
     for percentile in percentile_list:
@@ -372,16 +376,69 @@ def plot_by_batch_size_compare_chaining(name,
     plt.close('all')
 
 
-def scalablity_by_parallelism_compare_batch_sizes(name,
-                                                  directory='',
-                                                  chaining=False,
-                                                  batch_sizes=None,
-                                                  sampling_rate=100,
-                                                  tuple_rate=0,
-                                                  percentile='mean',
-                                                  json_list=None,
-                                                  image_path=None):
-    pass
+def plot_scalablity_compare_batch_sizes(name,
+                                        directory='',
+                                        chaining=False,
+                                        batch_sizes=None,
+                                        sampling_rate=100,
+                                        tuple_rate=0,
+                                        percentile='mean',
+                                        json_list=None,
+                                        image_path=None):
+    if not json_list:
+        json_list = get_json_objs_from_directory(directory)
+    json_list = filter_jsons_by_name(json_list, name)
+    json_list = filter_jsons_by_chaining(json_list, chaining)
+    json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
+    json_list = filter_jsons_by_tuple_rate(json_list, tuple_rate)
+
+    json_list.sort(key=lambda j: j['parallelism'][0])
+
+    if not json_list:
+        print('No data found with the specified parameters, not plotting...')
+        return
+
+    title = (name.capitalize().replace('-', ' ') + ' (' + percentile +
+             ') (chaining: ' + str(chaining) + ') (generation rate: ' +
+             (str(tuple_rate if tuple_rate > 0 else 'unlimited') + ')'))
+
+    xlabel = 'Parallelism degree for each node'
+    ylabel = 'Ratio with respect to parallelism degree of one per node'
+
+    plt.figure()
+    plt.title(title, y=1.08)
+    plt.grid(True)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+
+    batch_sizes = batch_sizes if batch_sizes else default_batch_sizes
+    for batch_size in batch_sizes:
+        current_json_list = filter_jsons_by_batch_size(json_list, batch_size)
+        current_json_list.sort(key=lambda j: j['parallelism'][0])
+        base_value = current_json_list[0][percentile_to_dictkey(percentile)]
+        x_axis = [j['parallelism'][0] for j in current_json_list]
+        unscaled_y_axis = [
+            j[percentile_to_dictkey(percentile)] for j in current_json_list
+        ]
+        y_axis = [
+            scale_by_base_value(y, base_value, name) for y in unscaled_y_axis
+        ]
+        if DEBUG:
+            print('base_value: ', base_value)
+            print('x_axis: ', x_axis)
+            print('y_axis: ', y_axis)
+        batch_size_label = str(current_json_list[0]['batch size'])
+        plt.plot(x_axis, y_axis, label='Batch size: ' + batch_size_label)
+
+    plt.legend()
+    if image_path:
+        suffix = ('-batch-sizes-' +
+                  str(batch_sizes).removeprefix('[').removesuffix(']').replace(
+                      ', ', '-') + '.png')
+        plt.savefig(os.path.join(image_path, title + suffix))
+    else:
+        plt.show()
+    plt.close('all')
 
 
 # def boxplot_latency_by_parallelism_compare_batch_size(
