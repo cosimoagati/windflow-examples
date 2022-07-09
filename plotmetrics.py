@@ -127,13 +127,6 @@ def save_graph_images(x_axis, y_axis, title, xlabel, ylabel, directory=''):
     plt.close('all')
 
 
-def title_by_parallelism(name, percentile, batchsize, chaining, tuple_rate):
-    return (name.capitalize() + ' (' + percentile + ') ' + '(batch size: ' +
-            str(batchsize) + ') ' + '\n(chaining: ' + str(chaining) +
-            ') (generation rate: ' +
-            (str(tuple_rate) if tuple_rate > 0 else 'unlimited') + ')')
-
-
 def get_y_axis(name, json_list, percentile, time_unit):
     if 'throughput' not in name:
         return [j[percentile_to_dictkey(percentile)] for j in json_list]
