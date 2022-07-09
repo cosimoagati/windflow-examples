@@ -145,19 +145,20 @@ def get_percentile_values(percentile_dict, percentile_list):
     return percentile_values
 
 
-def boxplot_latency_by_parallelism(batchsize,
-                                   chaining,
+def boxplot_latency_by_parallelism(metric='latency',
+                                   batch_size=0,
+                                   chaining=False,
                                    directory='',
                                    sampling_rate=100,
-                                   tuple_rate=1000,
+                                   tuple_rate=0,
                                    percentile_list=None,
                                    json_list=None,
                                    image_path=None):
     if not json_list:
         json_list = get_json_objs_from_directory(directory)
-    json_list = filter_jsons_by_name(json_list, 'latency')
+    json_list = filter_jsons_by_name(json_list, metric)
     json_list = filter_jsons_by_chaining(json_list, chaining)
-    json_list = filter_jsons_by_batch_size(json_list, batchsize)
+    json_list = filter_jsons_by_batch_size(json_list, batch_size)
     json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
     json_list = filter_jsons_by_tuple_rate(json_list, tuple_rate)
 
@@ -176,10 +177,11 @@ def boxplot_latency_by_parallelism(batchsize,
         print('x_axis: ' + str(x_axis))
         print('y_axis: ' + str(y_axis))
 
-    title = ('Latency (batch size: ' + str(batchsize) + ') ' + '(chaining: ' +
-             str(chaining) + ')\nPercentiles: ' + str(percentile_list))
+    title = (metric.capitalize().replace('-', ' ') + ' (batch size: ' +
+             str(batch_size) + ') ' + '(chaining: ' + str(chaining) +
+             ')\nPercentiles: ' + str(percentile_list))
     xlabel = 'Parallelism degree for each node'
-    ylabel = get_y_label('latency', time_unit)
+    ylabel = get_y_label(metric, time_unit)
 
     plt.figure()
     plt.xlabel(xlabel)
@@ -217,8 +219,8 @@ def plot_by_parallelism_comparing_batch_sizes(name,
         return
 
     time_unit = json_list[0]['time unit']
-    title = (name.capitalize() + ' (' + percentile + ') (chaining: ' +
-             str(chaining) + ') (generation rate: ' +
+    title = (name.capitalize().replace('-', ' ') + ' (' + percentile +
+             ') (chaining: ' + str(chaining) + ') (generation rate: ' +
              (str(tuple_rate if tuple_rate > 0 else 'unlimited') + ')'))
 
     xlabel = 'Parallelism degree for each node'
@@ -274,8 +276,8 @@ def plot_by_parallelism_comparing_chaining(name,
         return
 
     time_unit = json_list[0]['time unit']
-    title = (name.capitalize() + ' (' + percentile + ') (batch size: ' +
-             str(batch_size) + ') (generation rate: ' +
+    title = (name.capitalize().replace('-', ' ') + ' (' + percentile +
+             ') (batch size: ' + str(batch_size) + ') (generation rate: ' +
              (str(tuple_rate if tuple_rate > 0 else 'unlimited') + ')'))
 
     xlabel = 'Parallelism degree for each node'
@@ -326,8 +328,8 @@ def plot_by_batch_size_comparing_parallelism(name,
         return
 
     time_unit = json_list[0]['time unit']
-    title = (name.capitalize() + ' (' + percentile + ') ' + ' (chaining: ' +
-             str(chaining) + ') (generation rate: ' +
+    title = (name.capitalize().replace('-', ' ') + ' (' + percentile + ') ' +
+             ' (chaining: ' + str(chaining) + ') (generation rate: ' +
              (str(tuple_rate if tuple_rate > 0 else 'unlimited') + ')'))
     xlabel = 'Batch size for each node'
     ylabel = get_y_label(name, time_unit)
@@ -379,7 +381,7 @@ def plot_by_batch_size_comparing_chaining(name,
         return
 
     time_unit = json_list[0]['time unit']
-    title = (name.capitalize() + ' (' + percentile + ') ' +
+    title = (name.capitalize().replace('-', ' ') + ' (' + percentile + ') ' +
              ' (parallelism degree per node: ' + str(parallelism_degree) +
              ') (generation rate: ' +
              (str(tuple_rate if tuple_rate > 0 else 'unlimited') + ')'))
@@ -407,6 +409,55 @@ def plot_by_batch_size_comparing_chaining(name,
     else:
         plt.show()
     plt.close('all')
+
+
+# def boxplot_latency_by_parallelism_comparing_batch_size(
+#         directory='',
+#         chaining=False,
+#         batch_sizes=None,
+#         sampling_rate=100,
+#         tuple_rate=0,
+#         percentile_list=None,
+#         json_list=None,
+#         image_path=None):
+#     if not json_list:
+#         json_list = get_json_objs_from_directory(directory)
+#     json_list = filter_jsons_by_name(json_list, 'latency')
+#     json_list = filter_jsons_by_chaining(json_list, chaining)
+#     json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
+#     json_list = filter_jsons_by_tuple_rate(json_list, tuple_rate)
+
+#     if not json_list:
+#         print('No data found with the specified parameters, not plotting...')
+#         return
+
+#     json_list.sort(key=lambda j: j['parallelism'][0])
+
+#     time_unit = json_list[0]['time unit']
+#     title = ('Latency (chaining: ' + str(chaining) + ') Percentiles: ' +
+#              str(percentile_list))
+#     xlabel = 'Parallelism degree for each node'
+#     ylabel = get_y_label('latency', time_unit)
+
+#     plt.figure()
+#     plt.title(title, y=1.08)
+#     plt.grid(True)
+#     plt.xlabel(xlabel)
+#     plt.ylabel(ylabel)
+
+#     if not batch_sizes:
+#         batch_sizes = default_batch_sizes
+#     for batch_size in batch_sizes:
+#         current_json_list = filter_jsons_by_batch_size(json_list, batch_size)
+#         x_axis = [j['parallelism'][0] for j in current_json_list]
+#         y_axis = [get_percentile_values(j, percentile_list) for j in json_list]
+#         if DEBUG:
+#             print('x_axis: ' + str(x_axis))
+#             print('y_axis: ' + str(y_axis))
+#         batch_size_label = str(current_json_list[0]['batch size'])
+#         plt.boxplot(y_axis,
+#                     positions=x_axis,
+#                     label='Batch size: ' + batch_size_label)
 
 
 def generate_all_images_by_parallelism(directory, metrics):
