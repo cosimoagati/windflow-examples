@@ -197,8 +197,7 @@ def plot_by_parallelism_compare_batch_sizes(name,
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
 
-    if not batch_sizes:
-        batch_sizes = default_batch_sizes
+    batch_sizes = batch_sizes if batch_sizes else default_batch_sizes
     for batch_size in batch_sizes:
         current_json_list = filter_jsons_by_batch_size(json_list, batch_size)
         x_axis = [j['parallelism'][0] for j in current_json_list]
@@ -305,8 +304,8 @@ def plot_by_batch_size_compare_parallelism(name,
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
 
-    if not parallelism_degrees:
-        parallelism_degrees = range(1, 48)
+    parallelism_degrees = (parallelism_degrees
+                           if parallelism_degrees else range(1, 48))
     for degree in parallelism_degrees:
         current_json_list = filter_jsons_by_parallelism(json_list, degree)
         x_axis = [j['batch size'][0] for j in current_json_list]
