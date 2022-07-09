@@ -88,45 +88,6 @@ def get_y_label(name, time_unit):
     return name.replace('-', ' ').capitalize() + ' (' + unit_string + ')'
 
 
-def show_graphs(x_axis, y_axis, title, xlabel, ylabel):
-    plt.figure()
-    plt.title(title, loc='right', y=1.00)
-    plt.grid(True)
-    plt.plot(x_axis, y_axis, color='maroon', marker='o')
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-
-    plt.figure()
-    plt.title(title, loc='right', y=1.00)
-    plt.grid()
-    plt.bar(x_axis, y_axis, color='maroon')
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.show()
-    plt.close('all')
-
-
-def save_graph_images(x_axis, y_axis, title, xlabel, ylabel, directory=''):
-    filename_title = title.replace('\n', ' ')
-
-    plt.figure()
-    plt.title(title, loc='right', y=1.00)
-    plt.grid(True)
-    plt.plot(x_axis, y_axis, color='maroon', marker='o')
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.savefig(os.path.join(directory, filename_title + ' (plot).png'))
-
-    plt.figure()
-    plt.grid(False)
-    plt.title(title, loc='right', y=1.00)
-    plt.bar(x_axis, y_axis, color='maroon')
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.savefig(os.path.join(directory, filename_title + ' (bar).png'))
-    plt.close('all')
-
-
 def get_y_axis(name, json_list, percentile, time_unit):
     if 'throughput' not in name:
         return [j[percentile_to_dictkey(percentile)] for j in json_list]
