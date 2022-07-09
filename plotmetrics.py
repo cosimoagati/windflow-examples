@@ -157,15 +157,15 @@ def boxplot_latency_by_parallelism(metric='latency',
     plt.close('all')
 
 
-def plot_by_parallelism_comparing_batch_sizes(name,
-                                              directory='',
-                                              chaining=False,
-                                              batch_sizes=None,
-                                              sampling_rate=100,
-                                              tuple_rate=0,
-                                              percentile='mean',
-                                              json_list=None,
-                                              image_path=None):
+def plot_by_parallelism_compare_batch_sizes(name,
+                                            directory='',
+                                            chaining=False,
+                                            batch_sizes=None,
+                                            sampling_rate=100,
+                                            tuple_rate=0,
+                                            percentile='mean',
+                                            json_list=None,
+                                            image_path=None):
     if not json_list:
         json_list = get_json_objs_from_directory(directory)
     json_list = filter_jsons_by_name(json_list, name)
@@ -215,14 +215,14 @@ def plot_by_parallelism_comparing_batch_sizes(name,
     plt.close('all')
 
 
-def plot_by_parallelism_comparing_chaining(name,
-                                           directory='',
-                                           batch_size=0,
-                                           sampling_rate=100,
-                                           tuple_rate=0,
-                                           percentile='mean',
-                                           json_list=None,
-                                           image_path=None):
+def plot_by_parallelism_compare_chaining(name,
+                                         directory='',
+                                         batch_size=0,
+                                         sampling_rate=100,
+                                         tuple_rate=0,
+                                         percentile='mean',
+                                         json_list=None,
+                                         image_path=None):
     if not json_list:
         json_list = get_json_objs_from_directory(directory)
     json_list = filter_jsons_by_name(json_list, name)
@@ -267,15 +267,15 @@ def plot_by_parallelism_comparing_chaining(name,
     plt.close('all')
 
 
-def plot_by_batch_size_comparing_parallelism(name,
-                                             directory='',
-                                             chaining=False,
-                                             parallelism_degrees=None,
-                                             sampling_rate=100,
-                                             tuple_rate=0,
-                                             json_list=None,
-                                             image_path=None,
-                                             percentile='mean'):
+def plot_by_batch_size_compare_parallelism(name,
+                                           directory='',
+                                           chaining=False,
+                                           parallelism_degrees=None,
+                                           sampling_rate=100,
+                                           tuple_rate=0,
+                                           json_list=None,
+                                           image_path=None,
+                                           percentile='mean'):
     if not json_list:
         json_list = get_json_objs_from_directory(directory)
     json_list = filter_jsons_by_name(json_list, name)
@@ -321,14 +321,14 @@ def plot_by_batch_size_comparing_parallelism(name,
     plt.close('all')
 
 
-def plot_by_batch_size_comparing_chaining(name,
-                                          directory='',
-                                          parallelism_degree=1,
-                                          sampling_rate=100,
-                                          tuple_rate=0,
-                                          json_list=None,
-                                          image_path=None,
-                                          percentile='mean'):
+def plot_by_batch_size_compare_chaining(name,
+                                        directory='',
+                                        parallelism_degree=1,
+                                        sampling_rate=100,
+                                        tuple_rate=0,
+                                        json_list=None,
+                                        image_path=None,
+                                        percentile='mean'):
     if not json_list:
         json_list = get_json_objs_from_directory(directory)
     json_list = filter_jsons_by_name(json_list, name)
@@ -384,7 +384,7 @@ def scalablity_by_parallelism_compare_batch_sizes(name,
     pass
 
 
-# def boxplot_latency_by_parallelism_comparing_batch_size(
+# def boxplot_latency_by_parallelism_compare_batch_size(
 #         directory='',
 #         chaining=False,
 #         batch_sizes=None,
@@ -441,20 +441,20 @@ def generate_all_images_by_parallelism(directory, metrics):
     json_list = get_json_objs_from_directory(directory)
     for chaining in [False, True]:
         for metric in metrics:
-            plot_by_parallelism_comparing_batch_sizes(metric,
-                                                      chaining=chaining,
-                                                      percentile='mean',
-                                                      json_list=json_list,
-                                                      image_path=directory,
-                                                      tuple_rate=0)
+            plot_by_parallelism_compare_batch_sizes(metric,
+                                                    chaining=chaining,
+                                                    percentile='mean',
+                                                    json_list=json_list,
+                                                    image_path=directory,
+                                                    tuple_rate=0)
     for batch_size in batchsizes:
         for metric in metrics:
-            plot_by_parallelism_comparing_chaining(metric,
-                                                   batch_size=batch_size,
-                                                   percentile='mean',
-                                                   json_list=json_list,
-                                                   image_path=directory,
-                                                   tuple_rate=0)
+            plot_by_parallelism_compare_chaining(metric,
+                                                 batch_size=batch_size,
+                                                 percentile='mean',
+                                                 json_list=json_list,
+                                                 image_path=directory,
+                                                 tuple_rate=0)
 
 
 def generate_all_images_by_batch_size(directory, metrics):
