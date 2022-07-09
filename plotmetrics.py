@@ -372,6 +372,18 @@ def plot_by_batch_size_comparing_chaining(name,
     plt.close('all')
 
 
+def scalablity_by_parallelism_compare_batch_sizes(name,
+                                                  directory='',
+                                                  chaining=False,
+                                                  batch_sizes=None,
+                                                  sampling_rate=100,
+                                                  tuple_rate=0,
+                                                  percentile='mean',
+                                                  json_list=None,
+                                                  image_path=None):
+    pass
+
+
 # def boxplot_latency_by_parallelism_comparing_batch_size(
 #         directory='',
 #         chaining=False,
