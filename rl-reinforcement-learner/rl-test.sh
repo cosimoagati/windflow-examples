@@ -22,7 +22,7 @@ for rate in 0; do
             set +x
         done
 
-        for pardeg in $(seq 1 $(nproc) / 3); do
+        for pardeg in $(seq 1 $(expr $(nproc) / 3)); do
             set -x
             ./rl --duration="$duration" \
                  --parallelism="$pardeg,$pardeg,$pardeg,$pardeg" \
