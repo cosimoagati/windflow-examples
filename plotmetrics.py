@@ -151,8 +151,8 @@ def boxplot_latency_by_parallelism(metric='latency',
         percentile_list = [0, 5, 25, 50, 75, 95, 100]
     y_axis = [get_percentile_values(j, percentile_list) for j in json_list]
     if DEBUG:
-        print('x_axis: ' + str(x_axis))
-        print('y_axis: ' + str(y_axis))
+        print('x_axis: ', x_axis)
+        print('y_axis: ', y_axis)
 
     title = (metric.capitalize().replace('-', ' ') + ' (batch size: ' +
              str(batch_size) + ') ' + '(chaining: ' + str(chaining) +
@@ -215,8 +215,8 @@ def plot_by_parallelism_compare_batch_sizes(name,
         x_axis = [j['parallelism'][0] for j in current_json_list]
         y_axis = get_y_axis(name, current_json_list, percentile, time_unit)
         if DEBUG:
-            print('x_axis: ' + str(x_axis))
-            print('y_axis: ' + str(y_axis))
+            print('x_axis: ', x_axis)
+            print('y_axis: ', y_axis)
         batch_size_label = str(current_json_list[0]['batch size'])
         plt.plot(x_axis, y_axis, label='Batch size: ' + batch_size_label)
     plt.legend()
@@ -270,8 +270,8 @@ def plot_by_parallelism_compare_chaining(name,
         x_axis = [j['parallelism'][0] for j in current_json_list]
         y_axis = get_y_axis(name, current_json_list, percentile, time_unit)
         if DEBUG:
-            print('x_axis: ' + str(x_axis))
-            print('y_axis: ' + str(y_axis))
+            print('x_axis: ', x_axis)
+            print('y_axis: ', y_axis)
         plt.plot(x_axis, y_axis, label='Chaining: ' + str(chaining))
     plt.legend()
     if image_path:
@@ -323,8 +323,8 @@ def plot_by_batch_size_compare_parallelism(name,
         x_axis = [j['batch size'][0] for j in current_json_list]
         y_axis = get_y_axis(name, current_json_list, percentile, time_unit)
         if DEBUG:
-            print('x_axis: ' + str(x_axis))
-            print('y_axis: ' + str(y_axis))
+            print('x_axis: ', x_axis)
+            print('y_axis: ', y_axis)
         plt.plot(x_axis, y_axis, label='Parallelism degree: ' + str(degree))
     plt.legend()
     if image_path:
@@ -375,8 +375,8 @@ def plot_by_batch_size_compare_chaining(name,
         x_axis = [j['batch size'][0] for j in current_json_list]
         y_axis = get_y_axis(name, current_json_list, percentile, time_unit)
         if DEBUG:
-            print('x_axis: ' + str(x_axis))
-            print('y_axis: ' + str(y_axis))
+            print('x_axis: ', x_axis)
+            print('y_axis: ', y_axis)
         plt.plot(x_axis, y_axis, label='Chaining: ' + str(chaining))
     plt.legend()
     if image_path:
