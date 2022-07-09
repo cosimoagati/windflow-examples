@@ -9,21 +9,23 @@ echo "Test started on $(date)"
 mkdir -p $outputdir
 
 for rate in 0; do
-        for i in $(seq 1 $(expr $(nproc) / 4)); do
     for batching in 0 1 2 4 8 16 32 64 128; do
+        for pardeg in $(seq 1 $(expr $(nproc) / 4)); do
             set -x
-            ./rl --duration="$duration" --parallelism="$i,$i,$i,$i" \
+            ./rl --duration="$duration" \
+                 --parallelism="$pardeg,$pardeg,$pardeg,$pardeg" \
                  --batch="$batching,$batching,$batching" \
-                 --chaining="$chaining" \
-                 --rate=false \
+                 --chaining=false \
+                 --rate="$rate" \
                  --outputdir="$outputdir" \
                  >> "$outputdir/output-$($datecmd).txt"
             set +x
         done
 
-        for i in $(seq 1 $(nproc)); do
+        for pardeg in $(seq 1 $(nproc) / 3); do
             set -x
-            ./rl --duration="$duration" --parallelism="$i,$i,$i,$i" \
+            ./rl --duration="$duration" \
+                 --parallelism="$pardeg,$pardeg,$pardeg,$pardeg" \
                  --batch="$batching,$batching,$batching" \
                  --chaining=true \
                  --rate="$rate" \
