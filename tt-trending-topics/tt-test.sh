@@ -9,7 +9,7 @@ echo "Test started on $(date)"
 mkdir -p "$outputdir"
 
 for rate in 0; do
-    for batching in 0 10 100 1000 10000; do
+    for batching in 0 1 2 4 8 16 32 64 128; do
         for i in $(seq 1 $(expr $(nproc) / 6)); do
             set -x
             ./tt-timer-functors \
