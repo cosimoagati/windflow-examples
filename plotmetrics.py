@@ -38,8 +38,13 @@ def get_json_objs_from_directory(directory):
     return json_list
 
 
+def json_name_match(entry, name):
+    return entry.endswith(name) or entry.replace(
+        '-', ' ').endswith(name) or entry.replace(' ', '-').endswith(name)
+
+
 def filter_jsons_by_name(json_list, name):
-    return [j for j in json_list if j['name'].endswith(name)]
+    return [j for j in json_list if json_name_match(j['name'], name)]
 
 
 def filter_jsons_by_parallelism(json_list, parallelism):
