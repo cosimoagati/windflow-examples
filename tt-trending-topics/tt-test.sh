@@ -18,7 +18,7 @@ for rate in 0; do
                 --parallelism="$pardeg,$pardeg,$pardeg,$pardeg,$pardeg,$pardeg" \
                 --batch="$batching,$batching,$batching,$batching,$batching" \
                 --chaining=false \
-                --rate=0 \
+                --rate="$rate" \
                 --outputdir="$outputdir" >> "$outputdir/output-$($datecmd).txt"
             set +x
         done
@@ -30,7 +30,7 @@ for rate in 0; do
                 --parallelism="$pardeg,$pardeg,$pardeg,$pardeg,$pardeg,$pardeg" \
                 --batch="$batching,$batching,$batching,$batching,$batching" \
                 --chaining=true \
-                --rate=0 \
+                --rate="$rate" \
                 --outputdir="$outputdir" >> "$outputdir/output-$($datecmd).txt"
             set +x
         done
@@ -42,7 +42,7 @@ for rate in 0; do
                 --parallelism="$pardeg,$pardeg,$pardeg,$pardeg,$pardeg,$pardeg" \
                 --batch="$batching,$batching,$batching,$batching,$batching" \
                 --chaining=false \
-                --rate=0 \
+                --rate="$rate" \
                 --outputdir="$outputdir" >> "$outputdir/output-$($datecmd).txt"
             set +x
         done
@@ -54,7 +54,7 @@ for rate in 0; do
                 --parallelism="$pardeg,$pardeg,$pardeg,$pardeg,$pardeg,$pardeg" \
                 --batch="$batching,$batching,$batching,$batching,$batching" \
                 --chaining=true \
-                --rate=0 \
+                --rate="$rate" \
                 --outputdir="$outputdir" >> "$outputdir/output-$($datecmd).txt"
             set +x
         done
