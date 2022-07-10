@@ -514,55 +514,6 @@ def plot_efficiency_compare_batch_sizes(name,
     plt.close('all')
 
 
-# def boxplot_latency_by_parallelism_compare_batch_size(
-#         directory='',
-#         chaining=False,
-#         batch_sizes=None,
-#         sampling_rate=100,
-#         tuple_rate=0,
-#         percentiles=None,
-#         json_list=None,
-#         image_path=None):
-#     if not json_list:
-#         json_list = get_json_objs_from_directory(directory)
-#     json_list = filter_jsons_by_name(json_list, 'latency')
-#     json_list = filter_jsons_by_chaining(json_list, chaining)
-#     json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
-#     json_list = filter_jsons_by_tuple_rate(json_list, tuple_rate)
-
-#     if not json_list:
-#         print('No data found with the specified parameters, not plotting...')
-#         return
-
-#     json_list.sort(key=lambda j: j['parallelism'][0])
-
-#     time_unit = json_list[0]['time unit']
-#     title = ('Latency (chaining: ' + str(chaining) + ') Percentiles: ' +
-#              str(percentiles))
-#     xlabel = 'Parallelism degree for each node'
-#     ylabel = get_y_label('latency', time_unit)
-
-#     plt.figure()
-#     plt.title(title, y=1.08)
-#     plt.grid(True)
-#     plt.xlabel(xlabel)
-#     plt.ylabel(ylabel)
-
-#     if not batch_sizes:
-#         batch_sizes = default_batch_sizes
-#     for batch_size in batch_sizes:
-#         current_json_list = filter_jsons_by_batch_size(json_list, batch_size)
-#         x_axis = [j['parallelism'][0] for j in current_json_list]
-#         y_axis = [get_percentile_values(j, percentiles) for j in json_list]
-#         if DEBUG:
-#             print('x_axis: ' + str(x_axis))
-#             print('y_axis: ' + str(y_axis))
-#         batch_size_label = str(current_json_list[0]['batch size'])
-#         plt.boxplot(y_axis,
-#                     positions=x_axis,
-#                     label='Batch size: ' + batch_size_label)
-
-
 def generate_all_images_by_parallelism(directory, metrics):
     batchsizes = [0, 2, 4, 8, 16, 32, 64, 128]
     if not metrics:
