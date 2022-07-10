@@ -114,9 +114,9 @@ def get_efficiency_y_axis(name, json_list, percentile, base_value):
     return scaled_y_axis
 
 
-def get_percentile_values(percentile_dict, percentile_list):
+def get_percentile_values(percentile_dict, percentiles):
     percentile_values = []
-    for percentile in percentile_list:
+    for percentile in percentiles:
         index = str(percentile) + 'th percentile'
         percentile_values.append(percentile_dict[index])
     return percentile_values
@@ -128,7 +128,7 @@ def boxplot_latency_by_parallelism(metric='latency',
                                    directory='',
                                    sampling_rate=100,
                                    tuple_rate=0,
-                                   percentile_list=None,
+                                   percentiles=None,
                                    json_list=None,
                                    image_path=None):
     if not json_list:
@@ -147,16 +147,16 @@ def boxplot_latency_by_parallelism(metric='latency',
 
     time_unit = json_list[0]['time unit']
     x_axis = [j['parallelism'][0] for j in json_list]
-    if not percentile_list:
-        percentile_list = [0, 5, 25, 50, 75, 95, 100]
-    y_axis = [get_percentile_values(j, percentile_list) for j in json_list]
+    if not percentiles:
+        percentiles = [0, 5, 25, 50, 75, 95, 100]
+    y_axis = [get_percentile_values(j, percentiles) for j in json_list]
     if DEBUG:
         print('x_axis: ', x_axis)
         print('y_axis: ', y_axis)
 
     title = (metric.capitalize().replace('-', ' ') + ' (batch size: ' +
              str(batch_size) + ') ' + '(chaining: ' + str(chaining) +
-             ')\nPercentiles: ' + str(percentile_list))
+             ')\nPercentiles: ' + str(percentiles))
     xlabel = 'Parallelism degree for each node'
     ylabel = get_y_label(metric, time_unit)
 
@@ -515,7 +515,7 @@ def plot_efficiency_compare_batch_sizes(name,
 #         batch_sizes=None,
 #         sampling_rate=100,
 #         tuple_rate=0,
-#         percentile_list=None,
+#         percentiles=None,
 #         json_list=None,
 #         image_path=None):
 #     if not json_list:
@@ -533,7 +533,7 @@ def plot_efficiency_compare_batch_sizes(name,
 
 #     time_unit = json_list[0]['time unit']
 #     title = ('Latency (chaining: ' + str(chaining) + ') Percentiles: ' +
-#              str(percentile_list))
+#              str(percentiles))
 #     xlabel = 'Parallelism degree for each node'
 #     ylabel = get_y_label('latency', time_unit)
 
@@ -548,7 +548,7 @@ def plot_efficiency_compare_batch_sizes(name,
 #     for batch_size in batch_sizes:
 #         current_json_list = filter_jsons_by_batch_size(json_list, batch_size)
 #         x_axis = [j['parallelism'][0] for j in current_json_list]
-#         y_axis = [get_percentile_values(j, percentile_list) for j in json_list]
+#         y_axis = [get_percentile_values(j, percentiles) for j in json_list]
 #         if DEBUG:
 #             print('x_axis: ' + str(x_axis))
 #             print('y_axis: ' + str(y_axis))
@@ -614,7 +614,7 @@ def generate_boxplots(directory):
         for chaining in chaining_vals:
             boxplot_latency_by_parallelism(batchsize,
                                            chaining,
-                                           percentile_list=[25, 50, 75],
+                                           percentiles=[25, 50, 75],
                                            json_list=json_list,
                                            image_path=directory)
 
