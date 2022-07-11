@@ -529,7 +529,8 @@ static inline void validate_args(const Parameters &parameters) {
         if (parameters.parallelism[i] > max_threads) {
             cerr << "Error:  parallelism degree for node " << i
                  << " is too large\n"
-                    "Maximum available number of threads is: "
+                    "Maximum available number of threads (excluding those "
+                    "needed for timer operators) is: "
                  << max_threads << '\n';
         }
     }
