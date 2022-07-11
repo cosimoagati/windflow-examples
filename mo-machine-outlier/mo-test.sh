@@ -10,9 +10,10 @@ mkdir -p "$outputdir"
 
 for rate in 0; do
     for batching in 0 1 2 4 8 16 32 64 128; do
-        for i in $(seq 1 $(expr $(nproc) / 5)); do
+        for pardeg in $(seq 1 $(expr $(nproc) / 5)); do
             set -x
-            ./mo --duration="$duration" --parallelism="$i,$i,$i,$i,$i" \
+            ./mo --duration="$duration" \
+                 --parallelism="$pardeg,$pardeg,$pardeg,$pardeg,$pardeg" \
                  --batch="$batching,$batching,$batching,$batching" \
                  --chaining=false \
                  --rate="$rate" \
@@ -21,9 +22,10 @@ for rate in 0; do
             set +x
         done
 
-        for i in $(seq 1 $(nproc)); do
+        for pardeg in $(seq 1 $(nproc)); do
             set -x
-            ./mo --duration="$duration" --parallelism="$i,$i,$i,$i,$i" \
+            ./mo --duration="$duration" \
+                 --parallelism="$pardeg,$pardeg,$pardeg,$pardeg,$pardeg" \
                  --batch="$batching,$batching,$batching,$batching" \
                  --chaining=true \
                  --rate="$rate" \
