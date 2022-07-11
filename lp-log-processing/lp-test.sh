@@ -3,6 +3,7 @@
 duration=120
 datecmd="date +%Y-%m-%d-%H-%M"
 outputdir="testresults-$($datecmd)"
+nproc=$(nproc)
 
 cd $(dirname "$0")
 echo "Test started on $(date)"
@@ -11,7 +12,7 @@ mkdir -p "$outputdir"
 for rate in 0; do
     for chaining in false true; do
         for batching in 0 1 2 4 8 16 32 64 128; do
-            for pardeg in $(seq 1 $(expr $(nproc) / 6)); do
+            for pardeg in $(seq 1 $(($nproc / 6))); do
                 set -x
                 ./lp --duration="$duration" \
                      --parallelism="$pardeg,$pardeg,$pardeg,$pardeg,$pardeg,$pardeg" \
