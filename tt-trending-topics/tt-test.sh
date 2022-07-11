@@ -4,6 +4,7 @@ duration=120
 datecmd="date +%Y-%m-%d-%H-%M"
 outputdir="testresults-$($datecmd)"
 nproc=$(nproc)
+timerthreads=3
 
 cd $(dirname "$0")
 echo "Test started on $(date)"
@@ -11,7 +12,7 @@ mkdir -p "$outputdir"
 
 for rate in 0; do
     for batching in 0 1 2 4 8 16 32 64 128; do
-        for pardeg in $(seq 1 $((($nproc / 6) - 3))); do
+        for pardeg in $(seq 1 $((($nproc - $timerthreads) / 6))); do
             set -x
             ./tt-timer-functors \
                 --duration="$duration" \
@@ -23,7 +24,7 @@ for rate in 0; do
             set +x
         done
 
-        for pardeg in $(seq 1 $((($nproc / 4) - 3))); do
+        for pardeg in $(seq 1 $((($nproc - $timerthreads) / 4))); do
             set -x
             ./tt-timer-functors \
                 --duration="$duration" \
@@ -35,7 +36,7 @@ for rate in 0; do
             set +x
         done
         
-        for pardeg in $(seq 1 $(($nproc / 6))); do
+        for pardeg in $(seq 1 $((($nproc - $timerthreads) / 6))); do
             set -x
             ./tt-timer-threads \
                 --duration="$duration" \
@@ -47,7 +48,7 @@ for rate in 0; do
             set +x
         done
         
-        for pardeg in $(seq $(($nproc / 3))); do
+        for pardeg in $(seq $((($nproc - $timerthreads) / 3))); do
             set +x
             ./tt-timer-threads \
                 --duration="$duration" \
