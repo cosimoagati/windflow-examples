@@ -342,12 +342,14 @@ static inline void print_statistics(unsigned long elapsed_time,
     const auto service_time            = 1 / throughput;
     const auto service_time_in_seconds = service_time / timeunit_scale_factor;
     const auto latency_in_seconds = average_latency / timeunit_scale_factor;
+    const auto excess_time = elapsed_time - duration * timeunit_scale_factor;
+    const auto excess_time_in_seconds = excess_time / timeunit_scale_factor;
 
     std::cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string
               << "s (" << elapsed_time_in_seconds << " seconds)\n"
-              << "Excess time after source stopped: "
-              << elapsed_time - duration * timeunit_scale_factor << ' '
-              << timeunit_string << "s\n"
+              << "Excess time after source stopped: " << excess_time << ' '
+              << timeunit_string << "s ( " << excess_time_in_seconds
+              << " seconds)\n"
               << "Total number of tuples sent: " << sent_tuples << '\n'
               << "Total number of tuples recieved: " << received_tuples << '\n'
               << "Throughput: " << throughput << " tuples per "
