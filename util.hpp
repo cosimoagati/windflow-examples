@@ -331,19 +331,21 @@ static inline void print_statistics(unsigned long elapsed_time,
                                     unsigned long sent_tuples,
                                     double        average_latency,
                                     unsigned long received_tuples) {
-    const auto elapsed_time_in_seconds =
+    const double elapsed_time_in_seconds =
         elapsed_time / static_cast<double>(timeunit_scale_factor);
 
-    const auto throughput =
+    const double throughput =
         elapsed_time > 0 ? sent_tuples / static_cast<double>(elapsed_time)
                          : sent_tuples;
 
-    const auto throughput_in_seconds   = throughput * timeunit_scale_factor;
-    const auto service_time            = 1 / throughput;
-    const auto service_time_in_seconds = service_time / timeunit_scale_factor;
-    const auto latency_in_seconds = average_latency / timeunit_scale_factor;
-    const auto excess_time = elapsed_time - duration * timeunit_scale_factor;
-    const auto excess_time_in_seconds = excess_time / timeunit_scale_factor;
+    const double throughput_in_seconds = throughput * timeunit_scale_factor;
+    const double service_time          = 1 / throughput;
+    const double service_time_in_seconds =
+        service_time / timeunit_scale_factor;
+
+    const double latency_in_seconds = average_latency / timeunit_scale_factor;
+    const double excess_time = elapsed_time - duration * timeunit_scale_factor;
+    const double excess_time_in_seconds = excess_time / timeunit_scale_factor;
 
     std::cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string
               << "s (" << elapsed_time_in_seconds << " seconds)\n"
