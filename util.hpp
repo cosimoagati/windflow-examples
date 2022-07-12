@@ -327,7 +327,7 @@ static inline void serialize_json(const nlohmann::ordered_json &json_stats,
 }
 
 static inline void print_statistics(unsigned long elapsed_time,
-                                    unsigned long duration,
+                                    unsigned long duration_in_seconds,
                                     unsigned long sent_tuples,
                                     double        average_latency,
                                     unsigned long received_tuples) {
@@ -344,7 +344,9 @@ static inline void print_statistics(unsigned long elapsed_time,
         service_time / timeunit_scale_factor;
 
     const double latency_in_seconds = average_latency / timeunit_scale_factor;
-    const double excess_time = elapsed_time - duration * timeunit_scale_factor;
+    const double excess_time =
+        elapsed_time - duration_in_seconds * timeunit_scale_factor;
+
     const double excess_time_in_seconds = excess_time / timeunit_scale_factor;
 
     std::cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string
