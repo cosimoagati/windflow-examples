@@ -857,8 +857,7 @@ public:
         }
 
         lock_guard lock {emit_mutex};
-        const auto obj = topic.word;
-        counter.increment_count(obj);
+        counter.increment_count(topic.word);
         if (parent_timestamp == 0) {
             parent_timestamp = topic.timestamp;
         }

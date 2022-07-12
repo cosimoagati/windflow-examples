@@ -868,8 +868,7 @@ public:
                 parent_timestamp = 0;
             }
         } else {
-            const auto obj = topic.word;
-            counter.increment_count(obj);
+            counter.increment_count(topic.word);
             if (parent_timestamp == 0) {
                 parent_timestamp = topic.timestamp;
             }
