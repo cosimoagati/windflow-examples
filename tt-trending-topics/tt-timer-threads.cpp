@@ -776,7 +776,7 @@ class RollingCounterFunctor {
     bool                         was_timer_thread_created = false;
 
     void periodic_ship(Shipper<Counts> &shipper) {
-        while (true) { // TODO:  is this stopped automatically by the runtime?
+        while (true) {
             usleep(time_units_between_ticks / timeunit_scale_factor * 1000000);
 #ifndef NDEBUG
             {
