@@ -76,7 +76,7 @@ struct Parameters {
     unsigned         parallelism[num_nodes]    = {1, 1, 1};
     unsigned         batch_size[num_nodes - 1] = {0, 0};
     unsigned         duration                  = 60;
-    unsigned         tuple_rate                = 1000;
+    unsigned         tuple_rate                = 0;
     unsigned         sampling_rate             = 100;
     bool             use_chaining              = false;
 };

@@ -82,7 +82,7 @@ struct Parameters {
     unsigned intermediate_ranker_frequency = 2;
     unsigned total_ranker_frequency        = 2;
     unsigned duration                      = 60;
-    unsigned tuple_rate                    = 1000;
+    unsigned tuple_rate                    = 0;
     unsigned sampling_rate                 = 100;
     bool     use_chaining                  = false;
 };
