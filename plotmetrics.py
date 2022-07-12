@@ -427,12 +427,15 @@ def plot_scalablity_compare_batch_sizes(name,
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
 
+    parallelism_degree_num = 0
     batch_sizes = batch_sizes if batch_sizes else default_batch_sizes
     for batch_size in batch_sizes:
         current_json_list = filter_jsons_by_batch_size(json_list, batch_size)
         current_json_list.sort(key=lambda j: j['parallelism'][0])
         base_value = current_json_list[0][percentile_to_dictkey(percentile)]
         x_axis = [j['parallelism'][0] for j in current_json_list]
+        if len(x_axis) > parallelism_degree_num:
+            parallelism_degree_num = len(x_axis)
         y_axis = get_scaled_y_axis(name, current_json_list, percentile,
                                    base_value)
         if DEBUG:
@@ -442,6 +445,10 @@ def plot_scalablity_compare_batch_sizes(name,
         batch_size_label = str(current_json_list[0]['batch size'])
         plt.plot(x_axis, y_axis, label='Batch size: ' + batch_size_label)
 
+    parallelism_degrees = range(1, parallelism_degree_num + 1)
+    plt.plot(parallelism_degrees,
+             parallelism_degrees,
+             label='Ideal scalability')
     plt.legend()
     if image_path:
         suffix = ('-batch-sizes-' +
@@ -488,12 +495,15 @@ def plot_efficiency_compare_batch_sizes(name,
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
 
+    parallelism_degree_num = 0
     batch_sizes = batch_sizes if batch_sizes else default_batch_sizes
     for batch_size in batch_sizes:
         current_json_list = filter_jsons_by_batch_size(json_list, batch_size)
         current_json_list.sort(key=lambda j: j['parallelism'][0])
         base_value = current_json_list[0][percentile_to_dictkey(percentile)]
         x_axis = [j['parallelism'][0] for j in current_json_list]
+        if len(x_axis) > parallelism_degree_num:
+            parallelism_degree_num = len(x_axis)
         y_axis = get_efficiency_y_axis(name, current_json_list, percentile,
                                        base_value)
         if DEBUG:
@@ -503,6 +513,9 @@ def plot_efficiency_compare_batch_sizes(name,
         batch_size_label = str(current_json_list[0]['batch size'])
         plt.plot(x_axis, y_axis, label='Batch size: ' + batch_size_label)
 
+    parallelism_degrees = range(1, parallelism_degree_num + 1)
+    plt.plot(parallelism_degrees, [1 for x in parallelism_degrees],
+             label='Ideal efficiency')
     plt.legend()
     if image_path:
         suffix = ('-batch-sizes-' +
