@@ -771,7 +771,7 @@ class RollingCounterFunctor {
     unsigned                     window_length_in_seconds;
     SlidingWindowCounter<string> counter;
     NthLastModifiedTimeTracker   last_modified_tracker;
-    unsigned long                parent_timestamp = 0;
+    optional<unsigned long>      parent_timestamp;
     mutex                        emit_mutex;
     bool                         was_timer_thread_created = false;
 
@@ -787,9 +787,9 @@ class RollingCounterFunctor {
             }
 #endif
             lock_guard lock {emit_mutex};
-            if (parent_timestamp != 0) {
+            if (parent_timestamp) {
                 ship_all(shipper);
-                parent_timestamp = 0;
+                parent_timestamp.reset();
             }
         }
     }
@@ -822,8 +822,9 @@ class RollingCounterFunctor {
                      << " with count: " << count << '\n';
             }
 #endif
+            assert(parent_timestamp);
             shipper.push({word, count, actual_window_length_in_seconds,
-                          parent_timestamp});
+                          *parent_timestamp});
         }
     }
 
@@ -858,7 +859,7 @@ public:
 
         lock_guard lock {emit_mutex};
         counter.increment_count(topic.word);
-        if (parent_timestamp == 0) {
+        if (!parent_timestamp) {
             parent_timestamp = topic.timestamp;
         }
     }
@@ -867,21 +868,21 @@ public:
 template<typename InputType,
          void update_rankings(const InputType &, Rankings<string> &)>
 class RankerFunctor {
-    unsigned long    time_units_between_ticks;
-    unsigned long    last_shipping_time = current_time_msecs();
-    unsigned         count;
-    Rankings<string> rankings;
-    unsigned long    parent_timestamp = 0;
-    mutex            emit_mutex;
-    bool             was_timer_thread_created = false;
+    unsigned long           time_units_between_ticks;
+    unsigned long           last_shipping_time = current_time_msecs();
+    unsigned                count;
+    Rankings<string>        rankings;
+    optional<unsigned long> parent_timestamp;
+    mutex                   emit_mutex;
+    bool                    was_timer_thread_created = false;
 
     void periodic_ship(Shipper<RankingsTuple> &shipper) {
         while (true) {
             usleep(time_units_between_ticks / timeunit_scale_factor * 1000000);
             lock_guard lock {emit_mutex};
-            if (parent_timestamp != 0) {
-                shipper.push({rankings, parent_timestamp});
-                parent_timestamp = 0;
+            if (parent_timestamp) {
+                shipper.push({rankings, *parent_timestamp});
+                parent_timestamp.reset();
             }
 #ifndef NDEBUG
             {
@@ -927,7 +928,7 @@ public:
 
         lock_guard lock {emit_mutex};
         update_rankings(counts, rankings);
-        if (parent_timestamp == 0) {
+        if (!parent_timestamp) {
             parent_timestamp = counts.timestamp;
         }
     }

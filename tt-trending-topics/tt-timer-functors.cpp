@@ -810,7 +810,7 @@ class RollingCounterFunctor {
     unsigned                     window_length_in_seconds;
     SlidingWindowCounter<string> counter;
     NthLastModifiedTimeTracker   last_modified_tracker;
-    unsigned long                parent_timestamp = 0;
+    optional<unsigned long>      parent_timestamp;
 
     void ship_all(Shipper<Counts> &shipper) {
         const auto counts = counter.get_counts_then_advance_window();
@@ -840,8 +840,9 @@ class RollingCounterFunctor {
                      << " with count: " << count << '\n';
             }
 #endif
+            assert(parent_timestamp);
             shipper.push({word, count, actual_window_length_in_seconds,
-                          parent_timestamp, false});
+                          *parent_timestamp, false});
         }
     }
 
@@ -863,13 +864,13 @@ public:
                      << current_time_msecs() << '\n';
             }
 #endif
-            if (parent_timestamp != 0) {
+            if (parent_timestamp) {
                 ship_all(shipper);
-                parent_timestamp = 0;
+                parent_timestamp.reset();
             }
         } else {
             counter.increment_count(topic.word);
-            if (parent_timestamp == 0) {
+            if (!parent_timestamp) {
                 parent_timestamp = topic.timestamp;
             }
         }
@@ -879,18 +880,18 @@ public:
 template<typename InputType,
          void update_rankings(const InputType &, Rankings<string> &)>
 class RankerFunctor {
-    unsigned         count;
-    Rankings<string> rankings;
-    unsigned long    parent_timestamp = 0;
+    unsigned                count;
+    Rankings<string>        rankings;
+    optional<unsigned long> parent_timestamp;
 
 public:
     RankerFunctor(unsigned count = 10) : count {count} {}
 
     void operator()(const InputType &counts, Shipper<RankingsTuple> &shipper) {
         if (counts.is_tick_tuple) {
-            if (parent_timestamp != 0) {
-                shipper.push({rankings, parent_timestamp, false});
-                parent_timestamp = 0;
+            if (parent_timestamp) {
+                shipper.push({rankings, *parent_timestamp, false});
+                parent_timestamp.reset();
             }
 #ifndef NDEBUG
             {
@@ -900,7 +901,7 @@ public:
 #endif
         } else {
             update_rankings(counts, rankings);
-            if (parent_timestamp == 0) {
+            if (!parent_timestamp) {
                 parent_timestamp = counts.timestamp;
             }
         }
