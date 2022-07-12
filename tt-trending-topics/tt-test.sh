@@ -20,7 +20,8 @@ for rate in 0; do
                 --batch="$batching,$batching,$batching,$batching,$batching" \
                 --chaining=false \
                 --rate="$rate" \
-                --outputdir="$outputdir" >> "$outputdir/output-$($datecmd).txt"
+                --outputdir="$outputdir" \
+                >> "$outputdir/tt-functors/output-$($datecmd).txt"
             set +x
         done
 
@@ -32,7 +33,8 @@ for rate in 0; do
                 --batch="$batching,$batching,$batching,$batching,$batching" \
                 --chaining=true \
                 --rate="$rate" \
-                --outputdir="$outputdir" >> "$outputdir/output-$($datecmd).txt"
+                --outputdir="$outputdir" \
+                >> "$outputdir/tt-functors/output-$($datecmd).txt"
             set +x
         done
         
@@ -44,7 +46,8 @@ for rate in 0; do
                 --batch="$batching,$batching,$batching,$batching,$batching" \
                 --chaining=false \
                 --rate="$rate" \
-                --outputdir="$outputdir" >> "$outputdir/output-$($datecmd).txt"
+                --outputdir="$outputdir" \
+                >> "$outputdir/tt-threads/output-$($datecmd).txt"
             set +x
         done
         
@@ -56,7 +59,8 @@ for rate in 0; do
                 --batch="$batching,$batching,$batching,$batching,$batching" \
                 --chaining=true \
                 --rate="$rate" \
-                --outputdir="$outputdir" >> "$outputdir/output-$($datecmd).txt"
+                --outputdir="$outputdir" \
+                >> "$outputdir/tt-threads/output-$($datecmd).txt"
             set +x
         done
     done
