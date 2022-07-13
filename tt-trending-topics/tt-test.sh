@@ -22,7 +22,7 @@ for rate in 0; do
                     --chaining=false \
                     --frequency="$freq,$freq,$freq" \
                     --rate="$rate" \
-                    --outputdir="$outputdir" \
+                    --outputdir="$outputdir/tt-functors" \
                     >> "$outputdir/tt-functors/output-$($datecmd).txt"
                 set +x
             done
@@ -36,7 +36,7 @@ for rate in 0; do
                     --chaining=true \
                     --frequency="$freq,$freq,$freq" \
                     --rate="$rate" \
-                    --outputdir="$outputdir" \
+                    --outputdir="$outputdir/tt-functors" \
                     >> "$outputdir/tt-functors/output-$($datecmd).txt"
                 set +x
             done
@@ -50,7 +50,7 @@ for rate in 0; do
                     --chaining=false \
                     --frequency="$freq,$freq,$freq" \
                     --rate="$rate" \
-                    --outputdir="$outputdir" \
+                    --outputdir="$outputdir/tt-threads" \
                     >> "$outputdir/tt-threads/output-$($datecmd).txt"
                 set +x
             done
@@ -64,7 +64,7 @@ for rate in 0; do
                     --chaining=true \
                     --frequency="$freq,$freq,$freq" \
                     --rate="$rate" \
-                    --outputdir="$outputdir" \
+                    --outputdir="$outputdir/tt-threads" \
                     >> "$outputdir/tt-threads/output-$($datecmd).txt"
                 set +x
             done
