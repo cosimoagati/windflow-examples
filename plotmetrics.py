@@ -27,6 +27,13 @@ time_unit_scale_factor = {'ns': 1000000000, 'us': 1000000, 'ms': 1000, 's': 1}
 default_batch_sizes = [0, 2, 4, 8, 16, 32, 64, 128]
 
 
+def title_from_directory(directory):
+    words = os.path.dirname(directory).split('-')
+    acronym = words[0]
+    title = words[1] + ' ' + words[2]
+    return title.title() + ' (' + acronym.upper() + ')'
+
+
 def get_json_objs_from_directory(directory):
     file_list = [
         name for name in os.listdir(directory) if name.endswith('.json')
@@ -159,7 +166,8 @@ def boxplot_latency_by_parallelism(metric='latency',
         print('x_axis: ', x_axis)
         print('y_axis: ', y_axis)
 
-    title = (metric.capitalize().replace('-', ' ') + ' (batch size: ' +
+    title = (title_from_directory(directory) + ' - ' +
+             metric.capitalize().replace('-', ' ') + ' (batch size: ' +
              str(batch_size) + ') ' + '(chaining: ' + str(chaining) +
              ')\nPercentiles: ' + str(percentiles))
     xlabel = 'Parallelism degree for each node'
@@ -201,7 +209,8 @@ def plot_by_parallelism_compare_batch_sizes(name,
         return
 
     time_unit = json_list[0]['time unit']
-    title = (name.capitalize().replace('-', ' ') + ' (' + percentile +
+    title = (title_from_directory(directory) + ' - ' +
+             name.capitalize().replace('-', ' ') + ' (' + percentile +
              ') (chaining: ' + str(chaining) + ') (generation rate: ' +
              (str(tuple_rate if tuple_rate > 0 else 'unlimited') + ')'))
 
@@ -257,7 +266,8 @@ def plot_by_parallelism_compare_chaining(name,
         return
 
     time_unit = json_list[0]['time unit']
-    title = (name.capitalize().replace('-', ' ') + ' (' + percentile +
+    title = (title_from_directory(directory) + ' - ' +
+             name.capitalize().replace('-', ' ') + ' (' + percentile +
              ') (batch size: ' + str(batch_size) + ') (generation rate: ' +
              (str(tuple_rate if tuple_rate > 0 else 'unlimited') + ')'))
 
@@ -309,7 +319,8 @@ def plot_by_batch_size_compare_parallelism(name,
         return
 
     time_unit = json_list[0]['time unit']
-    title = (name.capitalize().replace('-', ' ') + ' (' + percentile + ') ' +
+    title = (title_from_directory(directory) + ' - ' +
+             name.capitalize().replace('-', ' ') + ' (' + percentile + ') ' +
              ' (chaining: ' + str(chaining) + ') (generation rate: ' +
              (str(tuple_rate if tuple_rate > 0 else 'unlimited') + ')'))
     xlabel = 'Batch size for each node'
@@ -362,7 +373,8 @@ def plot_by_batch_size_compare_chaining(name,
         return
 
     time_unit = json_list[0]['time unit']
-    title = (name.capitalize().replace('-', ' ') + ' (' + percentile + ') ' +
+    title = (title_from_directory(directory) + ' - ' +
+             name.capitalize().replace('-', ' ') + ' (' + percentile + ') ' +
              ' (parallelism degree per node: ' + str(parallelism_degree) +
              ') (generation rate: ' +
              (str(tuple_rate if tuple_rate > 0 else 'unlimited') + ')'))
@@ -414,7 +426,8 @@ def plot_scalablity_compare_batch_sizes(name,
         print('No data found with the specified parameters, not plotting...')
         return
 
-    title = (name.capitalize().replace('-', ' ') + ' (' + percentile +
+    title = (title_from_directory(directory) + ' - ' +
+             name.capitalize().replace('-', ' ') + ' (' + percentile +
              ') (chaining: ' + str(chaining) + ') (generation rate: ' +
              (str(tuple_rate if tuple_rate > 0 else 'unlimited') + ')'))
 
@@ -482,7 +495,8 @@ def plot_efficiency_compare_batch_sizes(name,
         print('No data found with the specified parameters, not plotting...')
         return
 
-    title = (name.capitalize().replace('-', ' ') + ' (' + percentile +
+    title = (title_from_directory(directory) + ' - ' +
+             name.capitalize().replace('-', ' ') + ' (' + percentile +
              ') (chaining: ' + str(chaining) + ') (generation rate: ' +
              (str(tuple_rate if tuple_rate > 0 else 'unlimited') + ')'))
 
