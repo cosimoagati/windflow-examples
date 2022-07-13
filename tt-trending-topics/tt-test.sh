@@ -8,7 +8,7 @@ timerthreads=3
 
 cd $(dirname "$0")
 echo "Test started on $(date)"
-mkdir -p "$outputdir"
+mkdir -p "$outputdir/tt-functors" "$outputdir/tt-threads"
 
 for rate in 0; do
     for freq in 2 4 6 8 10; do
