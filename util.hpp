@@ -1,3 +1,15 @@
+/*
+ * Copyright (C) 2021-2022 Cosimo Agati
+ *
+ * This program is free software: you can redistribute it and/or
+ * modify it under the terms of the Affero GNU General Public License
+ * as published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * You should have received a copy of the GNU AGPLv3 with this software,
+ * if not, please visit <https://www.gnu.org/licenses/>
+ */
+
 #ifndef UTIL_HPP
 #define UTIL_HPP
 
