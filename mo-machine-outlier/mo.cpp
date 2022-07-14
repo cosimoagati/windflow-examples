@@ -98,10 +98,10 @@ struct MachineMetadata {
 
 #ifndef NDEBUG
 ostream &operator<<(ostream &stream, const MachineMetadata &metadata) {
-    stream << "Machine ip: " << metadata.machine_ip
+    stream << "{Machine ip: " << metadata.machine_ip
            << ", CPU usage: " << metadata.cpu_usage
            << ", memory usage: " << metadata.memory_usage
-           << ", observation timestamp: " << metadata.timestamp;
+           << ", observation timestamp: " << metadata.timestamp << '}';
     return stream;
 }
 #endif
@@ -875,6 +875,7 @@ public:
                 clog << "[SINK] id: " << input->id << " "
                      << "anomaly score: " << input->anomaly_score
                      << " is_abnormal: " << input->is_abnormal
+                     << ", containing observation: " << input->observation
                      << " arrival time: " << arrival_time
                      << " observation ts: " << input->observation_timestamp
                      << " execution ts: " << input->execution_timestamp
