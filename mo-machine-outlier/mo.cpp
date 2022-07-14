@@ -141,7 +141,7 @@ struct AlertTriggererResultTuple {
     unsigned long   observation_timestamp;
     unsigned long   execution_timestamp;
     bool            is_abnormal;
-    MachineMetadata observation; // XXX This field may not be correct!
+    MachineMetadata observation;
 };
 
 static const struct option long_opts[] = {{"help", 0, 0, 'h'},
@@ -819,7 +819,7 @@ public:
                         shipper.push({stream_profile.id, stream_score,
                                       stream_profile.observation_timestamp,
                                       input.execution_timestamp, is_abnormal,
-                                      input.observation});
+                                      stream_profile.observation});
                     }
                 }
                 stream_list.clear();
