@@ -597,7 +597,8 @@ public:
 class SlidingWindowStreamAnomalyScoreFunctor {
     unordered_map<string, deque<double>> sliding_window_map;
     size_t                               window_length;
-    unsigned long                        previous_timestamp = 0;
+
+    unsigned long previous_timestamp = 0; // XXX: is this needed?
 
 public:
     SlidingWindowStreamAnomalyScoreFunctor(size_t length = 10)
