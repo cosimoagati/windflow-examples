@@ -390,15 +390,18 @@ static mutex print_mutex;
 class SourceFunctor {
     static constexpr auto   default_path = "machine-usage.csv";
     vector<MachineMetadata> machine_metadata;
+    Execution_Mode_t        execution_mode;
     unsigned long           measurement_timestamp_additional_amount = 0;
     unsigned long           measurement_timestamp_increase_step;
     unsigned long           duration;
     unsigned                tuple_rate_per_second;
 
 public:
-    SourceFunctor(unsigned d, unsigned rate, const char *path = default_path)
+    SourceFunctor(unsigned d, unsigned rate, Execution_Mode_t e,
+                  const char *path = default_path)
         : machine_metadata {parse_metadata<parse_alibaba_trace>(path)},
-          duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {
+          execution_mode {e}, duration {d * timeunit_scale_factor},
+          tuple_rate_per_second {rate} {
         if (machine_metadata.empty()) {
             cerr << "Error: empty machine reading stream.  Check whether "
                     "dataset file exists and is readable\n";
@@ -433,10 +436,16 @@ public:
                     measurement_timestamp_increase_step;
             }
 
-            const auto execution_timestamp = current_time();
-            shipper.push({current_observation, execution_timestamp});
-            ++sent_tuples;
+            const auto  execution_timestamp = current_time();
+            SourceTuple new_tuple = {current_observation, execution_timestamp};
+            if (execution_mode == Execution_Mode_t::DETERMINISTIC) {
+                shipper.pushWithTimestamp(move(new_tuple),
+                                          new_tuple.observation.timestamp);
+            } else {
+                shipper.push(move(new_tuple));
+            }
 
+            ++sent_tuples;
             if (tuple_rate_per_second > 0) {
                 const unsigned long delay =
                     (1.0 / tuple_rate_per_second) * timeunit_scale_factor;
@@ -892,7 +901,8 @@ public:
 
 static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
-    SourceFunctor source_functor {parameters.duration, parameters.tuple_rate};
+    SourceFunctor source_functor {parameters.duration, parameters.tuple_rate,
+                                  parameters.execution_mode};
     auto          source = Source_Builder {source_functor}
                       .withParallelism(parameters.parallelism[source_id])
                       .withName("source")
