@@ -79,7 +79,7 @@ enum NodeId : unsigned {
 struct Parameters {
     const char *     metric_output_directory = ".";
     Execution_Mode_t execution_mode          = Execution_Mode_t::DETERMINISTIC;
-    Time_Policy_t    time_policy             = Time_Policy_t::INGRESS_TIME;
+    Time_Policy_t    time_policy             = Time_Policy_t::EVENT_TIME;
     unsigned         parallelism[num_nodes]  = {1, 1, 1, 1, 1};
     unsigned         batch_size[num_nodes - 1] = {0, 0, 0, 0};
     unsigned         duration                  = 60;
