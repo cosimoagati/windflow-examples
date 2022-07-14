@@ -122,7 +122,7 @@ struct ObservationResultTuple {
     string          id;
     double          score;
     unsigned long   observation_timestamp;
-    unsigned long   execution_timestamp;
+    unsigned long   parent_execution_timestamp;
     MachineMetadata observation;
 };
 
@@ -130,7 +130,7 @@ struct AnomalyResultTuple {
     string          id;
     double          anomaly_score;
     unsigned long   observation_timestamp;
-    unsigned long   execution_timestamp;
+    unsigned long   parent_execution_timestamp;
     MachineMetadata observation;
     double          individual_score;
 };
@@ -139,7 +139,7 @@ struct AlertTriggererResultTuple {
     string          id;
     double          anomaly_score;
     unsigned long   observation_timestamp;
-    unsigned long   execution_timestamp;
+    unsigned long   parent_execution_timestamp;
     bool            is_abnormal;
     MachineMetadata observation;
 };
@@ -636,7 +636,7 @@ public:
         return {tuple.id,
                 score_sum,
                 tuple.observation_timestamp,
-                tuple.execution_timestamp,
+                tuple.parent_execution_timestamp,
                 tuple.observation,
                 tuple.score};
     }
@@ -818,7 +818,8 @@ public:
 #endif
                         shipper.push({stream_profile.id, stream_score,
                                       stream_profile.observation_timestamp,
-                                      input.execution_timestamp, is_abnormal,
+                                      input.parent_execution_timestamp,
+                                      is_abnormal,
                                       stream_profile.observation});
                     }
                 }
@@ -871,7 +872,7 @@ public:
         if (input) {
             const auto arrival_time = current_time();
             const auto latency =
-                difference(arrival_time, input->execution_timestamp);
+                difference(arrival_time, input->parent_execution_timestamp);
 
             ++tuples_received;
             last_arrival_time = arrival_time;
@@ -888,7 +889,8 @@ public:
                      << ", containing observation: " << input->observation
                      << " arrival time: " << arrival_time
                      << " observation ts: " << input->observation_timestamp
-                     << " execution ts: " << input->execution_timestamp
+                     << " parent execution ts: "
+                     << input->parent_execution_timestamp
                      << " latency: " << latency << ' ' << timeunit_string
                      << "s\n";
             }
