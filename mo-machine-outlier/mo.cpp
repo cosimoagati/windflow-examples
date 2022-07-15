@@ -562,6 +562,7 @@ public:
                     Shipper<ObservationResultTuple> &shipper,
                     RuntimeContext &                 context) {
         DO_NOT_WARN_IF_UNUSED(context);
+        assert(tuple.observation.timestamp >= last_measurement_timestamp);
 
 #ifndef NDEBUG
         {
@@ -782,6 +783,8 @@ public:
                     Shipper<AlertTriggererResultTuple> &shipper,
                     RuntimeContext &                    context) {
         DO_NOT_WARN_IF_UNUSED(context);
+        assert(input.observation_timestamp >= previous_observation_timestamp);
+
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
