@@ -113,6 +113,14 @@ struct ScorePackage {
     T      data;
 };
 
+template<typename T>
+struct StreamProfile {
+    string id;
+    T      current_data_instance;
+    double stream_anomaly_score;
+    double current_data_instance_score;
+};
+
 struct SourceTuple {
     MachineMetadata observation;
     unsigned long   execution_timestamp;
@@ -607,6 +615,73 @@ public:
     }
 };
 
+template<typename T>
+class DataStreamAnomalyScoreFunctor {
+    unordered_map<string, StreamProfile<T>> stream_profile_map;
+    double                                  lambda    = 0.017;
+    double                                  factor    = exp(-lambda);
+    double                                  threshold = 1 / (1 - factor) * 0.5;
+    bool                                    shrink_next_round = false;
+    unsigned long                           previous_observation_timestamp = 0;
+    unsigned long                           parent_execution_timestamp     = 0;
+
+public:
+    void operator()(const ObservationResultTuple &tuple,
+                    Shipper<AnomalyResultTuple> & shipper,
+                    RuntimeContext &              context) {
+        const unsigned long current_observation_timestamp =
+            tuple.observation_timestamp;
+
+        DO_NOT_WARN_IF_UNUSED(context);
+        assert(current_observation_timestamp
+               >= previous_observation_timestamp);
+
+        if (current_observation_timestamp > previous_observation_timestamp) {
+            for (const auto &entry : stream_profile_map) {
+                auto &stream_profile = entry->second;
+                if (shrink_next_round) {
+                    stream_profile.stream_anomaly_score = 0;
+                }
+
+                AnomalyResultTuple result {
+                    entry->first,
+                    stream_profile.stream_anomaly_score,
+                    previous_observation_timestamp,
+                    parent_execution_timestamp,
+                    stream_profile.current_data_instance,
+                    stream_profile.current_data_instance_score,
+                };
+                shipper.push(move(result));
+            }
+
+            if (shrink_next_round) {
+                shrink_next_round = false;
+            }
+            previous_observation_timestamp = current_observation_timestamp;
+            parent_execution_timestamp     = tuple.parent_execution_timestamp;
+        }
+        const auto   profile_entry = stream_profile_map.find(tuple.id);
+        const double instance_anomaly_score = tuple.score;
+
+        if (profile_entry == stream_profile_map.end()) {
+            StreamProfile<T> profile {tuple.id, tuple.observation,
+                                      instance_anomaly_score, tuple.score};
+            stream_profile_map.insert({tuple.id, move(profile)});
+        } else {
+            auto &profile = profile_entry.second;
+            profile.stream_anomaly_score =
+                profile.stream_anomaly_score * factor + instance_anomaly_score;
+            profile.current_data_instance       = tuple.observation;
+            profile.current_data_instance_score = instance_anomaly_score;
+
+            if (profile.stream_anomaly_score > threshold) {
+                shrink_next_round = true;
+            }
+            stream_profile_map.insert({tuple.id, profile});
+        }
+    }
+};
+
 class SlidingWindowStreamAnomalyScoreFunctor {
     unordered_map<string, deque<double>> sliding_window_map;
     size_t                               window_length;
@@ -950,9 +1025,10 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withOutputBatchSize(parameters.batch_size[observer_id])
             .build();
 
-    SlidingWindowStreamAnomalyScoreFunctor anomaly_scorer_functor;
-    auto                                   anomaly_scorer_node =
-        Map_Builder {anomaly_scorer_functor}
+    DataStreamAnomalyScoreFunctor<MachineMetadataScorer>
+         anomaly_scorer_functor;
+    auto anomaly_scorer_node =
+        FlatMap_Builder {anomaly_scorer_functor}
             .withParallelism(parameters.parallelism[anomaly_scorer_id])
             .withName("anomaly scorer")
             .withKeyBy([](const ObservationResultTuple &tuple) -> string {
