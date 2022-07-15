@@ -409,10 +409,12 @@ public:
         }
     }
 
-    void operator()(Source_Shipper<SourceTuple> &shipper) {
+    void operator()(Source_Shipper<SourceTuple> &shipper,
+                    RuntimeContext &             context) {
         const auto    end_time    = current_time() + duration;
         unsigned long sent_tuples = 0;
         size_t        index       = 0;
+        DO_NOT_WARN_IF_UNUSED(context);
 
         while (current_time() < end_time) {
             auto current_observation = machine_metadata[index];
@@ -421,7 +423,8 @@ public:
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
-                clog << "[SOURCE] Sending out tuple with the following "
+                clog << "[SOURCE " << context.getReplicaIndex()
+                     << "] Sending out tuple with the following "
                         "observation: "
                      << current_observation << '\n';
             }
@@ -556,12 +559,15 @@ class ObserverScorerFunctor {
 
 public:
     void operator()(const SourceTuple &              tuple,
-                    Shipper<ObservationResultTuple> &shipper) {
+                    Shipper<ObservationResultTuple> &shipper,
+                    RuntimeContext &                 context) {
+        DO_NOT_WARN_IF_UNUSED(context);
+
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
-            clog << "[OBSERVER SCORER] Received tuple with observation "
-                    "timestamp: "
+            clog << "[OBSERVER SCORER " << context.getReplicaIndex()
+                 << "] Received tuple with observation timestamp: "
                  << tuple.observation.timestamp << '\n';
         }
 #endif
@@ -570,17 +576,22 @@ public:
                 const auto score_package_list =
                     scorer.get_scores(observation_list);
                 for (const auto &package : score_package_list) {
+                    ObservationResultTuple result {
+                        package.id, package.score, last_measurement_timestamp,
+                        last_execution_timestamp, package.data};
 #ifndef NDEBUG
                     {
                         lock_guard lock {print_mutex};
-                        clog << "[OBSERVER SCORER] Sending tuple with id: "
-                             << package.id << ", score: " << package.score
-                             << '\n';
+                        clog
+                            << "[OBSERVER SCORER " << context.getReplicaIndex()
+                            << "] Sending tuple with id: " << result.id
+                            << ", score: " << result.score
+                            << ", observation timestamp: "
+                            << result.observation_timestamp
+                            << ", observation: " << result.observation << '\n';
                     }
 #endif
-                    shipper.push({package.id, package.score,
-                                  last_measurement_timestamp,
-                                  last_execution_timestamp, package.data});
+                    shipper.push(move(result));
                 }
                 observation_list.clear();
             }
@@ -604,13 +615,16 @@ public:
     SlidingWindowStreamAnomalyScoreFunctor(size_t length = 10)
         : window_length {length} {}
 
-    AnomalyResultTuple operator()(const ObservationResultTuple &tuple) {
+    AnomalyResultTuple operator()(const ObservationResultTuple &tuple,
+                                  RuntimeContext &              context) {
+        DO_NOT_WARN_IF_UNUSED(context);
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
-            clog << "[SLIDING WINDOW STREAM ANOMALY SCORER] Received tuple "
-                    "with observation ID: "
-                 << tuple.id << '\n';
+            clog << "[SLIDING WINDOW STREAM ANOMALY SCORER "
+                 << context.getReplicaIndex()
+                 << "] Received tuple with observation ID: " << tuple.id
+                 << '\n';
         }
 #endif
         auto &sliding_window = sliding_window_map[tuple.id];
@@ -626,9 +640,10 @@ public:
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
-            clog << "[SLIDING WINDOW STREAM ANOMALY SCORER] Sending out tuple "
-                    "with observation: ("
-                 << tuple.observation << "), ID: " << tuple.id
+            clog << "[SLIDING WINDOW STREAM ANOMALY SCORER "
+                 << context.getReplicaIndex()
+                 << "] Sending out tuple with observation: "
+                 << tuple.observation << ", ID: " << tuple.id
                  << ", score sum: " << score_sum
                  << ", individual score: " << tuple.score << '\n';
         }
@@ -763,13 +778,18 @@ class AlertTriggererFunctor {
 
 public:
     void operator()(const AnomalyResultTuple &          input,
-                    Shipper<AlertTriggererResultTuple> &shipper) {
+                    Shipper<AlertTriggererResultTuple> &shipper,
+                    RuntimeContext &                    context) {
+        DO_NOT_WARN_IF_UNUSED(context);
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
-            clog << "[ALERT TRIGGERER] Received input with observation "
-                    "timestamp: "
-                 << input.observation_timestamp << '\n';
+            clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
+                 << "] Received input with id: " << input.id
+                 << ", anomaly score: " << input.anomaly_score
+                 << ", individual score: " << input.individual_score
+                 << ", observation timestamp: " << input.observation_timestamp
+                 << ", observation: " << input.observation << '\n';
         }
 #endif
         if (input.observation_timestamp > previous_observation_timestamp) {
@@ -785,7 +805,8 @@ public:
 #ifndef NDEBUG
                 {
                     lock_guard lock {print_mutex};
-                    clog << "[ALERT TRIGGERER] Median index: " << median_idx
+                    clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
+                         << "] Median index: " << median_idx
                          << ", minimum score: " << min_score
                          << ", median score: " << median_score << '\n';
                 }
@@ -804,8 +825,9 @@ public:
 #ifndef NDEBUG
                         {
                             lock_guard lock {print_mutex};
-                            clog << "[ALERT TRIGGERER] Sending out tuple with "
-                                    "stream ID: "
+                            clog << "[ALERT TRIGGERER "
+                                 << context.getReplicaIndex()
+                                 << "] Sending out tuple with stream ID: "
                                  << stream_profile.id
                                  << ", stream score: " << stream_score
                                  << ", stream profile timestamp: "
@@ -868,7 +890,10 @@ class SinkFunctor {
 public:
     SinkFunctor(unsigned rate) : sampling_rate {rate} {}
 
-    void operator()(optional<AlertTriggererResultTuple> &input) {
+    void operator()(optional<AlertTriggererResultTuple> &input,
+                    RuntimeContext &                     context) {
+        DO_NOT_WARN_IF_UNUSED(context);
+
         if (input) {
             const auto arrival_time = current_time();
             const auto latency =
@@ -883,7 +908,8 @@ public:
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
-                clog << "[SINK] id: " << input->id << " "
+                clog << "[SINK " << context.getReplicaIndex()
+                     << "] id: " << input->id << " "
                      << "anomaly score: " << input->anomaly_score
                      << " is_abnormal: " << input->is_abnormal
                      << ", containing observation: " << input->observation
