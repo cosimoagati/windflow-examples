@@ -635,22 +635,41 @@ public:
         DO_NOT_WARN_IF_UNUSED(context);
         assert(current_observation_timestamp
                >= previous_observation_timestamp);
-
+#ifndef NDEBUG
+        {
+            lock_guard lock {print_mutex};
+            clog << "[DATA STREAM ANOMALY SCORER " << context.getReplicaIndex()
+                 << "] Received tuple with observation ID: " << tuple.id
+                 << '\n';
+        }
+#endif
         if (current_observation_timestamp > previous_observation_timestamp) {
-            for (const auto &entry : stream_profile_map) {
-                auto &stream_profile = entry->second;
+            for (auto &entry : stream_profile_map) {
+                auto &stream_profile = entry.second;
                 if (shrink_next_round) {
                     stream_profile.stream_anomaly_score = 0;
                 }
 
                 AnomalyResultTuple result {
-                    entry->first,
+                    entry.first,
                     stream_profile.stream_anomaly_score,
                     previous_observation_timestamp,
                     parent_execution_timestamp,
                     stream_profile.current_data_instance,
                     stream_profile.current_data_instance_score,
                 };
+#ifndef NDEBUG
+                {
+                    lock_guard lock {print_mutex};
+                    clog << "[DATA STREAM ANOMALY SCORER "
+                         << context.getReplicaIndex()
+                         << "] Sending out tuple with observation: "
+                         << tuple.observation << ", ID: " << result.id
+                         << ", score sum: " << result.anomaly_score
+                         << ", individual score: " << result.individual_score
+                         << '\n';
+                }
+#endif
                 shipper.push(move(result));
             }
 
@@ -660,6 +679,7 @@ public:
             previous_observation_timestamp = current_observation_timestamp;
             parent_execution_timestamp     = tuple.parent_execution_timestamp;
         }
+
         const auto   profile_entry = stream_profile_map.find(tuple.id);
         const double instance_anomaly_score = tuple.score;
 
@@ -668,7 +688,7 @@ public:
                                       instance_anomaly_score, tuple.score};
             stream_profile_map.insert({tuple.id, move(profile)});
         } else {
-            auto &profile = profile_entry.second;
+            auto &profile = profile_entry->second;
             profile.stream_anomaly_score =
                 profile.stream_anomaly_score * factor + instance_anomaly_score;
             profile.current_data_instance       = tuple.observation;
@@ -1025,9 +1045,8 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withOutputBatchSize(parameters.batch_size[observer_id])
             .build();
 
-    DataStreamAnomalyScoreFunctor<MachineMetadataScorer>
-         anomaly_scorer_functor;
-    auto anomaly_scorer_node =
+    DataStreamAnomalyScoreFunctor<MachineMetadata> anomaly_scorer_functor;
+    auto                                           anomaly_scorer_node =
         FlatMap_Builder {anomaly_scorer_functor}
             .withParallelism(parameters.parallelism[anomaly_scorer_id])
             .withName("anomaly scorer")
