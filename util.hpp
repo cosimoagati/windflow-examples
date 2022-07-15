@@ -54,6 +54,8 @@
  * This header file contains some miscellaneous reusable utilities.
  */
 
+#define DO_NOT_WARN_IF_UNUSED(x) ((void) (x))
+
 static constexpr auto current_time = wf::current_time_nsecs;
 
 static const auto timeunit_string =
