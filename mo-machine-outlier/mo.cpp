@@ -551,7 +551,7 @@ public:
 };
 
 template<typename Scorer>
-class ObserverScorerFunctor {
+class ObservationScorerFunctor {
     Scorer                  scorer;
     vector<MachineMetadata> observation_list;
     unsigned long           last_measurement_timestamp = 0;
@@ -566,7 +566,7 @@ public:
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
-            clog << "[OBSERVER SCORER " << context.getReplicaIndex()
+            clog << "[OBSERVATION SCORER " << context.getReplicaIndex()
                  << "] Received tuple with observation timestamp: "
                  << tuple.observation.timestamp << '\n';
         }
@@ -582,13 +582,14 @@ public:
 #ifndef NDEBUG
                     {
                         lock_guard lock {print_mutex};
-                        clog
-                            << "[OBSERVER SCORER " << context.getReplicaIndex()
-                            << "] Sending tuple with id: " << result.id
-                            << ", score: " << result.score
-                            << ", observation timestamp: "
-                            << result.observation_timestamp
-                            << ", observation: " << result.observation << '\n';
+                        clog << "[OBSERVATION SCORER "
+                             << context.getReplicaIndex()
+                             << "] Sending tuple with id: " << result.id
+                             << ", score: " << result.score
+                             << ", observation timestamp: "
+                             << result.observation_timestamp
+                             << ", observation: " << result.observation
+                             << '\n';
                     }
 #endif
                     shipper.push(move(result));
@@ -938,8 +939,8 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
                       .withOutputBatchSize(parameters.batch_size[source_id])
                       .build();
 
-    ObserverScorerFunctor<MachineMetadataScorer> observer_functor;
-    auto                                         observer_scorer_node =
+    ObservationScorerFunctor<MachineMetadataScorer> observer_functor;
+    auto                                            observer_scorer_node =
         FlatMap_Builder {observer_functor}
             .withParallelism(parameters.parallelism[observer_id])
             .withName("observation scorer")
