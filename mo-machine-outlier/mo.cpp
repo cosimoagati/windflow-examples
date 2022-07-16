@@ -397,7 +397,7 @@ static inline void print_initial_parameters(const Parameters &parameters) {
 
     cout << "Chaining:\t" << (parameters.use_chaining ? "enabled" : "disabled")
          << '\n'
-         << "Anomaly Scorer variant:\t" << parameters.anomaly_scorer_type
+         << "Anomaly Scorer variant:\t\t" << parameters.anomaly_scorer_type
          << '\n'
          << "Alert Triggerer variant:\t" << parameters.alert_triggerer_type
          << '\n';
