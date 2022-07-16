@@ -78,6 +78,8 @@ enum NodeId : unsigned {
 
 struct Parameters {
     const char *     metric_output_directory = ".";
+    const char *     anomaly_scorer_type     = "data-stream";
+    const char *     alert_triggerer_type    = "top-k";
     Execution_Mode_t execution_mode          = Execution_Mode_t::DETERMINISTIC;
     Time_Policy_t    time_policy             = Time_Policy_t::EVENT_TIME;
     unsigned         parallelism[num_nodes]  = {1, 1, 1, 1, 1};
@@ -143,6 +145,10 @@ struct AnomalyResultTuple {
     double          individual_score;
 };
 
+bool operator<(AnomalyResultTuple a, AnomalyResultTuple b) {
+    return a.anomaly_score < b.anomaly_score;
+}
+
 struct AlertTriggererResultTuple {
     string          id;
     double          anomaly_score;
@@ -162,6 +168,8 @@ static const struct option long_opts[] = {{"help", 0, 0, 'h'},
                                           {"execmode", 1, 0, 'e'},
                                           {"timepolicy", 1, 0, 't'},
                                           {"outputdir", 1, 0, 'o'},
+                                          {"anomalyscorer", 1, 0, 'a'},
+                                          {"alerttriggerer", 1, 0, 'g'},
                                           {0, 0, 0, 0}};
 
 static inline optional<MachineMetadata>
@@ -290,6 +298,12 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
                     "[--duration <seconds>] [--chaining <value>]\n";
             exit(EXIT_SUCCESS);
             break;
+        case 'a':
+            parameters.anomaly_scorer_type = optarg;
+            break;
+        case 'g':
+            parameters.alert_triggerer_type = optarg;
+            break;
         default:
             cerr << "Error in parsing the input arguments.  Use the --help "
                     "(-h) option for usage information.\n";
@@ -382,6 +396,10 @@ static inline void print_initial_parameters(const Parameters &parameters) {
     }
 
     cout << "Chaining:\t" << (parameters.use_chaining ? "enabled" : "disabled")
+         << '\n'
+         << "Anomaly Scorer variant: " << parameters.anomaly_scorer_type
+         << '\n'
+         << "Alert Triggerer variant: " << parameters.alert_triggerer_type
          << '\n';
 }
 
@@ -968,6 +986,47 @@ public:
     }
 };
 
+class TopKAlertTriggererFunctor {
+    vector<AnomalyResultTuple> stream_list;
+    size_t                     k;
+    unsigned long              previous_observation_timestamp = 0;
+
+public:
+    TopKAlertTriggererFunctor(size_t k = 3) : k {k} {}
+
+    void operator()(const AnomalyResultTuple &          input,
+                    Shipper<AlertTriggererResultTuple> &shipper,
+                    RuntimeContext &                    context) {
+        const unsigned long current_observation_timestamp =
+            input.observation_timestamp;
+        DO_NOT_WARN_IF_UNUSED(context);
+        assert(current_observation_timestamp
+               >= previous_observation_timestamp);
+
+        if (current_observation_timestamp > previous_observation_timestamp) {
+            sort(stream_list.begin(), stream_list.end());
+            const size_t actual_k = stream_list.size() < k
+                                        ? stream_list.size()
+                                        : k; // XXX: is this needed?
+            for (size_t i = 0; i < stream_list.size(); ++i) {
+                auto &     tuple       = stream_list[i];
+                const bool is_abnormal = i >= stream_list.size() - actual_k;
+                AlertTriggererResultTuple result {
+                    tuple.id,
+                    tuple.anomaly_score,
+                    tuple.observation_timestamp,
+                    tuple.parent_execution_timestamp,
+                    is_abnormal,
+                    tuple.observation};
+                shipper.push(move(result));
+            }
+            previous_observation_timestamp = current_observation_timestamp;
+            stream_list.clear();
+        }
+        stream_list.push_back(input);
+    }
+};
+
 class SinkFunctor {
     vector<unsigned long> latency_samples;
     unsigned long         tuples_received    = 0;
@@ -1010,7 +1069,8 @@ public:
                 clog << "[SINK " << context.getReplicaIndex()
                      << "] id: " << input->id << " "
                      << "anomaly score: " << input->anomaly_score
-                     << " is_abnormal: " << input->is_abnormal
+                     << " is_abnormal: "
+                     << (input->is_abnormal ? "true" : "false")
                      << ", containing observation: " << input->observation
                      << " arrival time: " << arrival_time
                      << " observation ts: " << input->observation_timestamp
@@ -1026,6 +1086,74 @@ public:
         }
     }
 };
+
+static MultiPipe &get_anomaly_scorer_pipe(const Parameters &parameters,
+                                          MultiPipe &observation_scorer_pipe) {
+    const string name = parameters.anomaly_scorer_type;
+
+    if (name == "data-stream" || name == "data_stream") {
+        DataStreamAnomalyScoreFunctor<MachineMetadata> anomaly_scorer_functor;
+        auto                                           anomaly_scorer_node =
+            FlatMap_Builder {anomaly_scorer_functor}
+                .withParallelism(parameters.parallelism[anomaly_scorer_id])
+                .withName("anomaly scorer")
+                .withKeyBy([](const ObservationResultTuple &tuple) -> string {
+                    return tuple.id;
+                })
+                .withOutputBatchSize(parameters.batch_size[anomaly_scorer_id])
+                .build();
+        return parameters.use_chaining
+                   ? observation_scorer_pipe.chain(anomaly_scorer_node)
+                   : observation_scorer_pipe.add(anomaly_scorer_node);
+    } else if (name == "sliding-window" || name == "sliding_window") {
+        SlidingWindowStreamAnomalyScoreFunctor anomaly_scorer_functor;
+        auto                                   anomaly_scorer_node =
+            Map_Builder {anomaly_scorer_functor}
+                .withParallelism(parameters.parallelism[anomaly_scorer_id])
+                .withName("anomaly scorer")
+                .withKeyBy([](const ObservationResultTuple &tuple) -> string {
+                    return tuple.id;
+                })
+                .withOutputBatchSize(parameters.batch_size[anomaly_scorer_id])
+                .build();
+        return parameters.use_chaining
+                   ? observation_scorer_pipe.chain(anomaly_scorer_node)
+                   : observation_scorer_pipe.add(anomaly_scorer_node);
+    } else {
+        cerr << "Error while building graph: unknown Anomaly Scorer type\n";
+        exit(EXIT_FAILURE);
+    }
+}
+
+static MultiPipe &get_alert_triggerer_pipe(const Parameters &parameters,
+                                           MultiPipe &anomaly_scorer_pipe) {
+    const string name = parameters.alert_triggerer_type;
+
+    if (name == "top-k") {
+        TopKAlertTriggererFunctor alert_triggerer_functor;
+        auto                      alert_triggerer_node =
+            FlatMap_Builder {alert_triggerer_functor}
+                .withParallelism(parameters.parallelism[alert_triggerer_id])
+                .withName("alert triggerer")
+                .withOutputBatchSize(parameters.batch_size[alert_triggerer_id])
+                .build();
+        return parameters.use_chaining
+                   ? anomaly_scorer_pipe.chain(alert_triggerer_node)
+                   : anomaly_scorer_pipe.add(alert_triggerer_node);
+    } else {
+        AlertTriggererFunctor alert_triggerer_functor;
+        auto                  alert_triggerer_node =
+            FlatMap_Builder {alert_triggerer_functor}
+                .withParallelism(parameters.parallelism[alert_triggerer_id])
+                .withName("alert triggerer")
+                .withOutputBatchSize(parameters.batch_size[alert_triggerer_id])
+                .build();
+
+        return parameters.use_chaining
+                   ? anomaly_scorer_pipe.chain(alert_triggerer_node)
+                   : anomaly_scorer_pipe.add(alert_triggerer_node);
+    }
+}
 
 static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
@@ -1045,24 +1173,16 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withOutputBatchSize(parameters.batch_size[observer_id])
             .build();
 
-    DataStreamAnomalyScoreFunctor<MachineMetadata> anomaly_scorer_functor;
-    auto                                           anomaly_scorer_node =
-        FlatMap_Builder {anomaly_scorer_functor}
-            .withParallelism(parameters.parallelism[anomaly_scorer_id])
-            .withName("anomaly scorer")
-            .withKeyBy([](const ObservationResultTuple &tuple) -> string {
-                return tuple.id;
-            })
-            .withOutputBatchSize(parameters.batch_size[anomaly_scorer_id])
-            .build();
+    auto &observation_scorer_pipe =
+        parameters.use_chaining
+            ? graph.add_source(source).chain(observer_scorer_node)
+            : graph.add_source(source).add(observer_scorer_node);
 
-    AlertTriggererFunctor alert_triggerer_functor;
-    auto                  alert_triggerer_node =
-        FlatMap_Builder {alert_triggerer_functor}
-            .withParallelism(parameters.parallelism[alert_triggerer_id])
-            .withName("alert triggerer")
-            .withOutputBatchSize(parameters.batch_size[alert_triggerer_id])
-            .build();
+    auto &anomaly_scorer_pipe =
+        get_anomaly_scorer_pipe(parameters, observation_scorer_pipe);
+
+    auto &alert_triggerer_pipe =
+        get_alert_triggerer_pipe(parameters, anomaly_scorer_pipe);
 
     SinkFunctor sink_functor {parameters.sampling_rate};
     auto        sink = Sink_Builder {sink_functor}
@@ -1071,17 +1191,9 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
                     .build();
 
     if (parameters.use_chaining) {
-        graph.add_source(source)
-            .chain(observer_scorer_node)
-            .chain(anomaly_scorer_node)
-            .chain(alert_triggerer_node)
-            .chain_sink(sink);
+        alert_triggerer_pipe.chain_sink(sink);
     } else {
-        graph.add_source(source)
-            .add(observer_scorer_node)
-            .add(anomaly_scorer_node)
-            .add(alert_triggerer_node)
-            .add_sink(sink);
+        alert_triggerer_pipe.add_sink(sink);
     }
     return graph;
 }
