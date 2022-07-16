@@ -1130,7 +1130,7 @@ static MultiPipe &get_alert_triggerer_pipe(const Parameters &parameters,
                                            MultiPipe &anomaly_scorer_pipe) {
     const string name = parameters.alert_triggerer_type;
 
-    if (name == "top-k") {
+    if (name == "top-k" || name == "top_k") {
         TopKAlertTriggererFunctor alert_triggerer_functor;
         auto                      alert_triggerer_node =
             FlatMap_Builder {alert_triggerer_functor}
