@@ -1141,7 +1141,7 @@ static MultiPipe &get_alert_triggerer_pipe(const Parameters &parameters,
         return parameters.use_chaining
                    ? anomaly_scorer_pipe.chain(alert_triggerer_node)
                    : anomaly_scorer_pipe.add(alert_triggerer_node);
-    } else {
+    } else if (name == "default") {
         AlertTriggererFunctor alert_triggerer_functor;
         auto                  alert_triggerer_node =
             FlatMap_Builder {alert_triggerer_functor}
@@ -1153,6 +1153,10 @@ static MultiPipe &get_alert_triggerer_pipe(const Parameters &parameters,
         return parameters.use_chaining
                    ? anomaly_scorer_pipe.chain(alert_triggerer_node)
                    : anomaly_scorer_pipe.add(alert_triggerer_node);
+    } else {
+        cerr << "Error while building graph: unknown Alert Triggerer type: "
+             << name << '\n';
+        exit(EXIT_FAILURE);
     }
 }
 
