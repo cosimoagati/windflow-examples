@@ -421,9 +421,8 @@ static Metric<unsigned long> global_latency_metric {"mo-latency"};
 static mutex print_mutex;
 #endif
 
-template<typename Observation = MachineMetadata,
-         optional<Observation> parse_trace(const string &) =
-             parse_alibaba_trace>
+template<typename Observation,
+         optional<Observation> parse_trace(const string &)>
 class SourceFunctor {
     static constexpr auto default_path = "machine-usage.csv";
     vector<Observation>   observations;
