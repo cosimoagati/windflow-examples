@@ -11,25 +11,33 @@ mkdir -p "$outputdir"
 
 set -x
 for rate in 0; do
-    for batching in 0 1 2 4 8 16 32 64 128; do
-        for pardeg in $(seq 1 $(($nproc / 5))); do
-            ./mo --duration="$duration" \
-                 --parallelism="$pardeg,$pardeg,$pardeg,$pardeg,$pardeg" \
-                 --batch="$batching,$batching,$batching,$batching" \
-                 --chaining=false \
-                 --rate="$rate" \
-                 --outputdir="$outputdir" \
-                 >> "$outputdir/output-$($datecmd).txt"
-        done
+    for anomaly_scorer in data-stream sliding-window; do
+        for alert_triggerer in top-k default; do
+            for batching in 0 1 2 4 8 16 32 64 128; do
+                for pardeg in $(seq 1 $(($nproc / 5))); do
+                    ./mo --duration="$duration" \
+                         --parallelism="$pardeg,$pardeg,$pardeg,$pardeg,$pardeg" \
+                         --batch="$batching,$batching,$batching,$batching" \
+                         --chaining=false \
+                         --rate="$rate" \
+                         --anomalyscorer="$anomaly_scorer" \
+                         --alerttriggerer="$alert_triggerer" \
+                         --outputdir="$outputdir/$anomaly_scorer-$alert_triggerer" \
+                         >> "$outputdir/$anomaly_scorer-$alert_triggerer/output-$($datecmd).txt"
+                done
 
-        for pardeg in $(seq 1 $(($nproc / 2))); do
-            ./mo --duration="$duration" \
-                 --parallelism="$pardeg,$pardeg,$pardeg,$pardeg,$pardeg" \
-                 --batch="$batching,$batching,$batching,$batching" \
-                 --chaining=true \
-                 --rate="$rate" \
-                 --outputdir="$outputdir" \
-                 >> "$outputdir/output-$($datecmd).txt"
+                for pardeg in $(seq 1 $(($nproc / 2))); do
+                    ./mo --duration="$duration" \
+                         --parallelism="$pardeg,$pardeg,$pardeg,$pardeg,$pardeg" \
+                         --batch="$batching,$batching,$batching,$batching" \
+                         --chaining=true \
+                         --rate="$rate" \
+                         --anomalyscorer="$anomaly_scorer" \
+                         --alerttriggerer="$alert_triggerer" \
+                         --outputdir="$outputdir/$anomaly_scorer-$alert_triggerer" \
+                         >> "$outputdir/$anomaly_scorer-$alert_triggerer/output-$($datecmd).txt"
+                done
+            done
         done
     done
 done
