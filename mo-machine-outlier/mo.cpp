@@ -80,6 +80,8 @@ struct Parameters {
     const char *     metric_output_directory = ".";
     const char *     anomaly_scorer_type     = "data-stream";
     const char *     alert_triggerer_type    = "top-k";
+    const char *     parser_type             = "alibaba";
+    const char *     input_file              = "machine-usage.csv";
     Execution_Mode_t execution_mode          = Execution_Mode_t::DETERMINISTIC;
     Time_Policy_t    time_policy             = Time_Policy_t::EVENT_TIME;
     unsigned         parallelism[num_nodes]  = {1, 1, 1, 1, 1};
@@ -170,6 +172,8 @@ static const struct option long_opts[] = {{"help", 0, 0, 'h'},
                                           {"outputdir", 1, 0, 'o'},
                                           {"anomalyscorer", 1, 0, 'a'},
                                           {"alerttriggerer", 1, 0, 'g'},
+                                          {"file", 1, 0, 'f'},
+                                          {"parser", 1, 0, 'P'},
                                           {0, 0, 0, 0}};
 
 static inline optional<MachineMetadata>
@@ -182,8 +186,6 @@ parse_google_trace(const string &trace) {
     MachineMetadata metadata;
 
     if (values.size() != 19) {
-        // cerr << "Ill-formed line!\n";
-        // cerr << "Offending line looks like: " << trace << '\n';
         return {};
     }
 
@@ -240,7 +242,7 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     int option;
     int index;
 
-    while ((option = getopt_long(argc, argv, "r:s:p:b:c:d:o:e:t:a:g:h",
+    while ((option = getopt_long(argc, argv, "r:s:p:b:c:d:o:e:t:a:g:f:P:h",
                                  long_opts, &index))
            != -1) {
         switch (option) {
@@ -303,6 +305,12 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
             break;
         case 'g':
             parameters.alert_triggerer_type = optarg;
+            break;
+        case 'f':
+            parameters.input_file = optarg;
+            break;
+        case 'P':
+            parameters.parser_type = optarg;
             break;
         default:
             cerr << "Error in parsing the input arguments.  Use the --help "
@@ -413,22 +421,24 @@ static Metric<unsigned long> global_latency_metric {"mo-latency"};
 static mutex print_mutex;
 #endif
 
+template<typename Observation = MachineMetadata,
+         optional<Observation> parse_trace(const string &) =
+             parse_alibaba_trace>
 class SourceFunctor {
-    static constexpr auto   default_path = "machine-usage.csv";
-    vector<MachineMetadata> machine_metadata;
-    Execution_Mode_t        execution_mode;
-    unsigned long           measurement_timestamp_additional_amount = 0;
-    unsigned long           measurement_timestamp_increase_step;
-    unsigned long           duration;
-    unsigned                tuple_rate_per_second;
+    static constexpr auto default_path = "machine-usage.csv";
+    vector<Observation>   observations;
+    Execution_Mode_t      execution_mode;
+    unsigned long         measurement_timestamp_additional_amount = 0;
+    unsigned long         measurement_timestamp_increase_step;
+    unsigned long         duration;
+    unsigned              tuple_rate_per_second;
 
 public:
     SourceFunctor(unsigned d, unsigned rate, Execution_Mode_t e,
                   const char *path = default_path)
-        : machine_metadata {parse_metadata<parse_alibaba_trace>(path)},
-          execution_mode {e}, duration {d * timeunit_scale_factor},
-          tuple_rate_per_second {rate} {
-        if (machine_metadata.empty()) {
+        : observations {parse_metadata<parse_trace>(path)}, execution_mode {e},
+          duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {
+        if (observations.empty()) {
             cerr << "Error: empty machine reading stream.  Check whether "
                     "dataset file exists and is readable\n";
             exit(EXIT_FAILURE);
@@ -443,7 +453,7 @@ public:
         DO_NOT_WARN_IF_UNUSED(context);
 
         while (current_time() < end_time) {
-            auto current_observation = machine_metadata[index];
+            auto current_observation = observations[index];
             current_observation.timestamp +=
                 measurement_timestamp_additional_amount;
 #ifndef NDEBUG
@@ -455,7 +465,7 @@ public:
                      << current_observation << '\n';
             }
 #endif
-            index = (index + 1) % machine_metadata.size();
+            index = (index + 1) % observations.size();
             if (index == 0) {
                 if (measurement_timestamp_additional_amount == 0) {
                     measurement_timestamp_increase_step =
@@ -1087,6 +1097,40 @@ public:
     }
 };
 
+static MultiPipe &get_source_pipe(const Parameters &parameters,
+                                  PipeGraph &       graph) {
+    const string name = parameters.parser_type;
+
+    if (name == "alibaba") {
+        SourceFunctor<MachineMetadata, parse_alibaba_trace> source_functor {
+            parameters.duration, parameters.tuple_rate,
+            parameters.execution_mode, parameters.input_file};
+
+        auto source =
+            Source_Builder {source_functor}
+                .withParallelism(parameters.parallelism[source_id])
+                .withName("source")
+                .withOutputBatchSize(parameters.batch_size[source_id])
+                .build();
+        return graph.add_source(source);
+    } else if (name == "google") {
+        SourceFunctor<MachineMetadata, parse_google_trace> source_functor {
+            parameters.duration, parameters.tuple_rate,
+            parameters.execution_mode, parameters.input_file};
+
+        auto source =
+            Source_Builder {source_functor}
+                .withParallelism(parameters.parallelism[source_id])
+                .withName("source")
+                .withOutputBatchSize(parameters.batch_size[source_id])
+                .build();
+        return graph.add_source(source);
+    } else {
+        cerr << "Error while building graph: unknown data parser type\n";
+        exit(EXIT_FAILURE);
+    }
+}
+
 static MultiPipe &get_anomaly_scorer_pipe(const Parameters &parameters,
                                           MultiPipe &observation_scorer_pipe) {
     const string name = parameters.anomaly_scorer_type;
@@ -1162,13 +1206,7 @@ static MultiPipe &get_alert_triggerer_pipe(const Parameters &parameters,
 
 static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
-    SourceFunctor source_functor {parameters.duration, parameters.tuple_rate,
-                                  parameters.execution_mode};
-    auto          source = Source_Builder {source_functor}
-                      .withParallelism(parameters.parallelism[source_id])
-                      .withName("source")
-                      .withOutputBatchSize(parameters.batch_size[source_id])
-                      .build();
+    auto &source_pipe = get_source_pipe(parameters, graph);
 
     ObservationScorerFunctor<MachineMetadataScorer> observer_functor;
     auto                                            observer_scorer_node =
@@ -1179,9 +1217,8 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .build();
 
     auto &observation_scorer_pipe =
-        parameters.use_chaining
-            ? graph.add_source(source).chain(observer_scorer_node)
-            : graph.add_source(source).add(observer_scorer_node);
+        parameters.use_chaining ? source_pipe.chain(observer_scorer_node)
+                                : source_pipe.add(observer_scorer_node);
 
     auto &anomaly_scorer_pipe =
         get_anomaly_scorer_pipe(parameters, observation_scorer_pipe);
