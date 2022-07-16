@@ -476,13 +476,8 @@ public:
 
             const auto  execution_timestamp = current_time();
             SourceTuple new_tuple = {current_observation, execution_timestamp};
-            if (execution_mode == Execution_Mode_t::DETERMINISTIC) {
-                shipper.pushWithTimestamp(move(new_tuple),
-                                          new_tuple.observation.timestamp);
-            } else {
-                shipper.push(move(new_tuple));
-            }
-
+            shipper.pushWithTimestamp(move(new_tuple),
+                                      new_tuple.observation.timestamp);
             ++sent_tuples;
             if (tuple_rate_per_second > 0) {
                 const unsigned long delay =
