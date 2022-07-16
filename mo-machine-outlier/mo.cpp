@@ -1120,7 +1120,8 @@ static MultiPipe &get_anomaly_scorer_pipe(const Parameters &parameters,
                    ? observation_scorer_pipe.chain(anomaly_scorer_node)
                    : observation_scorer_pipe.add(anomaly_scorer_node);
     } else {
-        cerr << "Error while building graph: unknown Anomaly Scorer type\n";
+        cerr << "Error while building graph: unknown Anomaly Scorer type: "
+             << name << '\n';
         exit(EXIT_FAILURE);
     }
 }
