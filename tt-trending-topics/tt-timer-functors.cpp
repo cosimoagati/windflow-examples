@@ -116,11 +116,13 @@ static const struct option long_opts[] = {
 
 template<typename T>
 class Rankable {
-    T      object;
-    size_t count;
+    T             object;
+    unsigned long count;
+    size_t        window_length;
 
 public:
-    Rankable(const T &object, size_t count) : object {object}, count {count} {}
+    Rankable(const T &object, unsigned long count, size_t window_length)
+        : object {object}, count {count}, window_length {window_length} {}
 
     const T &get_object() const {
         return object;
@@ -909,9 +911,8 @@ public:
 
 static inline void update_intermediate_rankings(const Counts &    counts,
                                                 Rankings<string> &rankings) {
-    // XXX: Is this field relevant?
-    // const auto  window_length = counts.window_length;
-    Rankable<string> rankable {counts.word, counts.count};
+    Rankable<string> rankable {counts.word, counts.count,
+                               counts.window_length};
     rankings.update_with(rankable);
 }
 
