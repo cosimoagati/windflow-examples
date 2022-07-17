@@ -621,6 +621,14 @@ public:
     const vector<string> &get_selected_actions() const {
         return selected_actions;
     }
+
+    const vector<string>::const_iterator begin() const {
+        return available_actions.begin();
+    }
+
+    const vector<string>::const_iterator end() const {
+        return available_actions.end();
+    }
 };
 
 class IntervalEstimator {
