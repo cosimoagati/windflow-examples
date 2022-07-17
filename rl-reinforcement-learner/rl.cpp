@@ -643,14 +643,6 @@ class IntervalEstimator {
     mt19937                              mt {random_device {}()};
     uniform_real_distribution<double>    rand;
 
-    void init_selected_actions() {
-        if (batch_size == 0) {
-            selected_actions = vector<string>(1);
-        } else {
-            selected_actions = vector<string>(batch_size);
-        }
-    }
-
 public:
     IntervalEstimator(const vector<string> &actions, unsigned batch_size = 1,
                       unsigned bin_width = 1, unsigned confidence_limit = 95,
@@ -658,7 +650,7 @@ public:
                       unsigned confidence_limit_reduction_step           = 5,
                       unsigned confidence_limit_reduction_round_interval = 50,
                       unsigned min_distribution_sample                   = 30)
-        : actions {actions}, batch_size {batch_size},
+        : action_batch {actions, batch_size},
           confidence_limit {confidence_limit},
           min_confidence_limit {min_confidence_limit},
           confidence_limit_reduction_step {confidence_limit_reduction_step},
@@ -668,8 +660,6 @@ public:
         for (const auto &action : actions) {
             reward_distr.insert({action, HistogramStat {bin_width}});
         }
-        init_selected_actions();
-
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
@@ -765,10 +755,10 @@ public:
             }
 #endif
             const auto random_index =
-                static_cast<unsigned>(rand(mt) * actions.size());
-            assert(random_index < actions.size());
+                static_cast<unsigned>(rand(mt) * action_batch.size());
+            assert(random_index < action_batch.size());
 
-            selected_action = actions[random_index];
+            selected_action = action_batch[random_index];
             ++random_select_count;
         } else {
 #ifndef NDEBUG
@@ -803,11 +793,9 @@ public:
             ++intv_est_select_count;
         }
 
-        assert(!selected_actions.empty());
         assert(selected_action != "");
-
-        selected_actions[0] = selected_action;
-        return selected_actions;
+        action_batch.push_new_selected_action(selected_action);
+        return action_batch.get_selected_actions();
     }
 
     void set_reward(const string &action, unsigned reward) {
@@ -829,9 +817,7 @@ public:
 };
 
 class SampsonSampler {
-    vector<string> actions;
-    unsigned       batch_size;
-    vector<string> selected_actions;
+    ActionBatch action_batch;
 
     unordered_map<string, vector<unsigned>> reward_distr;
     unsigned                                min_sample_size;
@@ -839,29 +825,11 @@ class SampsonSampler {
     mt19937                                 mt {random_device {}()};
     uniform_real_distribution<double>       rand;
 
-    void init_selected_actions() {
-        if (batch_size == 0) {
-            selected_actions = vector<string>(1);
-        } else {
-            selected_actions = vector<string>(batch_size);
-        }
-    }
-
 public:
-    SampsonSampler(const vector<string> &actions,
+    SampsonSampler(const vector<string> &actions, size_t batch_size = 1,
                    unsigned min_sample_size = 10, unsigned max_reward = 100)
-        : actions {actions}, min_sample_size {min_sample_size},
-          max_reward {max_reward} {}
-
-    SampsonSampler &with_batch_size(unsigned batch_size) {
-        this->batch_size = batch_size;
-        return *this;
-    }
-
-    SampsonSampler &with_actions(const vector<string> &actions) {
-        this->actions = actions;
-        return *this;
-    }
+        : action_batch {actions, batch_size},
+          min_sample_size {min_sample_size}, max_reward {max_reward} {}
 
     const vector<string> &next_actions(unsigned long) {
         string   selected_action_id;
@@ -888,9 +856,8 @@ public:
             }
         }
 
-        assert(!selected_actions.empty());
-        selected_actions[0] = selected_action_id;
-        return selected_actions;
+        action_batch.push_new_selected_action(selected_action_id);
+        return action_batch.get_selected_actions();
     }
 
     unsigned enforce(const string &, unsigned reward) const {
