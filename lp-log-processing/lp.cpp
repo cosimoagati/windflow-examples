@@ -88,7 +88,6 @@ struct Parameters {
 
 enum class TupleTag { Volume, Status, Geo };
 
-// TODO: Use unions to save space?
 struct SourceTuple {
     TupleTag      tag;
     string        ip;
