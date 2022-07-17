@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <cmath>
 #include <condition_variable>
 #include <cstdint>
 #include <getopt.h>
@@ -877,6 +878,95 @@ public:
             reward_distr.insert_or_assign(action_id, vector<unsigned> {});
         }
         reward_distr.find(action_id)->second.push_back(reward);
+    }
+};
+
+class SimpleStat {
+    double   sum   = 0;
+    unsigned count = 0;
+
+public:
+    void add(double value) {
+        sum += value;
+        ++count;
+    }
+
+    double get_mean() {
+        return sum / count;
+    }
+};
+
+class RandomGreedyLearner {
+    static constexpr auto linear_algorithm     = "linear";
+    static constexpr auto log_linear_algorithm = "log_linear";
+
+    ActionBatch action_batch;
+
+    unordered_map<string, SimpleStat> reward_stats;
+    double                            random_selection_probability;
+    double                            probability_reduction_constant;
+    string                            probability_reduction_algorithm;
+
+    mt19937                           mt {random_device {}()};
+    uniform_real_distribution<double> rand {0.0, 1.0};
+
+public:
+    RandomGreedyLearner(
+        const vector<string> &actions, const size_t batch_size = 1,
+        double        random_selection_probability    = 0.5,
+        double        probability_reduction_constant  = 1.0,
+        const string &probability_reduction_algorithm = "linear")
+        : action_batch {actions, batch_size},
+          random_selection_probability {random_selection_probability},
+          probability_reduction_constant {probability_reduction_constant},
+          probability_reduction_algorithm {probability_reduction_algorithm} {}
+
+    vector<string> next_actions(unsigned long round_num) {
+        double current_probability = 0.0;
+        string next_action;
+
+        if (probability_reduction_algorithm == linear_algorithm) {
+            current_probability = random_selection_probability
+                                  * probability_reduction_constant / round_num;
+        } else if (probability_reduction_algorithm == log_linear_algorithm) {
+            current_probability = random_selection_probability
+                                  * probability_reduction_constant
+                                  * log(round_num) / round_num;
+        } else {
+            cerr << "Error in RandomGreedyLearner: unknown algorithm\n";
+            exit(EXIT_FAILURE);
+        }
+
+        current_probability =
+            current_probability <= random_selection_probability
+                ? current_probability
+                : random_selection_probability;
+
+        if (current_probability < rand(mt)) {
+            next_action = action_batch[static_cast<size_t>(
+                rand(mt) * action_batch.size())];
+        } else {
+            int best_reward = 0;
+
+            for (const auto &action : action_batch) {
+                const auto entry = reward_stats.find(action);
+                assert(entry != reward_stats.end());
+
+                int reward = static_cast<int>(entry->second.get_mean());
+                if (reward > best_reward) {
+                    best_reward = reward;
+                    next_action = action;
+                }
+            }
+        }
+        action_batch.push_new_selected_action(next_action);
+        return action_batch.get_selected_actions();
+    }
+
+    void set_reward(const string &action, unsigned reward) {
+        auto entry = reward_stats.find(action);
+        assert(entry != reward_stats.end());
+        entry->second.add(reward);
     }
 };
 
