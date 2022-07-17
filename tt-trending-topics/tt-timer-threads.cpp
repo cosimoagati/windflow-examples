@@ -208,7 +208,6 @@ public:
     }
 
     void update_with(Rankable<T> r) {
-        // XXX: THIS SHOULD BE THREAD SAFE!!!
         add_or_replace(r);
         rerank();
         shrink_rankings_if_needed();
