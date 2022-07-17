@@ -963,8 +963,7 @@ public:
             {
                 lock_guard lock {print_mutex};
                 clog << "[SINK] Received tuple containing the "
-                        "following "
-                        "rankings: "
+                        "following rankings: "
                      << input->rankings << ", arrival time: " << arrival_time
                      << " ts: " << input->timestamp << " latency: " << latency
                      << '\n';
