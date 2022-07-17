@@ -1182,11 +1182,11 @@ int main(int argc, char *argv[]) {
     Parameters parameters;
     parse_args(argc, argv, parameters);
     validate_args(parameters);
-    print_initial_parameters(parameters);
 
     PipeGraph graph {"rl-reinforcement-learner", parameters.execution_mode,
                      parameters.time_policy};
     build_graph(parameters, graph);
+    print_initial_parameters(parameters);
 
     const auto start_time = current_time();
     graph.run();
