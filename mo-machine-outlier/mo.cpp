@@ -1126,8 +1126,9 @@ static MultiPipe &get_source_pipe(const Parameters &parameters,
 }
 
 static MultiPipe &get_anomaly_scorer_pipe(const Parameters &parameters,
-                                          MultiPipe &observation_scorer_pipe) {
-    const string name = parameters.anomaly_scorer_type;
+                                          MultiPipe &       pipe) {
+    const string name         = parameters.anomaly_scorer_type;
+    const bool   use_chaining = parameters.use_chaining;
 
     if (name == "data-stream" || name == "data_stream") {
         DataStreamAnomalyScoreFunctor<MachineMetadata> anomaly_scorer_functor;
@@ -1140,9 +1141,8 @@ static MultiPipe &get_anomaly_scorer_pipe(const Parameters &parameters,
                 })
                 .withOutputBatchSize(parameters.batch_size[anomaly_scorer_id])
                 .build();
-        return parameters.use_chaining
-                   ? observation_scorer_pipe.chain(anomaly_scorer_node)
-                   : observation_scorer_pipe.add(anomaly_scorer_node);
+        return use_chaining ? pipe.chain(anomaly_scorer_node)
+                            : pipe.add(anomaly_scorer_node);
     } else if (name == "sliding-window" || name == "sliding_window") {
         SlidingWindowStreamAnomalyScoreFunctor anomaly_scorer_functor;
         const auto                             anomaly_scorer_node =
@@ -1154,9 +1154,8 @@ static MultiPipe &get_anomaly_scorer_pipe(const Parameters &parameters,
                 })
                 .withOutputBatchSize(parameters.batch_size[anomaly_scorer_id])
                 .build();
-        return parameters.use_chaining
-                   ? observation_scorer_pipe.chain(anomaly_scorer_node)
-                   : observation_scorer_pipe.add(anomaly_scorer_node);
+        return use_chaining ? pipe.chain(anomaly_scorer_node)
+                            : pipe.add(anomaly_scorer_node);
     } else {
         cerr << "Error while building graph: unknown Anomaly Scorer type: "
              << name << '\n';
@@ -1165,8 +1164,9 @@ static MultiPipe &get_anomaly_scorer_pipe(const Parameters &parameters,
 }
 
 static MultiPipe &get_alert_triggerer_pipe(const Parameters &parameters,
-                                           MultiPipe &anomaly_scorer_pipe) {
-    const string name = parameters.alert_triggerer_type;
+                                           MultiPipe &       pipe) {
+    const string name         = parameters.alert_triggerer_type;
+    const bool   use_chaining = parameters.use_chaining;
 
     if (name == "top-k" || name == "top_k") {
         TopKAlertTriggererFunctor alert_triggerer_functor;
@@ -1176,9 +1176,8 @@ static MultiPipe &get_alert_triggerer_pipe(const Parameters &parameters,
                 .withName("alert triggerer")
                 .withOutputBatchSize(parameters.batch_size[alert_triggerer_id])
                 .build();
-        return parameters.use_chaining
-                   ? anomaly_scorer_pipe.chain(alert_triggerer_node)
-                   : anomaly_scorer_pipe.add(alert_triggerer_node);
+        return use_chaining ? pipe.chain(alert_triggerer_node)
+                            : pipe.add(alert_triggerer_node);
     } else if (name == "default") {
         AlertTriggererFunctor alert_triggerer_functor;
         const auto            alert_triggerer_node =
@@ -1188,9 +1187,8 @@ static MultiPipe &get_alert_triggerer_pipe(const Parameters &parameters,
                 .withOutputBatchSize(parameters.batch_size[alert_triggerer_id])
                 .build();
 
-        return parameters.use_chaining
-                   ? anomaly_scorer_pipe.chain(alert_triggerer_node)
-                   : anomaly_scorer_pipe.add(alert_triggerer_node);
+        return use_chaining ? pipe.chain(alert_triggerer_node)
+                            : pipe.add(alert_triggerer_node);
     } else {
         cerr << "Error while building graph: unknown Alert Triggerer type: "
              << name << '\n';
