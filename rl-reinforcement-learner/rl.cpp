@@ -879,6 +879,54 @@ public:
         }
         reward_distr.find(action_id)->second.push_back(reward);
     }
+
+    const unordered_map<string, vector<unsigned>> &get_reward_distr() const {
+        return reward_distr;
+    }
+};
+
+class OptimisticSampsonSampler {
+    SampsonSampler             sampson_sampler;
+    unordered_map<string, int> mean_rewards;
+
+public:
+    OptimisticSampsonSampler(const vector<string> &actions,
+                             size_t                batch_size      = 1,
+                             unsigned              min_sample_size = 10,
+                             unsigned              max_reward      = 100)
+        : sampson_sampler {actions, batch_size, min_sample_size, max_reward} {}
+
+    const vector<string> &next_actions(unsigned long round_num) {
+        return sampson_sampler.next_actions(round_num);
+    }
+
+    void set_reward(const string &action_id, unsigned reward) {
+        sampson_sampler.set_reward(action_id, reward);
+    }
+
+    void compute_reward_mean(const string &action_id) {
+        const auto &reward_distr = sampson_sampler.get_reward_distr();
+        const auto &entry        = reward_distr.find(action_id);
+
+        if (entry != reward_distr.end()) {
+            const auto &rewards = entry->second;
+            int         sum     = 0;
+            int         count   = 0;
+            for (const int reward : rewards) {
+                sum += reward;
+                ++count;
+            }
+            mean_rewards.insert_or_assign(action_id, sum / count);
+        }
+    }
+
+    unsigned enforce(const string &action_id, int reward) {
+        const auto &entry = mean_rewards.find(action_id);
+        assert(entry != mean_rewards.end());
+
+        const int mean_reward = entry->second;
+        return reward > mean_reward ? reward : mean_reward;
+    }
 };
 
 class SimpleStat {
