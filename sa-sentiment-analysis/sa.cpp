@@ -511,14 +511,15 @@ public:
 static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
     SourceFunctor source_functor {parameters.duration, parameters.tuple_rate};
-    auto          source = Source_Builder {source_functor}
-                      .withParallelism(parameters.parallelism[source_id])
-                      .withName("source")
-                      .withOutputBatchSize(parameters.batch_size[source_id])
-                      .build();
+    const auto    source =
+        Source_Builder {source_functor}
+            .withParallelism(parameters.parallelism[source_id])
+            .withName("source")
+            .withOutputBatchSize(parameters.batch_size[source_id])
+            .build();
 
     MapFunctor<BasicClassifier> map_functor;
-    auto                        classifier_node =
+    const auto                  classifier_node =
         Map_Builder {map_functor}
             .withParallelism(parameters.parallelism[classifier_id])
             .withName("classifier")
@@ -526,10 +527,10 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .build();
 
     SinkFunctor sink_functor {parameters.sampling_rate};
-    auto        sink = Sink_Builder {sink_functor}
-                    .withParallelism(parameters.parallelism[sink_id])
-                    .withName("sink")
-                    .build();
+    const auto  sink = Sink_Builder {sink_functor}
+                          .withParallelism(parameters.parallelism[sink_id])
+                          .withName("sink")
+                          .build();
 
     if (parameters.use_chaining) {
         graph.add_source(source).chain(classifier_node).chain_sink(sink);

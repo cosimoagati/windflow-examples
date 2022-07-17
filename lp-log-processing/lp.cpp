@@ -894,7 +894,7 @@ public:
 static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
     SourceFunctor source_functor {parameters.duration, parameters.tuple_rate};
-    auto          source_node =
+    const auto    source_node =
         Source_Builder {source_functor}
             .withParallelism(parameters.parallelism[source_id])
             .withName("source")
@@ -902,7 +902,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .build();
 
     VolumeCounterFunctor volume_counter_functor;
-    auto                 volume_counter_node =
+    const auto           volume_counter_node =
         Map_Builder {volume_counter_functor}
             .withParallelism(parameters.parallelism[volume_counter_id])
             .withName("volume counter")
@@ -913,7 +913,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .build();
 
     StatusCounterFunctor status_counter_functor;
-    auto                 status_counter_node =
+    const auto           status_counter_node =
         Map_Builder {status_counter_functor}
             .withParallelism(parameters.parallelism[status_counter_id])
             .withName("status counter")
@@ -923,7 +923,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .build();
 
     GeoFinderFunctor geo_finder_functor;
-    auto             geo_finder_node =
+    const auto       geo_finder_node =
         FlatMap_Builder {geo_finder_functor}
             .withParallelism(parameters.parallelism[geo_finder_id])
             .withName("geo finder")
@@ -931,7 +931,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .build();
 
     GeoStatsFunctor geo_stats_functor;
-    auto            geo_stats_node =
+    const auto      geo_stats_node =
         Map_Builder {geo_stats_functor}
             .withParallelism(parameters.parallelism[geo_stats_id])
             .withName("geo stats")
@@ -942,10 +942,11 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .build();
 
     SinkFunctor sink_functor {parameters.sampling_rate};
-    auto        sink_node = Sink_Builder {sink_functor}
-                         .withParallelism(parameters.parallelism[sink_id])
-                         .withName("sink")
-                         .build();
+    const auto  sink_node =
+        Sink_Builder {sink_functor}
+            .withParallelism(parameters.parallelism[sink_id])
+            .withName("sink")
+            .build();
 
     auto &source_pipe = graph.add_source(source_node);
     source_pipe.split(

@@ -979,7 +979,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     CTRGeneratorFunctor ctr_generator_functor {parameters.duration,
                                                parameters.tuple_rate};
 
-    auto ctr_generator_node =
+    const auto ctr_generator_node =
         Source_Builder {ctr_generator_functor}
             .withParallelism(parameters.parallelism[ctr_generator_id])
             .withName("ctr generator")
@@ -989,7 +989,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     RewardSourceFunctor reward_source_functor {
         parameters.duration, parameters.tuple_rate,
         parameters.parallelism[reinforcement_learner_id]};
-    auto reward_source_node =
+    const auto reward_source_node =
         Source_Builder {reward_source_functor}
             .withParallelism(parameters.parallelism[reward_source_id])
             .withName("reward source")
@@ -997,8 +997,8 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .build();
 
     ReinforcementLearnerFunctor<IntervalEstimator>
-         reinforcement_learner_functor {default_available_actions};
-    auto reinforcement_learner_node =
+               reinforcement_learner_functor {default_available_actions};
+    const auto reinforcement_learner_node =
         FlatMap_Builder {reinforcement_learner_functor}
             .withParallelism(parameters.parallelism[reinforcement_learner_id])
             .withName("reinforcement learner")
@@ -1010,10 +1010,10 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .build();
 
     SinkFunctor sink_functor {parameters.sampling_rate};
-    auto        sink = Sink_Builder {sink_functor}
-                    .withParallelism(parameters.parallelism[sink_id])
-                    .withName("sink")
-                    .build();
+    const auto  sink = Sink_Builder {sink_functor}
+                          .withParallelism(parameters.parallelism[sink_id])
+                          .withName("sink")
+                          .build();
 
     auto &ctr_generator_pipe = graph.add_source(ctr_generator_node);
     auto &reward_source_pipe = graph.add_source(reward_source_node);

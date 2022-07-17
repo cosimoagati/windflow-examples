@@ -979,14 +979,15 @@ public:
 static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
     SourceFunctor source_functor {parameters.duration, parameters.tuple_rate};
-    auto          source = Source_Builder {source_functor}
-                      .withParallelism(parameters.parallelism[source_id])
-                      .withName("source")
-                      .withOutputBatchSize(parameters.batch_size[source_id])
-                      .build();
+    const auto    source =
+        Source_Builder {source_functor}
+            .withParallelism(parameters.parallelism[source_id])
+            .withName("source")
+            .withOutputBatchSize(parameters.batch_size[source_id])
+            .build();
 
     TopicExtractorFunctor topic_extractor_functor;
-    auto                  topic_extractor_node =
+    const auto            topic_extractor_node =
         FlatMap_Builder {topic_extractor_functor}
             .withParallelism(parameters.parallelism[topic_extractor_id])
             .withName("topic extractor")
@@ -996,7 +997,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     RollingCounterTimerFunctor rolling_counter_timer_functor {
         parameters.duration, parameters.rolling_counter_frequency,
         parameters.parallelism[rolling_counter_id]};
-    auto rolling_counter_timer_node =
+    const auto rolling_counter_timer_node =
         Source_Builder {rolling_counter_timer_functor}
             .withParallelism(1)
             .withName("rolling counter timer")
@@ -1005,7 +1006,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     RollingCounterFunctor rolling_counter_functor {
         300, parameters.intermediate_ranker_frequency};
-    auto rolling_counter_node =
+    const auto rolling_counter_node =
         FlatMap_Builder {rolling_counter_functor}
             .withParallelism(parameters.parallelism[rolling_counter_id])
             .withName("rolling counter")
@@ -1016,7 +1017,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     IntermediateRankerTimerFunctor intermediate_ranker_timer_functor {
         parameters.duration, parameters.intermediate_ranker_frequency,
         parameters.parallelism[intermediate_ranker_id]};
-    auto intermediate_ranker_timer_node =
+    const auto intermediate_ranker_timer_node =
         Source_Builder {intermediate_ranker_timer_functor}
             .withParallelism(1)
             .withName("intermediate ranker timer")
@@ -1024,7 +1025,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .build();
 
     IntermediateRankerFunctor intermediate_ranker_functor;
-    auto                      intermediate_ranker_node =
+    const auto                intermediate_ranker_node =
         FlatMap_Builder {intermediate_ranker_functor}
             .withParallelism(parameters.parallelism[intermediate_ranker_id])
             .withName("intermediate ranker")
@@ -1036,14 +1037,15 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     TotalRankerTimerFunctor total_ranker_timer_functor {
         parameters.duration, parameters.total_ranker_frequency,
         parameters.parallelism[total_ranker_id]};
-    auto total_ranker_timer_node = Source_Builder {total_ranker_timer_functor}
-                                       .withParallelism(1)
-                                       .withName("total ranker timer")
-                                       .withOutputBatchSize(1)
-                                       .build();
+    const auto total_ranker_timer_node =
+        Source_Builder {total_ranker_timer_functor}
+            .withParallelism(1)
+            .withName("total ranker timer")
+            .withOutputBatchSize(1)
+            .build();
 
     TotalRankerFunctor total_ranker_functor;
-    auto               total_ranker_node =
+    const auto         total_ranker_node =
         FlatMap_Builder {total_ranker_functor}
             .withParallelism(parameters.parallelism[total_ranker_id])
             .withName("total ranker")
@@ -1051,10 +1053,10 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .build();
 
     SinkFunctor sink_functor {parameters.sampling_rate};
-    auto        sink = Sink_Builder {sink_functor}
-                    .withParallelism(parameters.parallelism[sink_id])
-                    .withName("sink")
-                    .build();
+    const auto  sink = Sink_Builder {sink_functor}
+                          .withParallelism(parameters.parallelism[sink_id])
+                          .withName("sink")
+                          .build();
 
     if (parameters.use_chaining) {
         auto &topic_extractor_pipe =

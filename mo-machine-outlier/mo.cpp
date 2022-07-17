@@ -1100,7 +1100,7 @@ static MultiPipe &get_source_pipe(const Parameters &parameters,
             parameters.duration, parameters.tuple_rate,
             parameters.execution_mode, parameters.input_file};
 
-        auto source =
+        const auto source =
             Source_Builder {source_functor}
                 .withParallelism(parameters.parallelism[source_id])
                 .withName("source")
@@ -1112,7 +1112,7 @@ static MultiPipe &get_source_pipe(const Parameters &parameters,
             parameters.duration, parameters.tuple_rate,
             parameters.execution_mode, parameters.input_file};
 
-        auto source =
+        const auto source =
             Source_Builder {source_functor}
                 .withParallelism(parameters.parallelism[source_id])
                 .withName("source")
@@ -1131,7 +1131,7 @@ static MultiPipe &get_anomaly_scorer_pipe(const Parameters &parameters,
 
     if (name == "data-stream" || name == "data_stream") {
         DataStreamAnomalyScoreFunctor<MachineMetadata> anomaly_scorer_functor;
-        auto                                           anomaly_scorer_node =
+        const auto                                     anomaly_scorer_node =
             FlatMap_Builder {anomaly_scorer_functor}
                 .withParallelism(parameters.parallelism[anomaly_scorer_id])
                 .withName("anomaly scorer")
@@ -1145,7 +1145,7 @@ static MultiPipe &get_anomaly_scorer_pipe(const Parameters &parameters,
                    : observation_scorer_pipe.add(anomaly_scorer_node);
     } else if (name == "sliding-window" || name == "sliding_window") {
         SlidingWindowStreamAnomalyScoreFunctor anomaly_scorer_functor;
-        auto                                   anomaly_scorer_node =
+        const auto                             anomaly_scorer_node =
             Map_Builder {anomaly_scorer_functor}
                 .withParallelism(parameters.parallelism[anomaly_scorer_id])
                 .withName("anomaly scorer")
@@ -1170,7 +1170,7 @@ static MultiPipe &get_alert_triggerer_pipe(const Parameters &parameters,
 
     if (name == "top-k" || name == "top_k") {
         TopKAlertTriggererFunctor alert_triggerer_functor;
-        auto                      alert_triggerer_node =
+        const auto                alert_triggerer_node =
             FlatMap_Builder {alert_triggerer_functor}
                 .withParallelism(parameters.parallelism[alert_triggerer_id])
                 .withName("alert triggerer")
@@ -1181,7 +1181,7 @@ static MultiPipe &get_alert_triggerer_pipe(const Parameters &parameters,
                    : anomaly_scorer_pipe.add(alert_triggerer_node);
     } else if (name == "default") {
         AlertTriggererFunctor alert_triggerer_functor;
-        auto                  alert_triggerer_node =
+        const auto            alert_triggerer_node =
             FlatMap_Builder {alert_triggerer_functor}
                 .withParallelism(parameters.parallelism[alert_triggerer_id])
                 .withName("alert triggerer")
@@ -1203,7 +1203,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     auto &source_pipe = get_source_pipe(parameters, graph);
 
     ObservationScorerFunctor<MachineMetadataScorer> observer_functor;
-    auto                                            observer_scorer_node =
+    const auto                                      observer_scorer_node =
         FlatMap_Builder {observer_functor}
             .withParallelism(parameters.parallelism[observer_id])
             .withName("observation scorer")
@@ -1221,10 +1221,10 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
         get_alert_triggerer_pipe(parameters, anomaly_scorer_pipe);
 
     SinkFunctor sink_functor {parameters.sampling_rate};
-    auto        sink = Sink_Builder {sink_functor}
-                    .withParallelism(parameters.parallelism[sink_id])
-                    .withName("sink")
-                    .build();
+    const auto  sink = Sink_Builder {sink_functor}
+                          .withParallelism(parameters.parallelism[sink_id])
+                          .withName("sink")
+                          .build();
 
     if (parameters.use_chaining) {
         alert_triggerer_pipe.chain_sink(sink);
