@@ -586,10 +586,45 @@ public:
     }
 };
 
-class IntervalEstimator {
-    vector<string> actions;
-    unsigned       batch_size;
+class ActionBatch {
+    vector<string> available_actions;
     vector<string> selected_actions;
+
+public:
+    ActionBatch(const vector<string> &actions,
+                size_t                selected_actions_batch_size = 1)
+        : available_actions {actions} {
+        if (selected_actions_batch_size == 0) {
+            selected_actions = vector<string>(1);
+        } else {
+            selected_actions = vector<string>(selected_actions_batch_size);
+        }
+    }
+
+    ActionBatch &with_batch_size(size_t batch_size) {
+        selected_actions.resize(batch_size);
+        return *this;
+    }
+
+    const string &operator[](size_t i) const {
+        return available_actions[i];
+    }
+
+    size_t size() const {
+        return available_actions.size();
+    }
+
+    void push_new_selected_action(const string &action) {
+        selected_actions[0] = action;
+    }
+
+    const vector<string> &get_selected_actions() const {
+        return selected_actions;
+    }
+};
+
+class IntervalEstimator {
+    ActionBatch action_batch;
 
     unsigned confidence_limit; // is this needed?
     unsigned min_confidence_limit;
