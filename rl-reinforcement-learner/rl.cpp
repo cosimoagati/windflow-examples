@@ -71,15 +71,16 @@ enum NodeID : unsigned {
 };
 
 struct Parameters {
-    const char *     metric_output_directory   = ".";
-    Execution_Mode_t execution_mode            = Execution_Mode_t::DEFAULT;
-    Time_Policy_t    time_policy               = Time_Policy_t::INGRESS_TIME;
-    unsigned         parallelism[num_nodes]    = {1, 1, 1, 1};
-    unsigned         batch_size[num_nodes - 1] = {0, 0, 0};
-    unsigned         duration                  = 60;
-    unsigned         tuple_rate                = 0;
-    unsigned         sampling_rate             = 100;
-    bool             use_chaining              = false;
+    const char *     metric_output_directory    = ".";
+    const char *     reinforcement_learner_type = "interval-estimator";
+    Execution_Mode_t execution_mode             = Execution_Mode_t::DEFAULT;
+    Time_Policy_t    time_policy                = Time_Policy_t::INGRESS_TIME;
+    unsigned         parallelism[num_nodes]     = {1, 1, 1, 1};
+    unsigned         batch_size[num_nodes - 1]  = {0, 0, 0};
+    unsigned         duration                   = 60;
+    unsigned         tuple_rate                 = 0;
+    unsigned         sampling_rate              = 100;
+    bool             use_chaining               = false;
 };
 
 struct InputTuple {
@@ -106,6 +107,7 @@ static const struct option long_opts[] = {{"help", 0, 0, 'h'},
                                           {"outputdir", 1, 0, 'o'},
                                           {"execmode", 1, 0, 'e'},
                                           {"timepolicy", 1, 0, 't'},
+                                          {"reinforcementlearner", 1, 0, 'R'},
                                           {0, 0, 0, 0}};
 
 static const vector<string> default_available_actions {"page1", "page2",
@@ -164,8 +166,8 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     int option;
     int index;
 
-    while ((option = getopt_long(argc, argv, "r:s:p:b:c:d:o:e:t:h", long_opts,
-                                 &index))
+    while ((option = getopt_long(argc, argv, "r:s:p:b:c:d:o:e:t:R:h",
+                                 long_opts, &index))
            != -1) {
         switch (option) {
         case 'r':
@@ -214,6 +216,9 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
             break;
         case 't':
             parameters.time_policy = get_time_policy_from_string(optarg);
+            break;
+        case 'R':
+            parameters.reinforcement_learner_type = optarg;
             break;
         case 'h':
             cout << "Parameters: --rate <value> --sampling "
@@ -313,7 +318,9 @@ static void print_initial_parameters(const Parameters &parameters) {
     }
 
     cout << "Chaining:\t" << (parameters.use_chaining ? "enabled" : "disabled")
-         << '\n';
+         << '\n'
+         << "Reinforcement Learner type: "
+         << parameters.reinforcement_learner_type << '\n';
 }
 
 /*
@@ -1122,12 +1129,88 @@ public:
     }
 };
 
+static MultiPipe &get_reinforcement_learner_pipe(const Parameters &parameters,
+                                                 MultiPipe &       pipe) {
+    const string name         = parameters.reinforcement_learner_type;
+    const bool   use_chaining = parameters.use_chaining;
+
+    if (name == "interval-estimator") {
+        ReinforcementLearnerFunctor<IntervalEstimator>
+                   reinforcement_learner_functor {default_available_actions};
+        const auto reinforcement_learner_node =
+            FlatMap_Builder {reinforcement_learner_functor}
+                .withParallelism(
+                    parameters.parallelism[reinforcement_learner_id])
+                .withName("reinforcement learner")
+                .withKeyBy([](const InputTuple &tuple) {
+                    return tuple.reinforcement_learner_target_replica;
+                })
+                .withOutputBatchSize(
+                    parameters.batch_size[reinforcement_learner_id])
+                .build();
+        return use_chaining ? pipe.chain(reinforcement_learner_node)
+                            : pipe.add(reinforcement_learner_node);
+    } else if (name == "sampson") {
+        ReinforcementLearnerFunctor<SampsonSampler>
+                   reinforcement_learner_functor {default_available_actions};
+        const auto reinforcement_learner_node =
+            FlatMap_Builder {reinforcement_learner_functor}
+                .withParallelism(
+                    parameters.parallelism[reinforcement_learner_id])
+                .withName("reinforcement learner")
+                .withKeyBy([](const InputTuple &tuple) {
+                    return tuple.reinforcement_learner_target_replica;
+                })
+                .withOutputBatchSize(
+                    parameters.batch_size[reinforcement_learner_id])
+                .build();
+        return use_chaining ? pipe.chain(reinforcement_learner_node)
+                            : pipe.add(reinforcement_learner_node);
+    } else if (name == "optimistic-sampson") {
+        ReinforcementLearnerFunctor<OptimisticSampsonSampler>
+                   reinforcement_learner_functor {default_available_actions};
+        const auto reinforcement_learner_node =
+            FlatMap_Builder {reinforcement_learner_functor}
+                .withParallelism(
+                    parameters.parallelism[reinforcement_learner_id])
+                .withName("reinforcement learner")
+                .withKeyBy([](const InputTuple &tuple) {
+                    return tuple.reinforcement_learner_target_replica;
+                })
+                .withOutputBatchSize(
+                    parameters.batch_size[reinforcement_learner_id])
+                .build();
+        return use_chaining ? pipe.chain(reinforcement_learner_node)
+                            : pipe.add(reinforcement_learner_node);
+    } else if (name == "random" || name == "random-greedy") {
+        ReinforcementLearnerFunctor<RandomGreedyLearner>
+                   reinforcement_learner_functor {default_available_actions};
+        const auto reinforcement_learner_node =
+            FlatMap_Builder {reinforcement_learner_functor}
+                .withParallelism(
+                    parameters.parallelism[reinforcement_learner_id])
+                .withName("reinforcement learner")
+                .withKeyBy([](const InputTuple &tuple) {
+                    return tuple.reinforcement_learner_target_replica;
+                })
+                .withOutputBatchSize(
+                    parameters.batch_size[reinforcement_learner_id])
+                .build();
+        return use_chaining ? pipe.chain(reinforcement_learner_node)
+                            : pipe.add(reinforcement_learner_node);
+    } else {
+        cerr << "Error while building graph: unknown Reinforcement Learner "
+                "type: "
+             << name << '\n';
+        exit(EXIT_FAILURE);
+    }
+}
+
 static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
     CTRGeneratorFunctor ctr_generator_functor {parameters.duration,
                                                parameters.tuple_rate};
-
-    const auto ctr_generator_node =
+    const auto          ctr_generator_node =
         Source_Builder {ctr_generator_functor}
             .withParallelism(parameters.parallelism[ctr_generator_id])
             .withName("ctr generator")
@@ -1144,19 +1227,6 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
             .withOutputBatchSize(parameters.batch_size[reward_source_id])
             .build();
 
-    ReinforcementLearnerFunctor<IntervalEstimator>
-               reinforcement_learner_functor {default_available_actions};
-    const auto reinforcement_learner_node =
-        FlatMap_Builder {reinforcement_learner_functor}
-            .withParallelism(parameters.parallelism[reinforcement_learner_id])
-            .withName("reinforcement learner")
-            .withKeyBy([](const InputTuple &tuple) {
-                return tuple.reinforcement_learner_target_replica;
-            })
-            .withOutputBatchSize(
-                parameters.batch_size[reinforcement_learner_id])
-            .build();
-
     SinkFunctor sink_functor {parameters.sampling_rate};
     const auto  sink = Sink_Builder {sink_functor}
                           .withParallelism(parameters.parallelism[sink_id])
@@ -1165,15 +1235,14 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
 
     auto &ctr_generator_pipe = graph.add_source(ctr_generator_node);
     auto &reward_source_pipe = graph.add_source(reward_source_node);
+    auto &merged_source_pipe = ctr_generator_pipe.merge(reward_source_pipe);
     auto &reinforcement_learner_pipe =
-        ctr_generator_pipe.merge(reward_source_pipe);
+        get_reinforcement_learner_pipe(parameters, merged_source_pipe);
 
     if (parameters.use_chaining) {
-        reinforcement_learner_pipe.chain(reinforcement_learner_node)
-            .chain_sink(sink);
+        reinforcement_learner_pipe.chain_sink(sink);
     } else {
-        reinforcement_learner_pipe.add(reinforcement_learner_node)
-            .add_sink(sink);
+        reinforcement_learner_pipe.add_sink(sink);
     }
     return graph;
 }
