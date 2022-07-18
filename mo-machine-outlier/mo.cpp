@@ -461,7 +461,10 @@ public:
                 clog << "[SOURCE " << context.getReplicaIndex()
                      << "] Sending out tuple with the following "
                         "observation: "
-                     << current_observation << '\n';
+                     << current_observation << '\n'
+                     << "[SOURCE " << context.getReplicaIndex()
+                     << "] Shipper address: " << &shipper
+                     << " Runtime Context address: " << &context << '\n';
             }
 #endif
             index = (index + 1) % observations.size();
