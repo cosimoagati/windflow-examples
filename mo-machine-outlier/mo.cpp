@@ -994,16 +994,16 @@ class AlertTriggererFunctor {
 
     unsigned long              previous_observation_timestamp = 0;
     vector<AnomalyResultTuple> stream_list;
-    double min_data_instance_score = numeric_limits<double>::max();
-    double max_data_instance_score = 0.0;
+    vector<AnomalyResultTuple> tuple_cache;
+    double           min_data_instance_score = numeric_limits<double>::max();
+    double           max_data_instance_score = 0.0;
+    Execution_Mode_t execution_mode;
 
-public:
-    void operator()(const AnomalyResultTuple &          input,
-                    Shipper<AlertTriggererResultTuple> &shipper,
-                    RuntimeContext &                    context) {
+    void process(const AnomalyResultTuple &          input,
+                 Shipper<AlertTriggererResultTuple> &shipper,
+                 RuntimeContext &                    context) {
         DO_NOT_WARN_IF_UNUSED(context);
         assert(input.ordering_timestamp >= previous_observation_timestamp);
-
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
@@ -1011,7 +1011,7 @@ public:
                  << "] Received input with id: " << input.id
                  << ", anomaly score: " << input.anomaly_score
                  << ", individual score: " << input.individual_score
-                 << ", observation timestamp: " << input.ordering_timestamp
+                 << ", ordering timestamp: " << input.ordering_timestamp
                  << ", observation: " << input.observation << '\n';
         }
 #endif
@@ -1089,6 +1089,51 @@ public:
             min_data_instance_score = input.individual_score;
         }
         stream_list.push_back(input);
+    }
+
+public:
+    AlertTriggererFunctor(Execution_Mode_t e) : execution_mode {e} {}
+
+    void operator()(const AnomalyResultTuple &          tuple,
+                    Shipper<AlertTriggererResultTuple> &shipper,
+                    RuntimeContext &                    context) {
+        const auto watermark = context.getLastWatermark();
+#ifndef NDEBUG
+        {
+            lock_guard lock {print_mutex};
+            clog << "[ANOMALY SCORER " << context.getReplicaIndex()
+                 << "] Received tuple with ordering timestamp: "
+                 << tuple.ordering_timestamp
+                 << ", WindFlow timestamp: " << context.getCurrentTimestamp()
+                 << ", current amount of tuples cached: " << tuple_cache.size()
+                 << ", current watermark: " << watermark << '\n';
+        }
+#endif
+        switch (execution_mode) {
+        case Execution_Mode_t::DETERMINISTIC:
+            process(tuple, shipper, context);
+            break;
+        case Execution_Mode_t::DEFAULT: {
+            tuple_cache.push_back(tuple);
+            sort(tuple_cache.begin(), tuple_cache.end(),
+                 [](const AnomalyResultTuple &t, const AnomalyResultTuple &s) {
+                     return t.ordering_timestamp < s.ordering_timestamp;
+                 });
+
+            size_t i = 0;
+            while (i < tuple_cache.size()
+                   && tuple_cache[i].ordering_timestamp <= watermark) {
+                process(tuple_cache[i], shipper, context);
+                ++i;
+            }
+            tuple_cache.erase(tuple_cache.begin(), tuple_cache.begin() + i);
+        } break;
+        default:
+            cerr << "[ALERT TRIGGERER] Error: unknown execution "
+                    "mode\n";
+            exit(EXIT_FAILURE);
+            break;
+        }
     }
 };
 
@@ -1327,8 +1372,9 @@ static MultiPipe &get_alert_triggerer_pipe(const Parameters &parameters,
         return use_chaining ? pipe.chain(alert_triggerer_node)
                             : pipe.add(alert_triggerer_node);
     } else if (name == "default") {
-        AlertTriggererFunctor alert_triggerer_functor;
-        const auto            alert_triggerer_node =
+        AlertTriggererFunctor alert_triggerer_functor {
+            parameters.execution_mode};
+        const auto alert_triggerer_node =
             FlatMap_Builder {alert_triggerer_functor}
                 .withParallelism(parameters.parallelism[alert_triggerer_id])
                 .withName("alert triggerer")
