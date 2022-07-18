@@ -133,7 +133,7 @@ struct SourceTuple {
 struct ObservationResultTuple {
     string          id;
     double          score;
-    unsigned long   observation_timestamp;
+    unsigned long   ordering_timestamp;
     unsigned long   parent_execution_timestamp;
     MachineMetadata observation;
 };
@@ -141,7 +141,7 @@ struct ObservationResultTuple {
 struct AnomalyResultTuple {
     string          id;
     double          anomaly_score;
-    unsigned long   observation_timestamp;
+    unsigned long   ordering_timestamp;
     unsigned long   parent_execution_timestamp;
     MachineMetadata observation;
     double          individual_score;
@@ -154,7 +154,7 @@ bool operator<(AnomalyResultTuple a, AnomalyResultTuple b) {
 struct AlertTriggererResultTuple {
     string          id;
     double          anomaly_score;
-    unsigned long   observation_timestamp;
+    unsigned long   ordering_timestamp;
     unsigned long   parent_execution_timestamp;
     bool            is_abnormal;
     MachineMetadata observation;
@@ -479,8 +479,12 @@ public:
 
             const auto  execution_timestamp = current_time();
             SourceTuple new_tuple = {current_observation, execution_timestamp};
+
             shipper.pushWithTimestamp(move(new_tuple),
                                       new_tuple.observation.timestamp);
+            if (execution_mode == Execution_Mode_t::DEFAULT) {
+                shipper.setNextWatermark(new_tuple.observation.timestamp);
+            }
             ++sent_tuples;
             if (tuple_rate_per_second > 0) {
                 const unsigned long delay =
@@ -586,32 +590,33 @@ public:
 template<typename Scorer>
 class ObservationScorerFunctor {
     Scorer                  scorer;
+    vector<SourceTuple>     tuple_cache;
     vector<MachineMetadata> observation_list;
     unsigned long           last_measurement_timestamp = 0;
     unsigned long           last_execution_timestamp   = 0;
+    Execution_Mode_t        execution_mode;
 
-public:
-    void operator()(const SourceTuple &              tuple,
-                    Shipper<ObservationResultTuple> &shipper,
-                    RuntimeContext &                 context) {
+    void process(const SourceTuple &              tuple,
+                 Shipper<ObservationResultTuple> &shipper,
+                 RuntimeContext &                 context) {
         DO_NOT_WARN_IF_UNUSED(context);
-        assert(tuple.observation.timestamp >= last_measurement_timestamp);
-
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
             clog << "[OBSERVATION SCORER " << context.getReplicaIndex()
-                 << "] Received tuple with observation timestamp: "
+                 << "] Processing tuple with observation timestamp: "
                  << tuple.observation.timestamp << '\n';
         }
 #endif
+        assert(tuple.observation.timestamp >= last_measurement_timestamp);
         if (tuple.observation.timestamp > last_measurement_timestamp) {
             if (!observation_list.empty()) {
                 const auto score_package_list =
                     scorer.get_scores(observation_list);
                 for (const auto &package : score_package_list) {
                     ObservationResultTuple result {
-                        package.id, package.score, last_measurement_timestamp,
+                        package.id, package.score,
+                        context.getCurrentTimestamp(),
                         last_execution_timestamp, package.data};
 #ifndef NDEBUG
                     {
@@ -620,10 +625,11 @@ public:
                              << context.getReplicaIndex()
                              << "] Sending tuple with id: " << result.id
                              << ", score: " << result.score
-                             << ", observation timestamp: "
-                             << result.observation_timestamp
+                             << ", ordering timestamp: "
+                             << result.ordering_timestamp
                              << ", observation: " << result.observation
-                             << '\n';
+                             << ", current WindFlow timestamp: "
+                             << context.getCurrentTimestamp() << '\n';
                     }
 #endif
                     shipper.push(move(result));
@@ -638,36 +644,82 @@ public:
         }
         observation_list.push_back(tuple.observation);
     }
+
+public:
+    ObservationScorerFunctor(Execution_Mode_t e) : execution_mode {e} {}
+
+    void operator()(const SourceTuple &              tuple,
+                    Shipper<ObservationResultTuple> &shipper,
+                    RuntimeContext &                 context) {
+        const auto watermark = context.getLastWatermark();
+#ifndef NDEBUG
+        {
+            lock_guard lock {print_mutex};
+            clog << "[OBSERVATION SCORER " << context.getReplicaIndex()
+                 << "] Received tuple with observation timestamp: "
+                 << tuple.observation.timestamp
+                 << ", current amount of tuples cached: " << tuple_cache.size()
+                 << ", current watermark: " << watermark << '\n';
+        }
+#endif
+        switch (execution_mode) {
+        case Execution_Mode_t::DETERMINISTIC:
+            process(tuple, shipper, context);
+            break;
+        case Execution_Mode_t::DEFAULT: {
+            tuple_cache.push_back(tuple);
+            sort(tuple_cache.begin(), tuple_cache.end(),
+                 [](const SourceTuple &t, const SourceTuple &s) {
+                     return t.observation.timestamp < s.observation.timestamp;
+                 });
+
+            size_t i = 0;
+            while (i < tuple_cache.size()
+                   && tuple_cache[i].observation.timestamp <= watermark) {
+                process(tuple_cache[i], shipper, context);
+                ++i;
+            }
+            tuple_cache.erase(tuple_cache.begin(), tuple_cache.begin() + i);
+        } break;
+        default:
+            cerr << "[OBSERVATION SCORER] Error: unknown execution mode\n";
+            exit(EXIT_FAILURE);
+            break;
+        }
+    }
 };
 
 template<typename T>
 class DataStreamAnomalyScoreFunctor {
     unordered_map<string, StreamProfile<T>> stream_profile_map;
+    vector<ObservationResultTuple>          tuple_cache;
     double                                  lambda    = 0.017;
     double                                  factor    = exp(-lambda);
     double                                  threshold = 1 / (1 - factor) * 0.5;
     bool                                    shrink_next_round = false;
     unsigned long                           previous_observation_timestamp = 0;
     unsigned long                           parent_execution_timestamp     = 0;
+    Execution_Mode_t                        execution_mode;
 
-public:
-    void operator()(const ObservationResultTuple &tuple,
-                    Shipper<AnomalyResultTuple> & shipper,
-                    RuntimeContext &              context) {
+    void process(const ObservationResultTuple &tuple,
+                 Shipper<AnomalyResultTuple> & shipper,
+                 const RuntimeContext &        context) {
         const unsigned long current_observation_timestamp =
-            tuple.observation_timestamp;
+            tuple.ordering_timestamp;
 
         DO_NOT_WARN_IF_UNUSED(context);
-        assert(current_observation_timestamp
-               >= previous_observation_timestamp);
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
             clog << "[DATA STREAM ANOMALY SCORER " << context.getReplicaIndex()
-                 << "] Received tuple with observation ID: " << tuple.id
-                 << '\n';
+                 << "] Processing tuple with observation ID: " << tuple.id
+                 << " containing observation: " << tuple.observation
+                 << ", previous observation timestamp is: "
+                 << previous_observation_timestamp << '\n';
         }
 #endif
+        assert(current_observation_timestamp
+               >= previous_observation_timestamp);
         if (current_observation_timestamp > previous_observation_timestamp) {
             for (auto &entry : stream_profile_map) {
                 auto &stream_profile = entry.second;
@@ -725,6 +777,52 @@ public:
             stream_profile_map.insert({tuple.id, profile});
         }
     }
+
+public:
+    DataStreamAnomalyScoreFunctor(Execution_Mode_t e) : execution_mode {e} {}
+
+    void operator()(const ObservationResultTuple &tuple,
+                    Shipper<AnomalyResultTuple> & shipper,
+                    RuntimeContext &              context) {
+        const auto watermark = context.getLastWatermark();
+#ifndef NDEBUG
+        {
+            lock_guard lock {print_mutex};
+            clog << "[DATA STREAM ANOMALY SCORER " << context.getReplicaIndex()
+                 << "] Received tuple with ordering timestamp: "
+                 << tuple.ordering_timestamp
+                 << ", WindoFlow timestamp: " << context.getCurrentTimestamp()
+                 << ", current amount of tuples cached: " << tuple_cache.size()
+                 << ", current watermark: " << watermark << '\n';
+        }
+#endif
+        switch (execution_mode) {
+        case Execution_Mode_t::DETERMINISTIC:
+            process(tuple, shipper, context);
+            break;
+        case Execution_Mode_t::DEFAULT: {
+            tuple_cache.push_back(tuple);
+            sort(tuple_cache.begin(), tuple_cache.end(),
+                 [](const ObservationResultTuple &t,
+                    const ObservationResultTuple &s) {
+                     return t.ordering_timestamp < s.ordering_timestamp;
+                 });
+
+            size_t i = 0;
+            while (i < tuple_cache.size()
+                   && tuple_cache[i].ordering_timestamp <= watermark) {
+                process(tuple_cache[i], shipper, context);
+                ++i;
+            }
+            tuple_cache.erase(tuple_cache.begin(), tuple_cache.begin() + i);
+        } break;
+        default:
+            cerr << "[DATA STREAM ANOMALY SCORER] Error: unknown execution "
+                    "mode\n";
+            exit(EXIT_FAILURE);
+            break;
+        }
+    }
 };
 
 class SlidingWindowStreamAnomalyScoreFunctor {
@@ -746,6 +844,7 @@ public:
             clog << "[SLIDING WINDOW STREAM ANOMALY SCORER "
                  << context.getReplicaIndex()
                  << "] Received tuple with observation ID: " << tuple.id
+                 << " containing observation: " << tuple.observation << '\n'
                  << '\n';
         }
 #endif
@@ -772,7 +871,7 @@ public:
 #endif
         return {tuple.id,
                 score_sum,
-                tuple.observation_timestamp,
+                tuple.ordering_timestamp,
                 tuple.parent_execution_timestamp,
                 tuple.observation,
                 tuple.score};
@@ -903,7 +1002,7 @@ public:
                     Shipper<AlertTriggererResultTuple> &shipper,
                     RuntimeContext &                    context) {
         DO_NOT_WARN_IF_UNUSED(context);
-        assert(input.observation_timestamp >= previous_observation_timestamp);
+        assert(input.ordering_timestamp >= previous_observation_timestamp);
 
 #ifndef NDEBUG
         {
@@ -912,11 +1011,11 @@ public:
                  << "] Received input with id: " << input.id
                  << ", anomaly score: " << input.anomaly_score
                  << ", individual score: " << input.individual_score
-                 << ", observation timestamp: " << input.observation_timestamp
+                 << ", observation timestamp: " << input.ordering_timestamp
                  << ", observation: " << input.observation << '\n';
         }
 #endif
-        if (input.observation_timestamp > previous_observation_timestamp) {
+        if (input.ordering_timestamp > previous_observation_timestamp) {
             if (!stream_list.empty()) {
                 const auto abnormal_streams =
                     identify_abnormal_streams(stream_list);
@@ -955,7 +1054,7 @@ public:
                                  << stream_profile.id
                                  << ", stream score: " << stream_score
                                  << ", stream profile timestamp: "
-                                 << stream_profile.observation_timestamp
+                                 << stream_profile.ordering_timestamp
                                  << ", is_abnormal: "
                                  << (is_abnormal ? "true" : "false")
                                  << ", with observation (" << input.observation
@@ -963,7 +1062,7 @@ public:
                         }
 #endif
                         shipper.push({stream_profile.id, stream_score,
-                                      stream_profile.observation_timestamp,
+                                      stream_profile.ordering_timestamp,
                                       input.parent_execution_timestamp,
                                       is_abnormal,
                                       stream_profile.observation});
@@ -973,7 +1072,7 @@ public:
                 min_data_instance_score = numeric_limits<double>::max();
                 max_data_instance_score = 0.0;
             }
-            previous_observation_timestamp = input.observation_timestamp;
+            previous_observation_timestamp = input.ordering_timestamp;
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
@@ -995,17 +1094,16 @@ public:
 
 class TopKAlertTriggererFunctor {
     vector<AnomalyResultTuple> stream_list;
+    vector<AnomalyResultTuple> tuple_cache;
     size_t                     k;
     unsigned long              previous_observation_timestamp = 0;
+    Execution_Mode_t           execution_mode;
 
-public:
-    TopKAlertTriggererFunctor(size_t k = 3) : k {k} {}
-
-    void operator()(const AnomalyResultTuple &          input,
-                    Shipper<AlertTriggererResultTuple> &shipper,
-                    RuntimeContext &                    context) {
+    void process(const AnomalyResultTuple &          input,
+                 Shipper<AlertTriggererResultTuple> &shipper,
+                 RuntimeContext &                    context) {
         const unsigned long current_observation_timestamp =
-            input.observation_timestamp;
+            input.ordering_timestamp;
         DO_NOT_WARN_IF_UNUSED(context);
         assert(current_observation_timestamp
                >= previous_observation_timestamp);
@@ -1021,7 +1119,7 @@ public:
                 AlertTriggererResultTuple result {
                     tuple.id,
                     tuple.anomaly_score,
-                    tuple.observation_timestamp,
+                    tuple.ordering_timestamp,
                     tuple.parent_execution_timestamp,
                     is_abnormal,
                     tuple.observation};
@@ -1031,6 +1129,52 @@ public:
             stream_list.clear();
         }
         stream_list.push_back(input);
+    }
+
+public:
+    TopKAlertTriggererFunctor(Execution_Mode_t e, size_t k = 3)
+        : k {k}, execution_mode {e} {}
+
+    void operator()(const AnomalyResultTuple &          tuple,
+                    Shipper<AlertTriggererResultTuple> &shipper,
+                    RuntimeContext &                    context) {
+        const auto watermark = context.getLastWatermark();
+#ifndef NDEBUG
+        {
+            lock_guard lock {print_mutex};
+            clog << "[TOP-K ANOMALY SCORER " << context.getReplicaIndex()
+                 << "] Received tuple with ordering timestamp: "
+                 << tuple.ordering_timestamp
+                 << ", WindFlow timestamp: " << context.getCurrentTimestamp()
+                 << ", current amount of tuples cached: " << tuple_cache.size()
+                 << ", current watermark: " << watermark << '\n';
+        }
+#endif
+        switch (execution_mode) {
+        case Execution_Mode_t::DETERMINISTIC:
+            process(tuple, shipper, context);
+            break;
+        case Execution_Mode_t::DEFAULT: {
+            tuple_cache.push_back(tuple);
+            sort(tuple_cache.begin(), tuple_cache.end(),
+                 [](const AnomalyResultTuple &t, const AnomalyResultTuple &s) {
+                     return t.ordering_timestamp < s.ordering_timestamp;
+                 });
+
+            size_t i = 0;
+            while (i < tuple_cache.size()
+                   && tuple_cache[i].ordering_timestamp <= watermark) {
+                process(tuple_cache[i], shipper, context);
+                ++i;
+            }
+            tuple_cache.erase(tuple_cache.begin(), tuple_cache.begin() + i);
+        } break;
+        default:
+            cerr << "[TOP-K ALERT TRIGGERER] Error: unknown execution "
+                    "mode\n";
+            exit(EXIT_FAILURE);
+            break;
+        }
     }
 };
 
@@ -1080,7 +1224,7 @@ public:
                      << (input->is_abnormal ? "true" : "false")
                      << ", containing observation: " << input->observation
                      << " arrival time: " << arrival_time
-                     << " observation ts: " << input->observation_timestamp
+                     << " ordering ts: " << input->ordering_timestamp
                      << " parent execution ts: "
                      << input->parent_execution_timestamp
                      << " latency: " << latency << ' ' << timeunit_string
@@ -1134,8 +1278,9 @@ static MultiPipe &get_anomaly_scorer_pipe(const Parameters &parameters,
     const bool   use_chaining = parameters.use_chaining;
 
     if (name == "data-stream" || name == "data_stream") {
-        DataStreamAnomalyScoreFunctor<MachineMetadata> anomaly_scorer_functor;
-        const auto                                     anomaly_scorer_node =
+        DataStreamAnomalyScoreFunctor<MachineMetadata> anomaly_scorer_functor {
+            parameters.execution_mode};
+        const auto anomaly_scorer_node =
             FlatMap_Builder {anomaly_scorer_functor}
                 .withParallelism(parameters.parallelism[anomaly_scorer_id])
                 .withName("anomaly scorer")
@@ -1172,8 +1317,9 @@ static MultiPipe &get_alert_triggerer_pipe(const Parameters &parameters,
     const bool   use_chaining = parameters.use_chaining;
 
     if (name == "top-k" || name == "top_k") {
-        TopKAlertTriggererFunctor alert_triggerer_functor;
-        const auto                alert_triggerer_node =
+        TopKAlertTriggererFunctor alert_triggerer_functor {
+            parameters.execution_mode};
+        const auto alert_triggerer_node =
             FlatMap_Builder {alert_triggerer_functor}
                 .withParallelism(parameters.parallelism[alert_triggerer_id])
                 .withName("alert triggerer")
@@ -1203,8 +1349,9 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
     auto &source_pipe = get_source_pipe(parameters, graph);
 
-    ObservationScorerFunctor<MachineMetadataScorer> observer_functor;
-    const auto                                      observer_scorer_node =
+    ObservationScorerFunctor<MachineMetadataScorer> observer_functor {
+        parameters.execution_mode};
+    const auto observer_scorer_node =
         FlatMap_Builder {observer_functor}
             .withParallelism(parameters.parallelism[observer_id])
             .withName("observation scorer")
