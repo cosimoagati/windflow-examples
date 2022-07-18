@@ -1110,9 +1110,8 @@ class TopKAlertTriggererFunctor {
 
         if (current_observation_timestamp > previous_observation_timestamp) {
             sort(stream_list.begin(), stream_list.end());
-            const size_t actual_k = stream_list.size() < k
-                                        ? stream_list.size()
-                                        : k; // XXX: is this needed?
+            const size_t actual_k =
+                stream_list.size() < k ? stream_list.size() : k;
             for (size_t i = 0; i < stream_list.size(); ++i) {
                 auto &     tuple       = stream_list[i];
                 const bool is_abnormal = i >= stream_list.size() - actual_k;
