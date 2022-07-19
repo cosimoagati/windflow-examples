@@ -5,15 +5,20 @@ datecmd="date +%Y-%m-%d-%H-%M"
 outputdir="testresults-$($datecmd)"
 nproc=$(nproc)
 
+execmodes="deterministic default"
+# anomaly_scorer_variants="data-stream sliding-window"
+anomaly_scorer_variants="data-stream"
+# alert_triggerer_variants="top-k default" alert_triggerer_variants="top-k"
+
 cd $(dirname "$0")
 echo "Test started on $(date)"
 mkdir -p "$outputdir"
 
 set -x
 for rate in 0; do
-    for execmode in deterministic default; do
-        for anomaly_scorer in data-stream sliding-window; do
-            for alert_triggerer in top-k default; do
+    for execmode in $execmodes; do
+        for anomaly_scorer in $anomaly_scorer_variants; do
+            for alert_triggerer in $alert_triggerer_variants; do
                 current_outputdir="$outputdir/$anomaly_scorer-$alert_triggerer"
                 mkdir -p "$current_outputdir"
                 
