@@ -127,6 +127,7 @@ struct StreamProfile {
 
 struct SourceTuple {
     MachineMetadata observation;
+    unsigned long   ordering_timestamp;
     unsigned long   execution_timestamp;
 };
 
@@ -477,8 +478,11 @@ public:
                     measurement_timestamp_increase_step;
             }
 
-            const auto  execution_timestamp = current_time();
-            SourceTuple new_tuple = {current_observation, execution_timestamp};
+            const auto execution_timestamp = current_time();
+
+            SourceTuple new_tuple = {current_observation,
+                                     current_observation.timestamp,
+                                     execution_timestamp};
 
             shipper.pushWithTimestamp(move(new_tuple),
                                       new_tuple.observation.timestamp);
@@ -667,15 +671,20 @@ public:
             process(tuple, shipper, context);
             break;
         case Execution_Mode_t::DEFAULT: {
-            tuple_cache.push_back(tuple);
-            sort(tuple_cache.begin(), tuple_cache.end(),
-                 [](const SourceTuple &t, const SourceTuple &s) {
-                     return t.observation.timestamp < s.observation.timestamp;
-                 });
+            if (tuple.ordering_timestamp == watermark) {
+                process(tuple, shipper, context);
+            } else {
+                tuple_cache.push_back(tuple);
+                sort(tuple_cache.begin(), tuple_cache.end(),
+                     [](const SourceTuple &t, const SourceTuple &s) {
+                         return t.ordering_timestamp < s.ordering_timestamp;
+                     });
+            }
 
             size_t i = 0;
             while (i < tuple_cache.size()
-                   && tuple_cache[i].observation.timestamp <= watermark) {
+                   && tuple_cache[i].ordering_timestamp <= watermark) {
+                assert(tuple_cache[i].ordering_timestamp == watermark);
                 process(tuple_cache[i], shipper, context);
                 ++i;
             }
@@ -703,9 +712,9 @@ class DataStreamAnomalyScoreFunctor {
 
     void process(const ObservationResultTuple &tuple,
                  Shipper<AnomalyResultTuple> & shipper,
-                 const RuntimeContext &        context) {
+                 RuntimeContext &              context) {
         const unsigned long current_observation_timestamp =
-            tuple.ordering_timestamp;
+            tuple.observation.timestamp;
 
         DO_NOT_WARN_IF_UNUSED(context);
 #ifndef NDEBUG
@@ -730,7 +739,7 @@ class DataStreamAnomalyScoreFunctor {
                 AnomalyResultTuple result {
                     entry.first,
                     stream_profile.stream_anomaly_score,
-                    previous_observation_timestamp,
+                    context.getCurrentTimestamp(),
                     parent_execution_timestamp,
                     stream_profile.current_data_instance,
                     stream_profile.current_data_instance_score,
@@ -801,16 +810,21 @@ public:
             process(tuple, shipper, context);
             break;
         case Execution_Mode_t::DEFAULT: {
-            tuple_cache.push_back(tuple);
-            sort(tuple_cache.begin(), tuple_cache.end(),
-                 [](const ObservationResultTuple &t,
-                    const ObservationResultTuple &s) {
-                     return t.ordering_timestamp < s.ordering_timestamp;
-                 });
+            if (tuple.ordering_timestamp == watermark) {
+                process(tuple, shipper, context);
+            } else {
+                tuple_cache.push_back(tuple);
+                sort(tuple_cache.begin(), tuple_cache.end(),
+                     [](const ObservationResultTuple &t,
+                        const ObservationResultTuple &s) {
+                         return t.ordering_timestamp < s.ordering_timestamp;
+                     });
+            }
 
             size_t i = 0;
             while (i < tuple_cache.size()
                    && tuple_cache[i].ordering_timestamp <= watermark) {
+                assert(tuple_cache[i].ordering_timestamp == watermark);
                 process(tuple_cache[i], shipper, context);
                 ++i;
             }
@@ -999,23 +1013,25 @@ class AlertTriggererFunctor {
     double           max_data_instance_score = 0.0;
     Execution_Mode_t execution_mode;
 
-    void process(const AnomalyResultTuple &          input,
+    void process(const AnomalyResultTuple &          tuple,
                  Shipper<AlertTriggererResultTuple> &shipper,
                  RuntimeContext &                    context) {
         DO_NOT_WARN_IF_UNUSED(context);
-        assert(input.ordering_timestamp >= previous_observation_timestamp);
+        assert(tuple.observation.timestamp >= previous_observation_timestamp);
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
             clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
-                 << "] Received input with id: " << input.id
-                 << ", anomaly score: " << input.anomaly_score
-                 << ", individual score: " << input.individual_score
-                 << ", ordering timestamp: " << input.ordering_timestamp
-                 << ", observation: " << input.observation << '\n';
+                 << "] Processing tuple with id: " << tuple.id
+                 << ", anomaly score: " << tuple.anomaly_score
+                 << ", individual score: " << tuple.individual_score
+                 << ", ordering timestamp: " << tuple.ordering_timestamp
+                 << ", observation: " << tuple.observation
+                 << ", current previous observation timestamp: "
+                 << previous_observation_timestamp << '\n';
         }
 #endif
-        if (input.ordering_timestamp > previous_observation_timestamp) {
+        if (tuple.observation.timestamp > previous_observation_timestamp) {
             if (!stream_list.empty()) {
                 const auto abnormal_streams =
                     identify_abnormal_streams(stream_list);
@@ -1057,13 +1073,13 @@ class AlertTriggererFunctor {
                                  << stream_profile.ordering_timestamp
                                  << ", is_abnormal: "
                                  << (is_abnormal ? "true" : "false")
-                                 << ", with observation (" << input.observation
+                                 << ", with observation (" << tuple.observation
                                  << ")\n";
                         }
 #endif
                         shipper.push({stream_profile.id, stream_score,
-                                      stream_profile.ordering_timestamp,
-                                      input.parent_execution_timestamp,
+                                      context.getCurrentTimestamp(),
+                                      tuple.parent_execution_timestamp,
                                       is_abnormal,
                                       stream_profile.observation});
                     }
@@ -1072,7 +1088,7 @@ class AlertTriggererFunctor {
                 min_data_instance_score = numeric_limits<double>::max();
                 max_data_instance_score = 0.0;
             }
-            previous_observation_timestamp = input.ordering_timestamp;
+            previous_observation_timestamp = tuple.ordering_timestamp;
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
@@ -1082,13 +1098,13 @@ class AlertTriggererFunctor {
 #endif
         }
 
-        if (input.individual_score > max_data_instance_score) {
-            max_data_instance_score = input.individual_score;
+        if (tuple.individual_score > max_data_instance_score) {
+            max_data_instance_score = tuple.individual_score;
         }
-        if (input.individual_score < min_data_instance_score) {
-            min_data_instance_score = input.individual_score;
+        if (tuple.individual_score < min_data_instance_score) {
+            min_data_instance_score = tuple.individual_score;
         }
-        stream_list.push_back(input);
+        stream_list.push_back(tuple);
     }
 
 public:
@@ -1114,15 +1130,21 @@ public:
             process(tuple, shipper, context);
             break;
         case Execution_Mode_t::DEFAULT: {
-            tuple_cache.push_back(tuple);
-            sort(tuple_cache.begin(), tuple_cache.end(),
-                 [](const AnomalyResultTuple &t, const AnomalyResultTuple &s) {
-                     return t.ordering_timestamp < s.ordering_timestamp;
-                 });
+            if (tuple.ordering_timestamp == watermark) {
+                process(tuple, shipper, context);
+            } else {
+                tuple_cache.push_back(tuple);
+                sort(tuple_cache.begin(), tuple_cache.end(),
+                     [](const AnomalyResultTuple &t,
+                        const AnomalyResultTuple &s) {
+                         return t.ordering_timestamp < s.ordering_timestamp;
+                     });
+            }
 
             size_t i = 0;
             while (i < tuple_cache.size()
                    && tuple_cache[i].ordering_timestamp <= watermark) {
+                assert(tuple_cache[i].ordering_timestamp == watermark);
                 process(tuple_cache[i], shipper, context);
                 ++i;
             }
@@ -1144,12 +1166,11 @@ class TopKAlertTriggererFunctor {
     unsigned long              previous_observation_timestamp = 0;
     Execution_Mode_t           execution_mode;
 
-    void process(const AnomalyResultTuple &          input,
+    void process(const AnomalyResultTuple &          tuple,
                  Shipper<AlertTriggererResultTuple> &shipper,
                  RuntimeContext &                    context) {
         const unsigned long current_observation_timestamp =
-            input.ordering_timestamp;
-        DO_NOT_WARN_IF_UNUSED(context);
+            tuple.observation.timestamp;
         assert(current_observation_timestamp
                >= previous_observation_timestamp);
 
@@ -1163,7 +1184,7 @@ class TopKAlertTriggererFunctor {
                 AlertTriggererResultTuple result {
                     tuple.id,
                     tuple.anomaly_score,
-                    tuple.ordering_timestamp,
+                    context.getCurrentTimestamp(),
                     tuple.parent_execution_timestamp,
                     is_abnormal,
                     tuple.observation};
@@ -1172,7 +1193,7 @@ class TopKAlertTriggererFunctor {
             previous_observation_timestamp = current_observation_timestamp;
             stream_list.clear();
         }
-        stream_list.push_back(input);
+        stream_list.push_back(tuple);
     }
 
 public:
@@ -1199,15 +1220,21 @@ public:
             process(tuple, shipper, context);
             break;
         case Execution_Mode_t::DEFAULT: {
-            tuple_cache.push_back(tuple);
-            sort(tuple_cache.begin(), tuple_cache.end(),
-                 [](const AnomalyResultTuple &t, const AnomalyResultTuple &s) {
-                     return t.ordering_timestamp < s.ordering_timestamp;
-                 });
+            if (tuple.ordering_timestamp == watermark) {
+                process(tuple, shipper, context);
+            } else {
+                tuple_cache.push_back(tuple);
+                sort(tuple_cache.begin(), tuple_cache.end(),
+                     [](const AnomalyResultTuple &t,
+                        const AnomalyResultTuple &s) {
+                         return t.ordering_timestamp < s.ordering_timestamp;
+                     });
+            }
 
             size_t i = 0;
             while (i < tuple_cache.size()
                    && tuple_cache[i].ordering_timestamp <= watermark) {
+                assert(tuple_cache[i].ordering_timestamp == watermark);
                 process(tuple_cache[i], shipper, context);
                 ++i;
             }
