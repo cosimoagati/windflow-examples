@@ -1015,7 +1015,7 @@ class AlertTriggererFunctor {
                  Shipper<AlertTriggererResultTuple> &shipper,
                  RuntimeContext &                    context) {
         DO_NOT_WARN_IF_UNUSED(context);
-        assert(tuple.observation.timestamp >= previous_observation_timestamp);
+
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
@@ -1029,6 +1029,8 @@ class AlertTriggererFunctor {
                  << previous_observation_timestamp << '\n';
         }
 #endif
+        assert(tuple.observation.timestamp >= previous_observation_timestamp);
+
         if (tuple.observation.timestamp > previous_observation_timestamp) {
             if (!stream_list.empty()) {
                 const auto abnormal_streams =
@@ -1168,6 +1170,19 @@ class TopKAlertTriggererFunctor {
                  RuntimeContext &                    context) {
         const unsigned long current_observation_timestamp =
             tuple.observation.timestamp;
+#ifndef NDEBUG
+        {
+            lock_guard lock {print_mutex};
+            clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
+                 << "] Processing tuple with id: " << tuple.id
+                 << ", anomaly score: " << tuple.anomaly_score
+                 << ", individual score: " << tuple.individual_score
+                 << ", ordering timestamp: " << tuple.ordering_timestamp
+                 << ", observation: " << tuple.observation
+                 << ", current previous observation timestamp: "
+                 << previous_observation_timestamp << '\n';
+        }
+#endif
         assert(current_observation_timestamp
                >= previous_observation_timestamp);
 
@@ -1204,7 +1219,7 @@ public:
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
-            clog << "[TOP-K ANOMALY SCORER " << context.getReplicaIndex()
+            clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
                  << "] Received tuple with ordering timestamp: "
                  << tuple.ordering_timestamp
                  << ", WindFlow timestamp: " << context.getCurrentTimestamp()
@@ -1237,7 +1252,7 @@ public:
             tuple_cache.erase(tuple_cache.begin(), tuple_cache.begin() + i);
         } break;
         default:
-            cerr << "[TOP-K ALERT TRIGGERER] Error: unknown execution "
+            cerr << "[ALERT TRIGGERER] Error: unknown execution "
                     "mode\n";
             exit(EXIT_FAILURE);
             break;
