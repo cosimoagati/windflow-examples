@@ -284,9 +284,9 @@ static inline void validate_args(const Parameters &parameters) {
         }
     }
 
-    const auto max_threads = thread::hardware_concurrency();
+    const unsigned max_threads = thread::hardware_concurrency();
 
-    for (unsigned i = 0; i < num_nodes; ++i) {
+    for (size_t i = 0; i < num_nodes; ++i) {
         if (parameters.parallelism[i] > max_threads) {
             cerr << "Error:  parallelism degree for node " << i
                  << " is too large\n"
@@ -381,9 +381,9 @@ public:
     }
 
     void operator()(Source_Shipper<Tuple> &shipper) {
-        const auto    end_time    = current_time() + duration;
-        unsigned long sent_tuples = 0;
-        size_t        index       = 0;
+        const unsigned long end_time    = current_time() + duration;
+        unsigned long       sent_tuples = 0;
+        size_t              index       = 0;
 
         while (current_time() < end_time) {
             const auto &tweet = tweets[index];
@@ -394,7 +394,7 @@ public:
                      << '\n';
             }
 #endif
-            const auto timestamp = current_time();
+            const unsigned long timestamp = current_time();
             shipper.push({tweet, SentimentResult {}, timestamp});
             ++sent_tuples;
             index = (index + 1) % tweets.size();
@@ -420,11 +420,11 @@ public:
 
     SentimentResult classify(string &tweet) {
         const auto words                   = split_in_words_in_place(tweet);
-        auto       current_tweet_sentiment = 0;
+        int        current_tweet_sentiment = 0;
 
         for (const auto &word : words) {
-            const auto word_hash       = gethash(word);
-            const auto sentiment_entry = sentiment_map.find(word_hash);
+            const unsigned long word_hash = gethash(word);
+            const auto sentiment_entry    = sentiment_map.find(word_hash);
             if (sentiment_entry != sentiment_map.end()) {
 #ifndef NDEBUG
                 {
@@ -468,9 +468,9 @@ class SinkFunctor {
         if (sampling_rate == 0) {
             return true;
         }
-        const auto time_since_last_sampling =
+        const unsigned long time_since_last_sampling =
             difference(arrival_time, last_sampling_time);
-        const auto time_between_samples =
+        const double time_between_samples =
             (1.0 / sampling_rate) * timeunit_scale_factor;
         return time_since_last_sampling >= time_between_samples;
     }
@@ -480,8 +480,9 @@ public:
 
     void operator()(optional<Tuple> &input) {
         if (input) {
-            const auto arrival_time = current_time();
-            const auto latency = difference(arrival_time, input->timestamp);
+            const unsigned long arrival_time = current_time();
+            const unsigned long latency =
+                difference(arrival_time, input->timestamp);
 
             ++tuples_received;
             last_arrival_time = arrival_time;
@@ -550,13 +551,13 @@ int main(int argc, char *argv[]) {
                      parameters.time_policy};
     build_graph(parameters, graph);
 
-    const auto start_time = current_time();
+    const unsigned long start_time = current_time();
     graph.run();
-    const auto   elapsed_time = difference(current_time(), start_time);
-    const double throughput =
+    const unsigned long elapsed_time = difference(current_time(), start_time);
+    const double        throughput =
         elapsed_time > 0
-            ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
-            : global_sent_tuples.load();
+                   ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
+                   : global_sent_tuples.load();
     const double service_time = 1 / throughput;
 
     const auto latency_stats = get_distribution_stats(
@@ -574,7 +575,7 @@ int main(int argc, char *argv[]) {
     serialize_json(service_time_stats, "sa-service-time",
                    parameters.metric_output_directory);
 
-    const auto average_latency =
+    const double average_latency =
         accumulate(global_latency_metric.begin(), global_latency_metric.end(),
                    0.0)
         / (!global_latency_metric.empty() ? global_latency_metric.size()
