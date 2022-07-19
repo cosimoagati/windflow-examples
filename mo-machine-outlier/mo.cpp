@@ -698,7 +698,7 @@ public:
 };
 
 template<typename T>
-class DataStreamAnomalyScoreFunctor {
+class DataStreamAnomalyScorerFunctor {
     unordered_map<string, StreamProfile<T>> stream_profile_map;
     vector<ObservationResultTuple>          tuple_cache;
     double                                  lambda    = 0.017;
@@ -787,7 +787,7 @@ class DataStreamAnomalyScoreFunctor {
     }
 
 public:
-    DataStreamAnomalyScoreFunctor(Execution_Mode_t e) : execution_mode {e} {}
+    DataStreamAnomalyScorerFunctor(Execution_Mode_t e) : execution_mode {e} {}
 
     void operator()(const ObservationResultTuple &tuple,
                     Shipper<AnomalyResultTuple> & shipper,
@@ -837,14 +837,14 @@ public:
     }
 };
 
-class SlidingWindowStreamAnomalyScoreFunctor {
+class SlidingWindowStreamAnomalyScorerFunctor {
     unordered_map<string, deque<double>> sliding_window_map;
     size_t                               window_length;
 
     unsigned long previous_timestamp = 0; // XXX: is this needed?
 
 public:
-    SlidingWindowStreamAnomalyScoreFunctor(size_t length = 10)
+    SlidingWindowStreamAnomalyScorerFunctor(size_t length = 10)
         : window_length {length} {}
 
     AnomalyResultTuple operator()(const ObservationResultTuple &tuple,
@@ -1345,8 +1345,8 @@ static MultiPipe &get_anomaly_scorer_pipe(const Parameters &parameters,
     const bool   use_chaining = parameters.use_chaining;
 
     if (name == "data-stream" || name == "data_stream") {
-        DataStreamAnomalyScoreFunctor<MachineMetadata> anomaly_scorer_functor {
-            parameters.execution_mode};
+        DataStreamAnomalyScorerFunctor<MachineMetadata>
+                   anomaly_scorer_functor {parameters.execution_mode};
         const auto anomaly_scorer_node =
             FlatMap_Builder {anomaly_scorer_functor}
                 .withParallelism(parameters.parallelism[anomaly_scorer_id])
@@ -1359,8 +1359,8 @@ static MultiPipe &get_anomaly_scorer_pipe(const Parameters &parameters,
         return use_chaining ? pipe.chain(anomaly_scorer_node)
                             : pipe.add(anomaly_scorer_node);
     } else if (name == "sliding-window" || name == "sliding_window") {
-        SlidingWindowStreamAnomalyScoreFunctor anomaly_scorer_functor;
-        const auto                             anomaly_scorer_node =
+        SlidingWindowStreamAnomalyScorerFunctor anomaly_scorer_functor;
+        const auto                              anomaly_scorer_node =
             Map_Builder {anomaly_scorer_functor}
                 .withParallelism(parameters.parallelism[anomaly_scorer_id])
                 .withName("anomaly scorer")
