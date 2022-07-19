@@ -685,7 +685,6 @@ public:
             for (; i < tuple_cache.size()
                    && tuple_cache[i].ordering_timestamp <= watermark;
                  ++i) {
-                assert(tuple_cache[i].ordering_timestamp == watermark);
                 process(tuple_cache[i], shipper, context);
             }
             tuple_cache.erase(tuple_cache.begin(), tuple_cache.begin() + i);
@@ -825,7 +824,6 @@ public:
             for (; i < tuple_cache.size()
                    && tuple_cache[i].ordering_timestamp <= watermark;
                  ++i) {
-                assert(tuple_cache[i].ordering_timestamp == watermark);
                 process(tuple_cache[i], shipper, context);
             }
             tuple_cache.erase(tuple_cache.begin(), tuple_cache.begin() + i);
@@ -1145,7 +1143,6 @@ public:
             for (; i < tuple_cache.size()
                    && tuple_cache[i].ordering_timestamp <= watermark;
                  ++i) {
-                assert(tuple_cache[i].ordering_timestamp == watermark);
                 process(tuple_cache[i], shipper, context);
             }
             tuple_cache.erase(tuple_cache.begin(), tuple_cache.begin() + i);
@@ -1235,7 +1232,6 @@ public:
             for (; i < tuple_cache.size()
                    && tuple_cache[i].ordering_timestamp <= watermark;
                  ++i) {
-                assert(tuple_cache[i].ordering_timestamp == watermark);
                 process(tuple_cache[i], shipper, context);
             }
             tuple_cache.erase(tuple_cache.begin(), tuple_cache.begin() + i);
