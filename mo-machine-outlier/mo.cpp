@@ -192,10 +192,10 @@ static const struct option long_opts[] = {{"help", 0, 0, 'h'},
 static inline optional<MachineMetadata>
 parse_google_trace(const string &trace) {
     const auto      values             = string_split(trace, ',');
-    const auto      timestamp_index    = 0;
-    const auto      machine_id_index   = 4;
-    const auto      cpu_usage_index    = 5;
-    const auto      memory_usage_index = 6;
+    const size_t    timestamp_index    = 0;
+    const size_t    machine_id_index   = 4;
+    const size_t    cpu_usage_index    = 5;
+    const size_t    memory_usage_index = 6;
     MachineMetadata metadata;
 
     if (values.size() != 19) {
@@ -216,10 +216,10 @@ parse_alibaba_trace(const string &trace) {
         return {};
     }
 
-    const unsigned  timestamp_index    = 1;
-    const unsigned  machine_id_index   = 0;
-    const unsigned  cpu_usage_index    = 2;
-    const unsigned  memory_usage_index = 3;
+    const size_t    timestamp_index    = 1;
+    const size_t    machine_id_index   = 0;
+    const size_t    cpu_usage_index    = 2;
+    const size_t    memory_usage_index = 3;
     MachineMetadata metadata;
 
     metadata.machine_ip   = values[machine_id_index];
@@ -340,7 +340,7 @@ static inline void validate_args(const Parameters &parameters) {
         exit(EXIT_FAILURE);
     }
 
-    for (unsigned i = 0; i < num_nodes; ++i) {
+    for (size_t i = 0; i < num_nodes; ++i) {
         if (parameters.parallelism[i] == 0) {
             cerr << "Error: parallelism degree for node " << i
                  << " must be positive\n";
@@ -348,9 +348,9 @@ static inline void validate_args(const Parameters &parameters) {
         }
     }
 
-    const auto max_threads = thread::hardware_concurrency();
+    const unsigned max_threads = thread::hardware_concurrency();
 
-    for (unsigned i = 0; i < num_nodes; ++i) {
+    for (size_t i = 0; i < num_nodes; ++i) {
         if (parameters.parallelism[i] > max_threads) {
             cerr << "Error:  parallelism degree for node " << i
                  << " is too large\n"
@@ -459,9 +459,9 @@ public:
 
     void operator()(Source_Shipper<SourceTuple> &shipper,
                     RuntimeContext &             context) {
-        const auto    end_time    = current_time() + duration;
-        unsigned long sent_tuples = 0;
-        size_t        index       = 0;
+        const unsigned long end_time    = current_time() + duration;
+        unsigned long       sent_tuples = 0;
+        size_t              index       = 0;
         DO_NOT_WARN_IF_UNUSED(context);
 
         while (current_time() < end_time) {
@@ -490,7 +490,7 @@ public:
                     measurement_timestamp_increase_step;
             }
 
-            const auto execution_timestamp = current_time();
+            const unsigned long execution_timestamp = current_time();
 
             SourceTuple new_tuple = {current_observation,
                                      current_observation.timestamp,
@@ -528,8 +528,8 @@ class MachineMetadataScorer {
         const auto       column_number = matrix[0].size();
 
         for (size_t col = 0; col < column_number; ++col) {
-            auto min = numeric_limits<double>::min();
-            auto max = numeric_limits<double>::max();
+            double min = numeric_limits<double>::min();
+            double max = numeric_limits<double>::max();
 
             for (size_t row {0}; row < matrix.size(); ++row) {
                 if (matrix[row][col] < min) {
@@ -930,9 +930,9 @@ partition_single_side(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t left,
     assert(right < tuple_wrapper_list.size());
 
     const auto &pivot = tuple_wrapper_list[right];
-    auto        bar   = left;
+    size_t      bar   = left;
 
-    for (auto i = left; i < right; ++i) {
+    for (size_t i = left; i < right; ++i) {
         if (tuple_wrapper_list[i].compare_to(pivot) < 0) {
             tuple_swap(tuple_wrapper_list, bar, i);
             ++bar;
@@ -956,7 +956,7 @@ bfprt_wrapper(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t i,
         return tuple_wrapper_list[right];
     }
 
-    const auto p = partition_single_side(tuple_wrapper_list, left, right);
+    const size_t p = partition_single_side(tuple_wrapper_list, left, right);
 
     if (p == i) {
         return tuple_wrapper_list[p];
@@ -1035,7 +1035,7 @@ class AlertTriggererFunctor {
                 const double min_score  = abnormal_streams[0].anomaly_score;
 
                 assert(median_idx < abnormal_streams.size());
-                const auto median_score =
+                const double median_score =
                     abnormal_streams[median_idx].anomaly_score;
 #ifndef NDEBUG
                 {
@@ -1047,11 +1047,11 @@ class AlertTriggererFunctor {
                 }
 #endif
                 for (size_t i = 0; i < abnormal_streams.size(); ++i) {
-                    const auto &stream_profile = abnormal_streams[i];
-                    const auto  stream_score   = stream_profile.anomaly_score;
-                    const auto  cur_data_inst_score =
+                    const auto & stream_profile = abnormal_streams[i];
+                    const double stream_score   = stream_profile.anomaly_score;
+                    const double cur_data_inst_score =
                         stream_profile.anomaly_score;
-                    const auto is_abnormal =
+                    const bool is_abnormal =
                         stream_score > 2 * median_score - min_score
                         && stream_score > min_score + 2 * dupper
                         && cur_data_inst_score > 0.1 + min_data_instance_score;
@@ -1249,9 +1249,9 @@ class SinkFunctor {
         if (sampling_rate == 0) {
             return true;
         }
-        const auto time_since_last_sampling =
+        const unsigned long time_since_last_sampling =
             difference(arrival_time, last_sampling_time);
-        const auto time_between_samples =
+        const double time_between_samples =
             (1.0 / sampling_rate) * timeunit_scale_factor;
         return time_since_last_sampling >= time_between_samples;
     }
@@ -1264,8 +1264,8 @@ public:
         DO_NOT_WARN_IF_UNUSED(context);
 
         if (input) {
-            const auto arrival_time = current_time();
-            const auto latency =
+            const unsigned long arrival_time = current_time();
+            const unsigned long latency =
                 difference(arrival_time, input->parent_execution_timestamp);
 
             ++tuples_received;
@@ -1453,13 +1453,13 @@ int main(int argc, char *argv[]) {
     build_graph(parameters, graph);
     print_initial_parameters(parameters);
 
-    const auto start_time = current_time();
+    const unsigned long start_time = current_time();
     graph.run();
-    const auto   elapsed_time = difference(current_time(), start_time);
-    const double throughput =
+    const unsigned long elapsed_time = difference(current_time(), start_time);
+    const double        throughput =
         elapsed_time > 0
-            ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
-            : global_sent_tuples.load();
+                   ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
+                   : global_sent_tuples.load();
     const double service_time = 1 / throughput;
 
     const auto latency_stats = get_distribution_stats(
@@ -1477,7 +1477,7 @@ int main(int argc, char *argv[]) {
     serialize_json(service_time_stats, "mo-service-time",
                    parameters.metric_output_directory);
 
-    const auto average_latency =
+    const double average_latency =
         accumulate(global_latency_metric.begin(), global_latency_metric.end(),
                    0.0)
         / (!global_latency_metric.empty() ? global_latency_metric.size()
