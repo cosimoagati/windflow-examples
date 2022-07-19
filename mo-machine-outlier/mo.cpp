@@ -682,11 +682,11 @@ public:
             }
 
             size_t i = 0;
-            while (i < tuple_cache.size()
-                   && tuple_cache[i].ordering_timestamp <= watermark) {
+            for (; i < tuple_cache.size()
+                   && tuple_cache[i].ordering_timestamp <= watermark;
+                 ++i) {
                 assert(tuple_cache[i].ordering_timestamp == watermark);
                 process(tuple_cache[i], shipper, context);
-                ++i;
             }
             tuple_cache.erase(tuple_cache.begin(), tuple_cache.begin() + i);
         } break;
@@ -822,11 +822,11 @@ public:
             }
 
             size_t i = 0;
-            while (i < tuple_cache.size()
-                   && tuple_cache[i].ordering_timestamp <= watermark) {
+            for (; i < tuple_cache.size()
+                   && tuple_cache[i].ordering_timestamp <= watermark;
+                 ++i) {
                 assert(tuple_cache[i].ordering_timestamp == watermark);
                 process(tuple_cache[i], shipper, context);
-                ++i;
             }
             tuple_cache.erase(tuple_cache.begin(), tuple_cache.begin() + i);
         } break;
@@ -1142,11 +1142,11 @@ public:
             }
 
             size_t i = 0;
-            while (i < tuple_cache.size()
-                   && tuple_cache[i].ordering_timestamp <= watermark) {
+            for (; i < tuple_cache.size()
+                   && tuple_cache[i].ordering_timestamp <= watermark;
+                 ++i) {
                 assert(tuple_cache[i].ordering_timestamp == watermark);
                 process(tuple_cache[i], shipper, context);
-                ++i;
             }
             tuple_cache.erase(tuple_cache.begin(), tuple_cache.begin() + i);
         } break;
@@ -1232,11 +1232,11 @@ public:
             }
 
             size_t i = 0;
-            while (i < tuple_cache.size()
-                   && tuple_cache[i].ordering_timestamp <= watermark) {
+            for (; i < tuple_cache.size()
+                   && tuple_cache[i].ordering_timestamp <= watermark;
+                 ++i) {
                 assert(tuple_cache[i].ordering_timestamp == watermark);
                 process(tuple_cache[i], shipper, context);
-                ++i;
             }
             tuple_cache.erase(tuple_cache.begin(), tuple_cache.begin() + i);
         } break;
