@@ -1101,7 +1101,7 @@ public:
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
-            clog << "[ANOMALY SCORER " << context.getReplicaIndex()
+            clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
                  << "] Received tuple with ordering timestamp: "
                  << tuple.ordering_timestamp
                  << ", WindFlow timestamp: " << context.getCurrentTimestamp()
