@@ -752,7 +752,8 @@ class DataStreamAnomalyScorerFunctor {
                          << tuple.observation << ", ID: " << result.id
                          << ", score sum: " << result.anomaly_score
                          << ", individual score: " << result.individual_score
-                         << '\n';
+                         << ", WindFlow timestamp: "
+                         << context.getCurrentTimestamp() << '\n';
                 }
 #endif
                 shipper.push(move(result));
