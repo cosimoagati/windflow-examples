@@ -398,7 +398,7 @@ static inline void validate_args(const Parameters &parameters) {
         }
     }
 
-    const auto max_threads = thread::hardware_concurrency();
+    const unsigned max_threads = thread::hardware_concurrency();
 
     for (unsigned i = 0; i < num_nodes; ++i) {
         if (parameters.parallelism[i] > max_threads) {
@@ -477,23 +477,24 @@ print_statistics(unsigned long elapsed_time, unsigned long duration,
                  unsigned long sent_tuples, double average_total_latency,
                  double average_volume_latency, double average_status_latency,
                  double average_geo_latency, unsigned long received_tuples) {
-    const auto elapsed_time_in_seconds =
+    const double elapsed_time_in_seconds =
         elapsed_time / static_cast<double>(timeunit_scale_factor);
 
-    const auto throughput =
+    const double throughput =
         elapsed_time > 0 ? sent_tuples / static_cast<double>(elapsed_time)
                          : sent_tuples;
 
-    const auto throughput_in_seconds   = throughput * timeunit_scale_factor;
-    const auto service_time            = 1 / throughput;
-    const auto service_time_in_seconds = service_time / timeunit_scale_factor;
-    const auto latency_in_seconds =
+    const double throughput_in_seconds = throughput * timeunit_scale_factor;
+    const double service_time          = 1 / throughput;
+    const double service_time_in_seconds =
+        service_time / timeunit_scale_factor;
+    const double latency_in_seconds =
         average_total_latency / timeunit_scale_factor;
-    const auto volume_latency_in_seconds =
+    const double volume_latency_in_seconds =
         average_volume_latency / timeunit_scale_factor;
-    const auto status_latency_in_seconds =
+    const double status_latency_in_seconds =
         average_status_latency / timeunit_scale_factor;
-    const auto geo_latency_in_seconds =
+    const double geo_latency_in_seconds =
         average_geo_latency / timeunit_scale_factor;
 
     cout << "Elapsed time: " << elapsed_time << ' ' << timeunit_string << "s ("
@@ -558,9 +559,9 @@ public:
     }
 
     void operator()(Source_Shipper<SourceTuple> &shipper) {
-        const auto    end_time    = current_time() + duration;
-        unsigned long sent_tuples = 0;
-        size_t        index       = 0;
+        const unsigned long end_time    = current_time() + duration;
+        unsigned long       sent_tuples = 0;
+        size_t              index       = 0;
 
         while (current_time() < end_time) {
             auto volume_source_tuple     = logs[index];
@@ -577,7 +578,7 @@ public:
             status_source_tuple.tag     = TupleTag::Status;
             geo_finder_source_tuple.tag = TupleTag::Geo;
 
-            const auto timestamp              = current_time();
+            const unsigned long timestamp     = current_time();
             volume_source_tuple.timestamp     = timestamp;
             status_source_tuple.timestamp     = timestamp;
             geo_finder_source_tuple.timestamp = timestamp;
@@ -685,7 +686,7 @@ class StatusCounterFunctor {
 
 public:
     OutputTuple operator()(const SourceTuple &input) {
-        const auto status_code = input.response;
+        const unsigned status_code = input.response;
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
@@ -824,9 +825,9 @@ class SinkFunctor {
         if (sampling_rate == 0) {
             return true;
         }
-        const auto time_since_last_sampling =
+        const unsigned long time_since_last_sampling =
             difference(arrival_time, last_sampling_time);
-        const auto time_between_samples =
+        const double time_between_samples =
             (1.0 / sampling_rate) * timeunit_scale_factor;
         return time_since_last_sampling >= time_between_samples;
     }
@@ -840,8 +841,9 @@ public:
                    || input->tag == TupleTag::Status
                    || input->tag == TupleTag::Geo);
 
-            const auto arrival_time = current_time();
-            const auto latency = difference(arrival_time, input->timestamp);
+            const unsigned long arrival_time = current_time();
+            const unsigned long latency =
+                difference(arrival_time, input->timestamp);
 
             ++tuples_received;
             ++specific_tuples_received[input->tag];
@@ -993,9 +995,9 @@ int main(int argc, char *argv[]) {
                      parameters.time_policy};
     build_graph(parameters, graph);
 
-    const auto start_time = current_time();
+    const unsigned long start_time = current_time();
     graph.run();
-    const auto elapsed_time = difference(current_time(), start_time);
+    const unsigned long elapsed_time = difference(current_time(), start_time);
 
     const double throughput =
         elapsed_time > 0
@@ -1036,27 +1038,28 @@ int main(int argc, char *argv[]) {
     serialize_json(service_time_stats, "lp-service-time",
                    parameters.metric_output_directory);
 
-    const auto average_total_latency =
+    const double average_total_latency =
         accumulate(global_total_latency_metric.begin(),
                    global_total_latency_metric.end(), 0.0)
         / (!global_total_latency_metric.empty()
                ? global_total_latency_metric.size()
                : 1.0);
 
-    const auto average_volume_latency =
+    const double average_volume_latency =
         accumulate(global_volume_latency_metric.begin(),
                    global_volume_latency_metric.end(), 0.0)
         / (!global_volume_latency_metric.empty()
                ? global_volume_latency_metric.size()
                : 1.0);
 
-    const auto average_status_latency =
+    const double average_status_latency =
         accumulate(global_status_latency_metric.begin(),
                    global_status_latency_metric.end(), 0.0)
         / (!global_status_latency_metric.empty()
                ? global_status_latency_metric.size()
                : 1.0);
-    const auto average_geo_latency =
+
+    const double average_geo_latency =
         accumulate(global_geo_latency_metric.begin(),
                    global_geo_latency_metric.end(), 0.0)
         / (!global_geo_latency_metric.empty()
