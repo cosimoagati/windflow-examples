@@ -389,8 +389,8 @@ public:
 };
 
 class RewardSourceFunctor {
-    unordered_map<string, int>         action_selection_map;
-    int                                action_selection_count_threshold = 50;
+    unordered_map<string, unsigned>    action_selection_map;
+    unsigned                           action_selection_count_threshold = 50;
     unordered_map<string, vector<int>> action_ctr_distr {
         {"page1", {30, 12}}, {"page2", {60, 30}}, {"page3", {80, 10}}};
     mt19937                       mt {random_device {}()};
@@ -893,8 +893,8 @@ public:
 };
 
 class OptimisticSampsonSampler {
-    SampsonSampler             sampson_sampler;
-    unordered_map<string, int> mean_rewards;
+    SampsonSampler                  sampson_sampler;
+    unordered_map<string, unsigned> mean_rewards;
 
 public:
     OptimisticSampsonSampler(const vector<string> &actions,
@@ -917,9 +917,9 @@ public:
 
         if (entry != reward_distr.end()) {
             const auto &rewards = entry->second;
-            int         sum     = 0;
-            int         count   = 0;
-            for (const int reward : rewards) {
+            unsigned    sum     = 0;
+            unsigned    count   = 0;
+            for (const unsigned reward : rewards) {
                 sum += reward;
                 ++count;
             }
@@ -931,7 +931,7 @@ public:
         const auto &entry = mean_rewards.find(action_id);
         assert(entry != mean_rewards.end());
 
-        const int mean_reward = entry->second;
+        const unsigned mean_reward = entry->second;
         return reward > mean_reward ? reward : mean_reward;
     }
 };
@@ -1001,13 +1001,13 @@ public:
             next_action = action_batch[static_cast<size_t>(
                 rand(mt) * action_batch.size())];
         } else {
-            int best_reward = 0;
+            unsigned best_reward = 0;
 
             for (const auto &action : action_batch) {
                 const auto entry = reward_stats.find(action);
                 assert(entry != reward_stats.end());
 
-                int reward = static_cast<int>(entry->second.get_mean());
+                auto reward = static_cast<unsigned>(entry->second.get_mean());
                 if (reward > best_reward) {
                     best_reward = reward;
                     next_action = action;
