@@ -170,7 +170,7 @@ struct TimestampGreaterComparator {
 };
 
 template<typename T>
-using TupleOrderingQueue =
+using TimestampPriorityQueue =
     priority_queue<T, vector<T>, TimestampGreaterComparator<T>>;
 
 static const struct option long_opts[] = {{"help", 0, 0, 'h'},
@@ -605,12 +605,12 @@ public:
 
 template<typename Scorer>
 class ObservationScorerFunctor {
-    Scorer                          scorer;
-    TupleOrderingQueue<SourceTuple> tuple_queue;
-    vector<MachineMetadata>         observation_list;
-    unsigned long                   previous_ordering_timestamp = 0;
-    unsigned long                   parent_execution_timestamp;
-    Execution_Mode_t                execution_mode;
+    Scorer                              scorer;
+    TimestampPriorityQueue<SourceTuple> tuple_queue;
+    vector<MachineMetadata>             observation_list;
+    unsigned long                       previous_ordering_timestamp = 0;
+    unsigned long                       parent_execution_timestamp;
+    Execution_Mode_t                    execution_mode;
 
     void process(const SourceTuple &              tuple,
                  Shipper<ObservationResultTuple> &shipper,
@@ -704,14 +704,14 @@ public:
 
 template<typename T>
 class DataStreamAnomalyScorerFunctor {
-    unordered_map<string, StreamProfile<T>>    stream_profile_map;
-    TupleOrderingQueue<ObservationResultTuple> tuple_queue;
-    double                                     lambda = 0.017;
-    double                                     factor = exp(-lambda);
-    double           threshold                        = 1 / (1 - factor) * 0.5;
-    bool             shrink_next_round                = false;
-    unsigned long    previous_ordering_timestamp      = 0;
-    unsigned long    parent_execution_timestamp       = 0;
+    unordered_map<string, StreamProfile<T>>        stream_profile_map;
+    TimestampPriorityQueue<ObservationResultTuple> tuple_queue;
+    double                                         lambda = 0.017;
+    double                                         factor = exp(-lambda);
+    double           threshold                   = 1 / (1 - factor) * 0.5;
+    bool             shrink_next_round           = false;
+    unsigned long    previous_ordering_timestamp = 0;
+    unsigned long    parent_execution_timestamp  = 0;
     Execution_Mode_t execution_mode;
 
     void process(const ObservationResultTuple &tuple,
@@ -1000,10 +1000,10 @@ identify_abnormal_streams(vector<AnomalyResultTuple> &stream_list) {
 class AlertTriggererFunctor {
     inline static const double dupper = sqrt(2);
 
-    unsigned long                          previous_ordering_timestamp = 0;
-    unsigned long                          parent_execution_timestamp  = 0;
-    vector<AnomalyResultTuple>             stream_list;
-    TupleOrderingQueue<AnomalyResultTuple> tuple_queue;
+    unsigned long                              previous_ordering_timestamp = 0;
+    unsigned long                              parent_execution_timestamp  = 0;
+    vector<AnomalyResultTuple>                 stream_list;
+    TimestampPriorityQueue<AnomalyResultTuple> tuple_queue;
     double           min_data_instance_score = numeric_limits<double>::max();
     double           max_data_instance_score = 0.0;
     Execution_Mode_t execution_mode;
@@ -1146,12 +1146,12 @@ public:
 };
 
 class TopKAlertTriggererFunctor {
-    vector<AnomalyResultTuple>             stream_list;
-    TupleOrderingQueue<AnomalyResultTuple> tuple_queue;
-    size_t                                 k;
-    unsigned long                          previous_ordering_timestamp = 0;
-    unsigned long                          parent_execution_timestamp  = 0;
-    Execution_Mode_t                       execution_mode;
+    vector<AnomalyResultTuple>                 stream_list;
+    TimestampPriorityQueue<AnomalyResultTuple> tuple_queue;
+    size_t                                     k;
+    unsigned long                              previous_ordering_timestamp = 0;
+    unsigned long                              parent_execution_timestamp  = 0;
+    Execution_Mode_t                           execution_mode;
 
     void process(const AnomalyResultTuple &          tuple,
                  Shipper<AlertTriggererResultTuple> &shipper,
