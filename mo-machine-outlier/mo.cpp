@@ -825,8 +825,7 @@ public:
             }
             break;
         default:
-            cerr << "[ANOMALY SCORER] Error: unknown execution "
-                    "mode\n";
+            cerr << "[ANOMALY SCORER] Error: unknown execution mode\n";
             exit(EXIT_FAILURE);
             break;
         }
