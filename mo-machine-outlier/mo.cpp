@@ -826,7 +826,7 @@ public:
             }
             break;
         default:
-            cerr << "[DATA STREAM ANOMALY SCORER] Error: unknown execution "
+            cerr << "[ANOMALY SCORER] Error: unknown execution "
                     "mode\n";
             exit(EXIT_FAILURE);
             break;
