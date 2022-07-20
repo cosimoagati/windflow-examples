@@ -811,7 +811,6 @@ public:
                  << ", current watermark: " << watermark << '\n';
         }
 #endif
-
         switch (execution_mode) {
         case Execution_Mode_t::DETERMINISTIC:
             process(tuple, shipper, context);
