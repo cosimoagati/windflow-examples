@@ -82,6 +82,10 @@ def filter_jsons_by_tuple_rate(json_list, tuple_rate):
     ]
 
 
+def filter_jsons_by_execmode(json_list, execmode):
+    return [j for j in json_list if j['execution mode'] == execmode]
+
+
 def percentile_to_dictkey(kind):
     if kind in ['0th', '5th', '25th', '50th', '75th', '95th', '100th']:
         return kind + ' percentile'
@@ -201,6 +205,7 @@ def plot_by_parallelism_compare_batch_sizes(name,
     json_list = filter_jsons_by_chaining(json_list, chaining)
     json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
     json_list = filter_jsons_by_tuple_rate(json_list, tuple_rate)
+    json_list = filter_jsons_by_execmode(json_list, 'default')
 
     json_list.sort(key=lambda j: j['parallelism'][0])
 
@@ -292,6 +297,64 @@ def plot_by_parallelism_compare_chaining(name,
     if image_path:
         plt.savefig(
             os.path.join(image_path, title + '-chaining-comparison.png'))
+    else:
+        plt.show()
+    plt.close('all')
+
+
+def plot_by_parallelism_compare_execmode(name,
+                                         directory='',
+                                         chaining=False,
+                                         batch_size=0,
+                                         sampling_rate=100,
+                                         tuple_rate=0,
+                                         percentile='mean',
+                                         json_list=None,
+                                         image_path=None):
+    if not json_list:
+        json_list = get_json_objs_from_directory(directory)
+    json_list = filter_jsons_by_name(json_list, name)
+    json_list = filter_jsons_by_chaining(json_list, chaining)
+    json_list = filter_jsons_by_sampling_rate(json_list, sampling_rate)
+    json_list = filter_jsons_by_batch_size(json_list, batch_size)
+    json_list = filter_jsons_by_tuple_rate(json_list, tuple_rate)
+
+    if not json_list:
+        print('No data found with the specified parameters, not plotting...')
+        return
+
+    json_list.sort(key=lambda j: j['parallelism'][0])
+
+    time_unit = json_list[0]['time unit']
+    title = (title_from_directory(directory) + ' - ' +
+             name.capitalize().replace('-', ' ') + ' (' + percentile +
+             ') (chaining: ' + str(chaining) + ') (generation rate: ' +
+             (str(tuple_rate if tuple_rate > 0 else 'unlimited') + ')') +
+             '(batch size: ' + str(batch_size) + ')')
+    xlabel = 'Parallelism degree for each node'
+    ylabel = get_y_label(name, time_unit)
+
+    plt.figure()
+    plt.title(title, y=1.08)
+    plt.grid(True)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+
+    for execmode in ['deterministic', 'default']:
+        current_json_list = filter_jsons_by_execmode(json_list, execmode)
+        x_axis = [j['parallelism'][0] for j in current_json_list]
+        y_axis = get_y_axis(name, current_json_list, percentile, time_unit)
+        if DEBUG:
+            print('x_axis: ', x_axis)
+            print('y_axis: ', y_axis)
+        plt.plot(x_axis,
+                 y_axis,
+                 label='Execution mode: ' + execmode.capitalize())
+    plt.legend()
+    if image_path:
+        suffix = ('-execmodes-' + '-batchsize-' + str(batch_size) +
+                  '-chaining-' + str(chaining).lower() + '.png')
+        plt.savefig(os.path.join(image_path, title + suffix))
     else:
         plt.show()
     plt.close('all')
