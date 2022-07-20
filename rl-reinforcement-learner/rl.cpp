@@ -927,7 +927,7 @@ public:
         }
     }
 
-    unsigned enforce(const string &action_id, int reward) {
+    unsigned enforce(const string &action_id, unsigned reward) {
         const auto &entry = mean_rewards.find(action_id);
         assert(entry != mean_rewards.end());
 
