@@ -11,8 +11,6 @@ anomaly_scorer_variants="data-stream"
 # alert_triggerer_variants="top-k default"
 alert_triggerer_variants="top-k"
 
-
-
 cd $(dirname "$0")
 echo "Test started on $(date)"
 mkdir -p "$outputdir"
