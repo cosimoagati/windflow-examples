@@ -879,7 +879,7 @@ public:
 #endif
         return {tuple.id,
                 score_sum,
-                tuple.ordering_timestamp,
+                context.getCurrentTimestamp(),
                 tuple.parent_execution_timestamp,
                 tuple.observation,
                 tuple.score};
