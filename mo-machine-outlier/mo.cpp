@@ -1247,7 +1247,7 @@ class SinkFunctor {
         }
         const unsigned long time_since_last_sampling =
             difference(arrival_time, last_sampling_time);
-        const double time_between_samples =
+        const unsigned long time_between_samples =
             (1.0 / sampling_rate) * timeunit_scale_factor;
         return time_since_last_sampling >= time_between_samples;
     }
