@@ -147,7 +147,7 @@ bool operator<(const Rankable<T> &a, const Rankable<T> &b) {
 
 template<typename T>
 class Rankings {
-    static constexpr auto default_count = 10u;
+    static constexpr unsigned default_count = 10;
 
     size_t              max_size_field;
     vector<Rankable<T>> ranked_items;
@@ -272,7 +272,7 @@ class SlotBasedCounter {
         assert(counts_entry != counts_map.end());
 
         unsigned long total = 0;
-        for (const auto count : counts_entry->second) {
+        for (const unsigned long count : counts_entry->second) {
             total += count;
         }
         return total;
@@ -524,7 +524,8 @@ static inline void validate_args(const Parameters &parameters) {
     }
 
     constexpr unsigned timer_threads = 3;
-    const auto max_threads = thread::hardware_concurrency() - timer_threads;
+    const unsigned     max_threads =
+        thread::hardware_concurrency() - timer_threads;
 
     for (unsigned i = 0; i < num_nodes; ++i) {
         if (parameters.parallelism[i] > max_threads) {
@@ -681,14 +682,15 @@ public:
             cerr << "Error: num_times_to_track must be positive\n";
             exit(EXIT_FAILURE);
         }
-        const auto now_cached = current_time_msecs();
+        const unsigned long now_cached = current_time_msecs();
         for (size_t i = 0; i < last_modified_times_millis.max_size(); ++i) {
             last_modified_times_millis.add(now_cached);
         }
     }
 
     unsigned seconds_since_oldest_modification() {
-        const auto modified_time_millis = last_modified_times_millis.get();
+        const unsigned long modified_time_millis =
+            last_modified_times_millis.get();
         return static_cast<unsigned>(
             (current_time_msecs() - modified_time_millis) / millis_in_sec);
     }
@@ -716,21 +718,23 @@ public:
         }
     }
 
-    void operator()(Source_Shipper<Tweet> &shipper) {
-        const auto    end_time    = current_time() + duration;
-        unsigned long sent_tuples = 0;
-        size_t        index       = 0;
+    void operator()(Source_Shipper<Tweet> &shipper, RuntimeContext &context) {
+        DO_NOT_WARN_IF_UNUSED(context);
+
+        const unsigned long end_time    = current_time() + duration;
+        unsigned long       sent_tuples = 0;
+        size_t              index       = 0;
 
         while (current_time() < end_time) {
             auto tweet = tweets[index];
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
-                clog << "[SOURCE] Sending the following tweet: " << tweet
-                     << '\n';
+                clog << "[SOURCE " << context.getReplicaIndex()
+                     << "] Sending the following tweet: " << tweet << '\n';
             }
 #endif
-            const auto timestamp = current_time();
+            const unsigned long timestamp = current_time();
             shipper.push({"", move(tweet), timestamp});
             ++sent_tuples;
             index = (index + 1) % tweets.size();
@@ -747,7 +751,10 @@ public:
 
 class TopicExtractorFunctor {
 public:
-    void operator()(const Tweet &tweet, Shipper<Topic> &shipper) {
+    void operator()(const Tweet &tweet, Shipper<Topic> &shipper,
+                    RuntimeContext &context) {
+        DO_NOT_WARN_IF_UNUSED(context);
+
         if (!tweet.text.empty()) {
             const auto words = string_split(tweet.text, " \n\t");
             for (const auto &word : words) {
@@ -756,8 +763,9 @@ public:
 #ifndef NDEBUG
                     {
                         lock_guard lock {print_mutex};
-                        clog << "[TOPIC EXTRACTOR] Extracted topic: " << word
-                             << '\n';
+                        clog << "[TOPIC EXTRACTOR "
+                             << context.getReplicaIndex()
+                             << "] Extracted topic: " << word << '\n';
                     }
 #endif
                     shipper.push({string {word}, tweet.timestamp});
@@ -776,28 +784,33 @@ class RollingCounterFunctor {
     mutex                        emit_mutex;
     bool                         was_timer_thread_created = false;
 
-    void periodic_ship(Shipper<Counts> &shipper) {
+    void periodic_ship(Shipper<Counts> &shipper, RuntimeContext &context) {
+        DO_NOT_WARN_IF_UNUSED(context);
+
         while (true) {
             usleep(time_units_between_ticks / timeunit_scale_factor * 1000000);
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
-                clog << "[ROLLING COUNTER] Received tick tuple at "
+                clog << "[ROLLING COUNTER] " << context.getReplicaIndex()
+                     << "Received tick tuple at "
                         "time (in miliseconds) "
                      << current_time_msecs() << '\n';
             }
 #endif
             lock_guard lock {emit_mutex};
             if (parent_timestamp) {
-                ship_all(shipper);
+                ship_all(shipper, context);
                 parent_timestamp.reset();
             }
         }
     }
 
-    void ship_all(Shipper<Counts> &shipper) {
-        const auto counts = counter.get_counts_then_advance_window();
-        const auto actual_window_length_in_seconds =
+    void ship_all(Shipper<Counts> &shipper, RuntimeContext &context) {
+        DO_NOT_WARN_IF_UNUSED(context);
+
+        const auto     counts = counter.get_counts_then_advance_window();
+        const unsigned actual_window_length_in_seconds =
             last_modified_tracker.seconds_since_oldest_modification();
         last_modified_tracker.mark_as_modified();
 
@@ -814,13 +827,14 @@ class RollingCounterFunctor {
         }
 #endif
         for (const auto &kv : counts) {
-            const auto &word  = kv.first;
-            const auto  count = kv.second;
+            const auto &        word  = kv.first;
+            const unsigned long count = kv.second;
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
-                clog << "[ROLLING COUNTER] Sending word: " << word
-                     << " with count: " << count << '\n';
+                clog << "[ROLLING COUNTER " << context.getReplicaIndex()
+                     << "] Sending word: " << word << " with count: " << count
+                     << '\n';
             }
 #endif
             assert(parent_timestamp);
@@ -847,13 +861,14 @@ public:
           parent_timestamp {other.parent_timestamp}, emit_mutex {},
           was_timer_thread_created {other.was_timer_thread_created} {}
 
-    void operator()(const Topic &topic, Shipper<Counts> &shipper) {
+    void operator()(const Topic &topic, Shipper<Counts> &shipper,
+                    RuntimeContext &context) {
         if (!was_timer_thread_created) {
             Counts dummy_tuple_to_wakeup_next_node;
             shipper.push(move(dummy_tuple_to_wakeup_next_node));
 
             thread timer_thread {&RollingCounterFunctor::periodic_ship, this,
-                                 ref(shipper)};
+                                 ref(shipper), ref(context)};
             timer_thread.detach();
             was_timer_thread_created = true;
         }
@@ -877,7 +892,10 @@ class RankerFunctor {
     mutex                   emit_mutex;
     bool                    was_timer_thread_created = false;
 
-    void periodic_ship(Shipper<RankingsTuple> &shipper) {
+    void periodic_ship(Shipper<RankingsTuple> &shipper,
+                       RuntimeContext &        context) {
+        DO_NOT_WARN_IF_UNUSED(context);
+
         while (true) {
             usleep(time_units_between_ticks / timeunit_scale_factor * 1000000);
             lock_guard lock {emit_mutex};
@@ -888,7 +906,8 @@ class RankerFunctor {
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
-                clog << "[RANKER] Current rankings are " << rankings << '\n';
+                clog << "[RANKER " << context.getReplicaIndex()
+                     << "] Current rankings are " << rankings << '\n';
             }
 #endif
         }
@@ -907,7 +926,8 @@ public:
           emit_mutex {}, was_timer_thread_created {
                              other.was_timer_thread_created} {}
 
-    void operator()(const InputType &counts, Shipper<RankingsTuple> &shipper) {
+    void operator()(const InputType &counts, Shipper<RankingsTuple> &shipper,
+                    RuntimeContext &context) {
         if (!was_timer_thread_created) {
             if constexpr (is_same_v<InputType, Counts>) {
                 RankingsTuple dummy_tuple_to_wakeup_next_node;
@@ -916,13 +936,14 @@ public:
 
             thread timer_thread {
                 &RankerFunctor<InputType, update_rankings>::periodic_ship,
-                this, ref(shipper)};
+                this, ref(shipper), ref(context)};
             timer_thread.detach();
             was_timer_thread_created = true;
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
-                clog << "[RANKER] Created timer thread\n";
+                clog << "[RANKER " << context.getReplicaIndex()
+                     << "] Created timer thread\n";
             }
 #endif
         }
@@ -964,9 +985,9 @@ class SinkFunctor {
         if (sampling_rate == 0) {
             return true;
         }
-        const auto time_since_last_sampling =
+        const unsigned long time_since_last_sampling =
             difference(arrival_time, last_sampling_time);
-        const auto time_between_samples =
+        const double time_between_samples =
             (1.0 / sampling_rate) * timeunit_scale_factor;
         return time_since_last_sampling >= time_between_samples;
     }
@@ -974,10 +995,12 @@ class SinkFunctor {
 public:
     SinkFunctor(unsigned rate = 100) : sampling_rate {rate} {}
 
-    void operator()(optional<RankingsTuple> &input) {
+    void operator()(optional<RankingsTuple> &input, RuntimeContext &context) {
+        DO_NOT_WARN_IF_UNUSED(context);
+
         if (input) {
-            const auto arrival_time = current_time();
-            const auto latency =
+            const unsigned long arrival_time = current_time();
+            const unsigned long latency =
                 difference(arrival_time, input->parent_timestamp);
 
             ++tuples_received;
@@ -989,7 +1012,8 @@ public:
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
-                clog << "[SINK] Received tuple containing the "
+                clog << "[SINK " << context.getReplicaIndex()
+                     << "] Received tuple containing the "
                         "following rankings: "
                      << input->rankings << ", arrival time: " << arrival_time
                      << " ts: " << input->parent_timestamp
@@ -1099,13 +1123,13 @@ int main(int argc, char *argv[]) {
                      parameters.time_policy};
     build_graph(parameters, graph);
 
-    const auto start_time = current_time();
+    const unsigned long start_time = current_time();
     graph.run();
-    const auto   elapsed_time = difference(current_time(), start_time);
-    const double throughput =
+    const unsigned long elapsed_time = difference(current_time(), start_time);
+    const double        throughput =
         elapsed_time > 0
-            ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
-            : global_sent_tuples.load();
+                   ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
+                   : global_sent_tuples.load();
     const double service_time = 1 / throughput;
 
     const auto latency_stats = get_stas_with_emit_freqs(
@@ -1129,7 +1153,7 @@ int main(int argc, char *argv[]) {
     serialize_json(service_time_stats, "tt-threads-service-time",
                    parameters.metric_output_directory);
 
-    const auto average_latency =
+    const double average_latency =
         accumulate(global_latency_metric.begin(), global_latency_metric.end(),
                    0.0)
         / (!global_latency_metric.empty() ? global_latency_metric.size()
