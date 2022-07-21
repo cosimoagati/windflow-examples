@@ -94,7 +94,7 @@ struct Tweet {
 
 struct Topic {
     string        word;
-    unsigned long timestamp;
+    unsigned long parent_timestamp;
     bool          is_tick_tuple;
 };
 
@@ -102,7 +102,7 @@ struct Counts {
     string        word;
     unsigned long count;
     size_t        window_length;
-    unsigned long timestamp;
+    unsigned long parent_timestamp;
     bool          is_tick_tuple;
 };
 
@@ -872,7 +872,7 @@ public:
         } else {
             counter.increment_count(topic.word);
             if (!parent_timestamp) {
-                parent_timestamp = topic.timestamp;
+                parent_timestamp = topic.parent_timestamp;
             }
         }
     }

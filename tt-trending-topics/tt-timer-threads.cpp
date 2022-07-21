@@ -95,14 +95,14 @@ struct Tweet {
 
 struct Topic {
     string        word;
-    unsigned long timestamp;
+    unsigned long parent_timestamp;
 };
 
 struct Counts {
     string        word;
     unsigned long count;
     size_t        window_length;
-    unsigned long timestamp;
+    unsigned long parent_timestamp;
 };
 
 static const struct option long_opts[] = {
@@ -861,7 +861,7 @@ public:
         lock_guard lock {emit_mutex};
         counter.increment_count(topic.word);
         if (!parent_timestamp) {
-            parent_timestamp = topic.timestamp;
+            parent_timestamp = topic.parent_timestamp;
         }
     }
 };
