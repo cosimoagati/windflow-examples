@@ -1082,8 +1082,9 @@ class AlertTriggererFunctor {
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
-                clog << "[ALERT TRIGGERER] Previous timestamp is now: "
-                     << previous_ordering_timestamp << '\n';
+                clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
+                     << "] Previous timestamp is now: "
+                     << previous_observation_timestamp << '\n';
             }
 #endif
         }
