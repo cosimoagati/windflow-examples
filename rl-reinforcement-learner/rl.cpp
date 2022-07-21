@@ -261,7 +261,7 @@ static void validate_args(const Parameters &parameters) {
         }
     }
 
-    const auto max_threads = thread::hardware_concurrency();
+    const unsigned max_threads = thread::hardware_concurrency();
 
     for (unsigned i = 0; i < num_nodes; ++i) {
         if (parameters.parallelism[i] > max_threads) {
@@ -369,7 +369,7 @@ class CTRGeneratorFunctor {
             }
         }
 #endif
-        const auto timestamp = current_time();
+        const unsigned long timestamp = current_time();
         return {InputTuple::Event, session_id, round_num, timestamp, 0};
     }
 
@@ -380,8 +380,8 @@ public:
           max_rounds {max_rounds} {}
 
     void operator()(Source_Shipper<InputTuple> &shipper) {
-        const auto    end_time    = current_time() + duration;
-        unsigned long sent_tuples = 0;
+        const unsigned long end_time    = current_time() + duration;
+        unsigned long       sent_tuples = 0;
 
         while (current_time() < end_time) {
             shipper.push(get_new_tuple());
@@ -456,7 +456,7 @@ class RewardSourceFunctor {
                 }
 #endif
                 for (unsigned i = 0; i < reinforcement_learner_replicas; ++i) {
-                    const auto timestamp = current_time();
+                    const unsigned long timestamp = current_time();
                     shipper.push({InputTuple::Reward, action,
                                   static_cast<unsigned>(r2), timestamp, i});
                 }
@@ -472,8 +472,8 @@ public:
     }
 
     void operator()(Source_Shipper<InputTuple> &shipper) {
-        const auto    end_time    = current_time() + duration;
-        unsigned long sent_tuples = 0;
+        const unsigned long end_time    = current_time() + duration;
+        unsigned long       sent_tuples = 0;
 
         while (current_time() < end_time) {
             send_new_reward(shipper);
@@ -1015,7 +1015,7 @@ public:
                 const auto entry = reward_stats.find(action);
                 assert(entry != reward_stats.end());
 
-                auto reward = static_cast<unsigned>(entry->second.get_mean());
+                unsigned reward = entry->second.get_mean();
                 if (reward > best_reward) {
                     best_reward = reward;
                     next_action = action;
@@ -1093,9 +1093,9 @@ class SinkFunctor {
         if (sampling_rate == 0) {
             return true;
         }
-        const auto time_since_last_sampling =
+        const unsigned long time_since_last_sampling =
             difference(arrival_time, last_sampling_time);
-        const auto time_between_samples =
+        const double time_between_samples =
             (1.0 / sampling_rate) * timeunit_scale_factor;
         return time_since_last_sampling >= time_between_samples;
     }
@@ -1121,8 +1121,9 @@ public:
 #endif
             global_action_queue.push(input->actions[0]);
 
-            const auto arrival_time = current_time();
-            const auto latency = difference(arrival_time, input->timestamp);
+            const unsigned long arrival_time = current_time();
+            const unsigned long latency =
+                difference(arrival_time, input->timestamp);
 
             ++tuples_received;
             last_arrival_time = arrival_time;
@@ -1265,13 +1266,13 @@ int main(int argc, char *argv[]) {
     build_graph(parameters, graph);
     print_initial_parameters(parameters);
 
-    const auto start_time = current_time();
+    const unsigned long start_time = current_time();
     graph.run();
-    const auto   elapsed_time = difference(current_time(), start_time);
-    const double throughput =
+    const unsigned long elapsed_time = difference(current_time(), start_time);
+    const double        throughput =
         elapsed_time > 0
-            ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
-            : global_sent_tuples.load();
+                   ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
+                   : global_sent_tuples.load();
     const double service_time = 1 / throughput;
 
     const auto latency_stats = get_distribution_stats(
@@ -1289,7 +1290,7 @@ int main(int argc, char *argv[]) {
     serialize_json(service_time_stats, "rl-service-time",
                    parameters.metric_output_directory);
 
-    const auto average_latency =
+    const double average_latency =
         accumulate(global_latency_metric.begin(), global_latency_metric.end(),
                    0.0)
         / (!global_latency_metric.empty() ? global_latency_metric.size()
