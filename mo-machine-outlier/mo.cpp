@@ -847,8 +847,7 @@ public:
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
-            clog << "[SLIDING WINDOW STREAM ANOMALY SCORER "
-                 << context.getReplicaIndex()
+            clog << "[ANOMALY SCORER " << context.getReplicaIndex()
                  << "] Received tuple with observation ID: " << tuple.id
                  << " containing observation: " << tuple.observation << '\n'
                  << '\n';
@@ -867,8 +866,7 @@ public:
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
-            clog << "[SLIDING WINDOW STREAM ANOMALY SCORER "
-                 << context.getReplicaIndex()
+            clog << "[ANOMALY SCORER " << context.getReplicaIndex()
                  << "] Sending out tuple with observation: "
                  << tuple.observation << ", ID: " << tuple.id
                  << ", score sum: " << score_sum
