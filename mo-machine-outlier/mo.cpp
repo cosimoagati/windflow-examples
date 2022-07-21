@@ -128,6 +128,7 @@ struct StreamProfile {
 
 struct SourceTuple {
     MachineMetadata observation;
+    unsigned long   observation_timestamp;
     unsigned long   ordering_timestamp;
     unsigned long   execution_timestamp;
 };
@@ -166,7 +167,9 @@ struct AlertTriggererResultTuple {
 template<typename T>
 struct TimestampGreaterComparator {
     bool operator()(const T &t, const T &s) {
-        return t.ordering_timestamp > s.ordering_timestamp;
+        return t.ordering_timestamp > s.ordering_timestamp
+               || (t.ordering_timestamp == s.ordering_timestamp
+                   && t.observation_timestamp > s.observation_timestamp);
     }
 };
 
@@ -493,9 +496,9 @@ public:
 
             const unsigned long execution_timestamp = current_time();
 
-            SourceTuple new_tuple = {current_observation,
-                                     current_observation.timestamp,
-                                     execution_timestamp};
+            SourceTuple new_tuple = {
+                current_observation, current_observation.timestamp,
+                current_observation.timestamp, execution_timestamp};
 
             shipper.pushWithTimestamp(move(new_tuple),
                                       new_tuple.observation.timestamp);
