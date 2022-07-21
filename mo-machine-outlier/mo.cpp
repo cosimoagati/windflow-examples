@@ -627,6 +627,8 @@ class ObservationScorerFunctor {
                  << '\n';
         }
 #endif
+        assert(tuple.ordering_timestamp >= previous_ordering_timestamp);
+
         if (tuple.ordering_timestamp > previous_ordering_timestamp) {
             if (!observation_list.empty()) {
                 const auto score_package_list =
