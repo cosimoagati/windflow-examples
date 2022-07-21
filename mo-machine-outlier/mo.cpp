@@ -614,8 +614,6 @@ class ObservationScorerFunctor {
     void process(const SourceTuple &              tuple,
                  Shipper<ObservationResultTuple> &shipper,
                  RuntimeContext &                 context) {
-        DO_NOT_WARN_IF_UNUSED(context);
-
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
@@ -843,7 +841,6 @@ public:
 
     AnomalyResultTuple operator()(const ObservationResultTuple &tuple,
                                   RuntimeContext &              context) {
-        DO_NOT_WARN_IF_UNUSED(context);
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
