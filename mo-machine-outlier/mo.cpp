@@ -753,7 +753,7 @@ class DataStreamAnomalyScorerFunctor {
                     lock_guard lock {print_mutex};
                     clog << "[ANOMALY SCORER " << context.getReplicaIndex()
                          << "] Sending out tuple with observation: "
-                         << tuple.observation << ", ID: " << result.id
+                         << result.observation << ", ID: " << result.id
                          << ", score sum: " << result.anomaly_score
                          << ", individual score: " << result.individual_score
                          << ", WindFlow timestamp: "
