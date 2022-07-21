@@ -1011,6 +1011,7 @@ class AlertTriggererFunctor {
     void process(const AnomalyResultTuple &          tuple,
                  Shipper<AlertTriggererResultTuple> &shipper,
                  RuntimeContext &                    context) {
+        DO_NOT_WARN_IF_UNUSED(context);
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
@@ -1153,6 +1154,7 @@ class TopKAlertTriggererFunctor {
     void process(const AnomalyResultTuple &          tuple,
                  Shipper<AlertTriggererResultTuple> &shipper,
                  RuntimeContext &                    context) {
+        DO_NOT_WARN_IF_UNUSED(context);
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
