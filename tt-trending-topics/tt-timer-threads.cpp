@@ -258,7 +258,7 @@ ostream &operator<<(ostream &stream, const Rankings<T> &rankings) {
 
 struct RankingsTuple {
     Rankings<string> rankings;
-    unsigned long    timestamp;
+    unsigned long    parent_timestamp;
 };
 
 template<typename T>
@@ -930,7 +930,7 @@ public:
         lock_guard lock {emit_mutex};
         update_rankings(counts, rankings);
         if (!parent_timestamp) {
-            parent_timestamp = counts.timestamp;
+            parent_timestamp = counts.parent_timestamp;
         }
     }
 };
@@ -977,7 +977,8 @@ public:
     void operator()(optional<RankingsTuple> &input) {
         if (input) {
             const auto arrival_time = current_time();
-            const auto latency = difference(arrival_time, input->timestamp);
+            const auto latency =
+                difference(arrival_time, input->parent_timestamp);
 
             ++tuples_received;
             last_arrival_time = arrival_time;
@@ -991,8 +992,8 @@ public:
                 clog << "[SINK] Received tuple containing the "
                         "following rankings: "
                      << input->rankings << ", arrival time: " << arrival_time
-                     << " ts: " << input->timestamp << " latency: " << latency
-                     << '\n';
+                     << " ts: " << input->parent_timestamp
+                     << " latency: " << latency << '\n';
             }
 #endif
         } else {
