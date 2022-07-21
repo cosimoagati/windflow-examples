@@ -164,9 +164,9 @@ struct AlertTriggererResultTuple {
     MachineMetadata observation;
 };
 
-template<typename T>
+template<typename Tuple>
 struct TimestampGreaterComparator {
-    bool operator()(const T &t, const T &s) {
+    bool operator()(const Tuple &t, const Tuple &s) {
         return t.ordering_timestamp > s.ordering_timestamp
                || (t.ordering_timestamp == s.ordering_timestamp
                    && t.observation_timestamp > s.observation_timestamp);
