@@ -1186,6 +1186,7 @@ class TopKAlertTriggererFunctor {
                 shipper.push(move(result));
             }
             previous_observation_timestamp = tuple.observation_timestamp;
+            parent_execution_timestamp     = tuple.parent_execution_timestamp;
             stream_list.clear();
         }
         stream_list.push_back(tuple);
