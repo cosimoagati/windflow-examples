@@ -162,6 +162,16 @@ public:
     }
 };
 
+class UUIDGenerator {
+    mt19937                      mt {random_device {}()};
+    uuids::uuid_random_generator uuid_gen {mt};
+
+public:
+    string operator()() {
+        return uuids::to_string(uuid_gen());
+    }
+};
+
 static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     int option;
     int index;
@@ -335,6 +345,7 @@ static mutex print_mutex;
 #endif
 
 class CTRGeneratorFunctor {
+    UUIDGenerator uuid_gen;
     unsigned long duration;
     unsigned      tuple_rate_per_second;
 
@@ -342,11 +353,8 @@ class CTRGeneratorFunctor {
     unsigned long event_count = 0;
     unsigned long max_rounds; // is this needed?
 
-    mt19937                      mt {random_device {}()};
-    uuids::uuid_random_generator uuid_gen {mt};
-
     InputTuple get_new_tuple() {
-        const auto session_id = uuids::to_string(uuid_gen());
+        const auto session_id = uuid_gen();
         ++round_num;
         ++event_count;
 
