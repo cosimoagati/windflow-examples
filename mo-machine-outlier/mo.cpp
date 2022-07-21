@@ -156,7 +156,6 @@ bool operator<(AnomalyResultTuple a, AnomalyResultTuple b) {
 struct AlertTriggererResultTuple {
     string          id;
     double          anomaly_score;
-    unsigned long   ordering_timestamp;
     unsigned long   parent_execution_timestamp;
     bool            is_abnormal;
     MachineMetadata observation;
@@ -1074,7 +1073,6 @@ class AlertTriggererFunctor {
                         }
 #endif
                         shipper.push({stream_profile.id, stream_score,
-                                      context.getCurrentTimestamp(),
                                       parent_execution_timestamp == 0
                                           ? tuple.parent_execution_timestamp
                                           : parent_execution_timestamp,
@@ -1180,14 +1178,11 @@ class TopKAlertTriggererFunctor {
                 auto &     tuple       = stream_list[i];
                 const bool is_abnormal = i >= stream_list.size() - actual_k;
                 AlertTriggererResultTuple result {
-                    tuple.id,
-                    tuple.anomaly_score,
-                    context.getCurrentTimestamp(),
+                    tuple.id, tuple.anomaly_score,
                     parent_execution_timestamp == 0
                         ? tuple.parent_execution_timestamp
                         : parent_execution_timestamp,
-                    is_abnormal,
-                    tuple.observation};
+                    is_abnormal, tuple.observation};
                 shipper.push(move(result));
             }
             previous_ordering_timestamp = tuple.ordering_timestamp;
@@ -1284,7 +1279,6 @@ public:
                      << (input->is_abnormal ? "true" : "false")
                      << ", containing observation: " << input->observation
                      << " arrival time: " << arrival_time
-                     << " ordering ts: " << input->ordering_timestamp
                      << " parent execution ts: "
                      << input->parent_execution_timestamp
                      << " latency: " << latency << ' ' << timeunit_string
