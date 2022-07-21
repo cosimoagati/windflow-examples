@@ -743,9 +743,7 @@ class DataStreamAnomalyScorerFunctor {
                     entry.first,
                     stream_profile.stream_anomaly_score,
                     context.getCurrentTimestamp(),
-                    parent_execution_timestamp == 0
-                        ? tuple.parent_execution_timestamp
-                        : parent_execution_timestamp,
+                    parent_execution_timestamp,
                     stream_profile.current_data_instance,
                     stream_profile.current_data_instance_score,
                 };
@@ -1073,10 +1071,7 @@ class AlertTriggererFunctor {
                         }
 #endif
                         shipper.push({stream_profile.id, stream_score,
-                                      parent_execution_timestamp == 0
-                                          ? tuple.parent_execution_timestamp
-                                          : parent_execution_timestamp,
-                                      is_abnormal,
+                                      parent_execution_timestamp, is_abnormal,
                                       stream_profile.observation});
                     }
                 }
@@ -1178,10 +1173,7 @@ class TopKAlertTriggererFunctor {
                 auto &     tuple       = stream_list[i];
                 const bool is_abnormal = i >= stream_list.size() - actual_k;
                 AlertTriggererResultTuple result {
-                    tuple.id, tuple.anomaly_score,
-                    parent_execution_timestamp == 0
-                        ? tuple.parent_execution_timestamp
-                        : parent_execution_timestamp,
+                    tuple.id, tuple.anomaly_score, parent_execution_timestamp,
                     is_abnormal, tuple.observation};
                 shipper.push(move(result));
             }
