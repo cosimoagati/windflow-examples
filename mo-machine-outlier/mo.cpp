@@ -1021,6 +1021,15 @@ class AlertTriggererFunctor {
         assert(tuple.ordering_timestamp >= previous_ordering_timestamp);
 
         if (tuple.ordering_timestamp > previous_ordering_timestamp) {
+#ifndef NDEBUG
+            {
+                lock_guard lock {print_mutex};
+                clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
+                     << "] Computing abnormalities "
+                        "over a stream of size "
+                     << stream_list.size() << '\n';
+            }
+#endif
             if (!stream_list.empty()) {
                 const auto abnormal_streams =
                     identify_abnormal_streams(stream_list);
@@ -1036,7 +1045,9 @@ class AlertTriggererFunctor {
                     clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
                          << "] Median index: " << median_idx
                          << ", minimum score: " << min_score
-                         << ", median score: " << median_score << '\n';
+                         << ", median score: " << median_score
+                         << ", number of abnormal streams: "
+                         << abnormal_streams.size() << '\n';
                 }
 #endif
                 for (size_t i = 0; i < abnormal_streams.size(); ++i) {
