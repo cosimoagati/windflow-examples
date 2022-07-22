@@ -1198,7 +1198,6 @@ public:
             clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
                  << "] Received tuple with id " << tuple.id
                  << ", ordering timestamp: " << tuple.ordering_timestamp
-                 << ". ordering timestamp: " << tuple.observation.timestamp
                  << ", WindFlow timestamp: " << context.getCurrentTimestamp()
                  << ", current amount of tuples cached: " << tuple_queue.size()
                  << ", current watermark: " << watermark << '\n';
