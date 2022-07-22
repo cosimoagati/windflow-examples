@@ -86,8 +86,8 @@ static unsigned long difference(unsigned long a, unsigned long b) {
  * Suspend execution for an amount of time units specified by duration.
  */
 static inline void busy_wait(unsigned long duration) {
-    const auto start_time = current_time();
-    auto       now        = start_time;
+    const unsigned long start_time = current_time();
+    unsigned long       now        = start_time;
     while (now - start_time < duration) {
         now = current_time();
     }
@@ -282,7 +282,7 @@ get_distribution_stats(const Metric<unsigned long> &metric,
         get_string_from_time_policy(parameters.time_policy);
 
     if (!metric.empty()) {
-        const auto mean =
+        const double mean =
             accumulate(metric.begin(), metric.end(), 0.0) / metric.size();
         json_stats["mean"] = mean;
 
