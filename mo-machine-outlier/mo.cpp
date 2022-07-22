@@ -592,9 +592,9 @@ public:
 
         const auto l2distances = calculate_distance(matrix);
         for (size_t i = 0; i < observation_list.size(); ++i) {
-            const auto &                  metadata = observation_list[i];
+            auto &                        metadata = observation_list[i];
             ScorePackage<MachineMetadata> package {
-                metadata.machine_ip, 1.0 + l2distances[i], metadata};
+                metadata.machine_ip, 1.0 + l2distances[i], move(metadata)};
             score_package_list.push_back(move(package));
         }
 
@@ -939,7 +939,7 @@ partition_single_side(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t left,
 }
 
 template<typename T>
-static inline TupleWrapper<T>
+static inline const TupleWrapper<T> &
 bfprt_wrapper(vector<TupleWrapper<T>> &tuple_wrapper_list, size_t i,
               size_t left, size_t right) {
     assert(!tuple_wrapper_list.empty());
@@ -974,7 +974,7 @@ static inline AnomalyResultTuple bfprt(vector<AnomalyResultTuple> &tuple_list,
         tuple_wrapper_list.emplace_back(tuple, tuple.individual_score);
     }
 
-    const auto median_tuple =
+    const auto &median_tuple =
         bfprt_wrapper(tuple_wrapper_list, i, 0, tuple_wrapper_list.size() - 1)
             .tuple;
     tuple_list.clear();
