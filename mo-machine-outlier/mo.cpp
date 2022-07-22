@@ -722,8 +722,8 @@ class DataStreamAnomalyScorerFunctor {
         {
             lock_guard lock {print_mutex};
             clog << "[ANOMALY SCORER " << context.getReplicaIndex()
-                 << "] Processing tuple with observation ID: " << tuple.id
-                 << " containing observation: " << tuple.observation
+                 << "] Processing tuple containing observation: "
+                 << tuple.observation
                  << ", ordering timestamp: " << tuple.ordering_timestamp
                  << ", WindFlow timestamp: " << context.getCurrentTimestamp()
                  << '\n';
@@ -754,7 +754,7 @@ class DataStreamAnomalyScorerFunctor {
                     lock_guard lock {print_mutex};
                     clog << "[ANOMALY SCORER " << context.getReplicaIndex()
                          << "] Sending out tuple with observation: "
-                         << result.observation << ", ID: " << result.id
+                         << result.observation
                          << ", score sum: " << result.anomaly_score
                          << ", individual score: " << result.individual_score
                          << ", WindFlow timestamp: "
@@ -846,9 +846,8 @@ public:
         {
             lock_guard lock {print_mutex};
             clog << "[ANOMALY SCORER " << context.getReplicaIndex()
-                 << "] Received tuple with observation ID: " << tuple.id
-                 << " containing observation: " << tuple.observation << '\n'
-                 << '\n';
+                 << "] Received tuple with containing observation: "
+                 << tuple.observation << '\n';
         }
 #endif
         auto &sliding_window = sliding_window_map[tuple.id];
@@ -866,8 +865,7 @@ public:
             lock_guard lock {print_mutex};
             clog << "[ANOMALY SCORER " << context.getReplicaIndex()
                  << "] Sending out tuple with observation: "
-                 << tuple.observation << ", ID: " << tuple.id
-                 << ", score sum: " << score_sum
+                 << tuple.observation << ", score sum: " << score_sum
                  << ", individual score: " << tuple.score << '\n';
         }
 #endif
@@ -1013,8 +1011,8 @@ class AlertTriggererFunctor {
         {
             lock_guard lock {print_mutex};
             clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
-                 << "] Processing tuple with id: " << tuple.id
-                 << ", anomaly score: " << tuple.anomaly_score
+                 << "] Processing tuple with anomaly score: "
+                 << tuple.anomaly_score
                  << ", individual score: " << tuple.individual_score
                  << ", ordering timestamp: " << tuple.ordering_timestamp
                  << ", observation: " << tuple.observation << '\n';
@@ -1109,8 +1107,8 @@ public:
         {
             lock_guard lock {print_mutex};
             clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
-                 << "] Received tuple with id " << tuple.id
-                 << ", ordering timestamp: " << tuple.ordering_timestamp
+                 << "] Received tuple with ordering timestamp: "
+                 << tuple.ordering_timestamp
                  << ", WindFlow timestamp: " << context.getCurrentTimestamp()
                  << ", current amount of tuples cached: " << tuple_queue.size()
                  << ", current watermark: " << watermark << '\n';
@@ -1154,8 +1152,8 @@ class TopKAlertTriggererFunctor {
         {
             lock_guard lock {print_mutex};
             clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
-                 << "] Processing tuple with id: " << tuple.id
-                 << ", anomaly score: " << tuple.anomaly_score
+                 << "] Processing tuple with anomaly score: "
+                 << tuple.anomaly_score
                  << ", individual score: " << tuple.individual_score
                  << ", ordering timestamp: " << tuple.ordering_timestamp
                  << ", observation: " << tuple.observation
@@ -1265,8 +1263,7 @@ public:
             {
                 lock_guard lock {print_mutex};
                 clog << "[SINK " << context.getReplicaIndex()
-                     << "] id: " << input->id << " "
-                     << "anomaly score: " << input->anomaly_score
+                     << "] anomaly score: " << input->anomaly_score
                      << " is_abnormal: "
                      << (input->is_abnormal ? "true" : "false")
                      << ", containing observation: " << input->observation
