@@ -782,19 +782,18 @@ class DataStreamAnomalyScorerFunctor {
             parent_execution_timestamp     = tuple.parent_execution_timestamp;
         }
 
-        const auto   profile_entry = stream_profile_map.find(tuple.id);
-        const double instance_anomaly_score = tuple.score;
+        const auto profile_entry = stream_profile_map.find(tuple.id);
 
         if (profile_entry == stream_profile_map.end()) {
-            StreamProfile<T> profile {tuple.id, tuple.observation,
-                                      instance_anomaly_score, tuple.score};
+            StreamProfile<T> profile {tuple.id, tuple.observation, tuple.score,
+                                      tuple.score};
             stream_profile_map.insert({tuple.id, move(profile)});
         } else {
             auto &profile = profile_entry->second;
             profile.stream_anomaly_score =
-                profile.stream_anomaly_score * factor + instance_anomaly_score;
+                profile.stream_anomaly_score * factor + tuple.score;
             profile.current_data_instance       = tuple.observation;
-            profile.current_data_instance_score = instance_anomaly_score;
+            profile.current_data_instance_score = tuple.score;
 
             if (profile.stream_anomaly_score > threshold) {
                 shrink_next_round = true;
