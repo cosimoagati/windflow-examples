@@ -635,12 +635,15 @@ class ObservationScorerFunctor {
             if (!observation_list.empty()) {
                 const auto score_package_list =
                     scorer.get_scores(observation_list);
+                const unsigned long next_ordering_timestamp =
+                    context.getCurrentTimestamp();
+
                 for (const auto &package : score_package_list) {
                     ObservationResultTuple result {
                         package.id,
                         package.score,
                         previous_observation_timestamp,
-                        context.getCurrentTimestamp(),
+                        next_ordering_timestamp,
                         parent_execution_timestamp,
                         package.data};
 #ifndef NDEBUG
@@ -739,6 +742,9 @@ class DataStreamAnomalyScorerFunctor {
         assert(tuple.observation_timestamp >= previous_observation_timestamp);
 
         if (tuple.observation_timestamp > previous_observation_timestamp) {
+            const unsigned long next_ordering_timestamp =
+                context.getCurrentTimestamp();
+
             for (auto &entry : stream_profile_map) {
                 auto &stream_profile = entry.second;
                 if (shrink_next_round) {
@@ -749,7 +755,7 @@ class DataStreamAnomalyScorerFunctor {
                     entry.first,
                     stream_profile.stream_anomaly_score,
                     previous_observation_timestamp,
-                    context.getCurrentTimestamp(),
+                    next_ordering_timestamp,
                     parent_execution_timestamp,
                     stream_profile.current_data_instance,
                     stream_profile.current_data_instance_score,
@@ -879,10 +885,13 @@ public:
                  << ", individual score: " << tuple.score << '\n';
         }
 #endif
+        const unsigned long next_ordering_timestamp =
+            context.getCurrentTimestamp();
+
         return {tuple.id,
                 score_sum,
                 tuple.observation_timestamp,
-                context.getCurrentTimestamp(),
+                next_ordering_timestamp,
                 tuple.parent_execution_timestamp,
                 tuple.observation,
                 tuple.score};
