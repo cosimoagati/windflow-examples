@@ -984,12 +984,11 @@ static inline AnomalyResultTuple bfprt(vector<AnomalyResultTuple> &tuple_list,
     return median_tuple;
 }
 
-static inline vector<AnomalyResultTuple>
+static inline const vector<AnomalyResultTuple> &
 identify_abnormal_streams(vector<AnomalyResultTuple> &stream_list) {
     const size_t median_idx {stream_list.size() / 2};
     bfprt(stream_list, median_idx);
-    const auto abnormal_stream_list = stream_list;
-    return abnormal_stream_list; // XXX: Is this correct?  Why the copy?
+    return stream_list;
 }
 
 class AlertTriggererFunctor {
