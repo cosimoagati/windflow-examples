@@ -798,7 +798,7 @@ class DataStreamAnomalyScorerFunctor {
             if (profile.stream_anomaly_score > threshold) {
                 shrink_next_round = true;
             }
-            stream_profile_map.insert({tuple.id, profile});
+            stream_profile_map.insert_or_assign(tuple.id, profile);
         }
     }
 
