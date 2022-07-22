@@ -103,7 +103,7 @@ struct MachineMetadata {
 
 #ifndef NDEBUG
 ostream &operator<<(ostream &stream, const MachineMetadata &metadata) {
-    stream << "{Machine ip: " << metadata.machine_ip
+    stream << "{Machine IP: " << metadata.machine_ip
            << ", CPU usage: " << metadata.cpu_usage
            << ", memory usage: " << metadata.memory_usage
            << ", observation timestamp: " << metadata.timestamp << '}';
