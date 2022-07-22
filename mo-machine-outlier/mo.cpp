@@ -1125,8 +1125,8 @@ public:
         {
             lock_guard lock {print_mutex};
             clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
-                 << "] Received tuple with ordering timestamp: "
-                 << tuple.ordering_timestamp
+                 << "] Received tuple with id " << tuple.id
+                 << ", ordering timestamp: " << tuple.ordering_timestamp
                  << ", WindFlow timestamp: " << context.getCurrentTimestamp()
                  << ", current amount of tuples cached: " << tuple_queue.size()
                  << ", current watermark: " << watermark << '\n';
@@ -1212,8 +1212,8 @@ public:
         {
             lock_guard lock {print_mutex};
             clog << "[ALERT TRIGGERER " << context.getReplicaIndex()
-                 << "] Received tuple with ordering timestamp: "
-                 << tuple.ordering_timestamp
+                 << "] Received tuple with id " << tuple.id
+                 << ", ordering timestamp: " << tuple.ordering_timestamp
                  << ". observation timestamp: " << tuple.observation.timestamp
                  << ", WindFlow timestamp: " << context.getCurrentTimestamp()
                  << ", current amount of tuples cached: " << tuple_queue.size()
