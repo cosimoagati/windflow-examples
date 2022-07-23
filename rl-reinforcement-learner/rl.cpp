@@ -1256,6 +1256,15 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     return graph;
 }
 
+static inline nlohmann::ordered_json
+add_rl_stats(const nlohmann::ordered_json &json_stats,
+             const Parameters &            parameters) {
+    auto updated_json_stats = json_stats;
+    updated_json_stats["reinforcement learner type"] =
+        parameters.reinforcement_learner_type;
+    return updated_json_stats;
+}
+
 int main(int argc, char *argv[]) {
     Parameters parameters;
     parse_args(argc, argv, parameters);
@@ -1275,18 +1284,24 @@ int main(int argc, char *argv[]) {
                    : global_sent_tuples.load();
     const double service_time = 1 / throughput;
 
-    const auto latency_stats = get_distribution_stats(
-        global_latency_metric, parameters, global_received_tuples);
+    const auto latency_stats =
+        add_rl_stats(get_distribution_stats(global_latency_metric, parameters,
+                                            global_received_tuples),
+                     parameters);
     serialize_json(latency_stats, "rl-latency",
                    parameters.metric_output_directory);
 
-    const auto throughput_stats = get_single_value_stats(
-        throughput, "throughput", parameters, global_sent_tuples.load());
+    const auto throughput_stats = add_rl_stats(
+        get_single_value_stats(throughput, "throughput", parameters,
+                               global_sent_tuples.load()),
+        parameters);
     serialize_json(throughput_stats, "rl-throughput",
                    parameters.metric_output_directory);
 
-    const auto service_time_stats = get_single_value_stats(
-        service_time, "service time", parameters, global_sent_tuples.load());
+    const auto service_time_stats = add_rl_stats(
+        get_single_value_stats(service_time, "service time", parameters,
+                               global_sent_tuples.load()),
+        parameters);
     serialize_json(service_time_stats, "rl-service-time",
                    parameters.metric_output_directory);
 

@@ -1436,6 +1436,16 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     return graph;
 }
 
+static inline nlohmann::ordered_json
+add_mo_stats(const nlohmann::ordered_json &json_stats,
+             const Parameters &            parameters) {
+    auto updated_json_stats = json_stats;
+
+    updated_json_stats["anomaly scorer"]  = parameters.anomaly_scorer_type;
+    updated_json_stats["alert triggerer"] = parameters.alert_triggerer_type;
+    return updated_json_stats;
+}
+
 int main(int argc, char *argv[]) {
     Parameters parameters;
     parse_args(argc, argv, parameters);
@@ -1455,18 +1465,24 @@ int main(int argc, char *argv[]) {
                    : global_sent_tuples.load();
     const double service_time = 1 / throughput;
 
-    const auto latency_stats = get_distribution_stats(
-        global_latency_metric, parameters, global_received_tuples);
+    const auto latency_stats =
+        add_mo_stats(get_distribution_stats(global_latency_metric, parameters,
+                                            global_received_tuples),
+                     parameters);
     serialize_json(latency_stats, "mo-latency",
                    parameters.metric_output_directory);
 
-    const auto throughput_stats = get_single_value_stats(
-        throughput, "throughput", parameters, global_sent_tuples.load());
+    const auto throughput_stats = add_mo_stats(
+        get_single_value_stats(throughput, "throughput", parameters,
+                               global_sent_tuples.load()),
+        parameters);
     serialize_json(throughput_stats, "mo-throughput",
                    parameters.metric_output_directory);
 
-    const auto service_time_stats = get_single_value_stats(
-        service_time, "service time", parameters, global_sent_tuples.load());
+    const auto service_time_stats = add_mo_stats(
+        get_single_value_stats(service_time, "service time", parameters,
+                               global_sent_tuples.load()),
+        parameters);
     serialize_json(service_time_stats, "mo-service-time",
                    parameters.metric_output_directory);
 
