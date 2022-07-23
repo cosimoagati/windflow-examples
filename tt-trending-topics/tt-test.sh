@@ -24,7 +24,7 @@ for rate in 0; do
                      --rate="$rate" \
                      --timernodes=true \
                      --outputdir="$outputdir/tt-functors" \
-                     >> "$outputdir/tt-functors/output-$($datecmd).txt"
+                     >> "$outputdir/output-$($datecmd).txt"
             done
 
             for pardeg in $(seq 1 $((($nproc - $timerthreads) / 4))); do
@@ -36,7 +36,7 @@ for rate in 0; do
                      --rate="$rate" \
                      --timernodes=true \
                      --outputdir="$outputdir/tt-functors" \
-                     >> "$outputdir/tt-functors/output-$($datecmd).txt"
+                     >> "$outputdir/output-$($datecmd).txt"
             done
             
             for pardeg in $(seq 1 $((($nproc - $timerthreads) / 6))); do
@@ -48,7 +48,7 @@ for rate in 0; do
                      --rate="$rate" \
                      --timernodes=false \
                      --outputdir="$outputdir/tt-threads" \
-                     >> "$outputdir/tt-threads/output-$($datecmd).txt"
+                     >> "$outputdir/output-$($datecmd).txt"
             done
             
             for pardeg in $(seq $((($nproc - $timerthreads) / 3))); do
@@ -60,7 +60,7 @@ for rate in 0; do
                      --rate="$rate" \
                      --timernodes=false \
                      --outputdir="$outputdir/tt-threads" \
-                     >> "$outputdir/tt-threads/output-$($datecmd).txt"
+                     >> "$outputdir/output-$($datecmd).txt"
             done
         done
     done
