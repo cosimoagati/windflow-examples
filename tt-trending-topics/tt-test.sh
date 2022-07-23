@@ -8,7 +8,7 @@ timerthreads=3
 
 cd $(dirname "$0")
 echo "Test started on $(date)"
-mkdir -p "$outputdir/tt-functors" "$outputdir/tt-threads"
+mkdir -p "$outputdir"
 
 set -x
 make -j$nproc -B
