@@ -504,6 +504,7 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
             break;
         case 'T':
             parameters.use_timer_nodes = get_bool_from_string(optarg);
+            break;
         case 'h':
             cout << "Parameters: --rate <value> --sampling "
                     "<value> --batch <size> --parallelism "
