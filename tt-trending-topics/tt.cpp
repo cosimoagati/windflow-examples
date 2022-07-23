@@ -447,7 +447,8 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
         case 'r':
             parameters.tuple_rate = atoi(optarg);
             break;
-            ? case 's' : parameters.sampling_rate = atoi(optarg);
+        case 's':
+            parameters.sampling_rate = atoi(optarg);
             break;
         case 'b': {
             const auto batches = get_nums_split_by_commas(optarg);
