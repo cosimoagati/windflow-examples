@@ -11,7 +11,7 @@ echo "Test started on $(date)"
 mkdir -p "$outputdir/tt-functors" "$outputdir/tt-threads"
 
 set -x
-make -B
+make -j$nproc -B
 for rate in 0; do
     for freq in 2 4 6 8 10; do
         for batching in 0 1 2 4 8 16 32 64 128; do

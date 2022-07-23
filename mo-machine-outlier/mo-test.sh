@@ -16,7 +16,7 @@ echo "Test started on $(date)"
 mkdir -p "$outputdir"
 
 set -x
-make -B
+make -j$nproc -B
 for rate in 0; do
     for execmode in $execmodes; do
         for anomaly_scorer in $anomaly_scorer_variants; do

@@ -10,7 +10,7 @@ echo "Test started on $(date)"
 mkdir -p "$outputdir"
 
 set -x
-make -B
+make -j$nproc -B
 for rate in 0; do
     for chaining in false true; do
         for batching in 0 1 2 4 8 16 32 64 128; do
