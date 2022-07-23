@@ -24,7 +24,7 @@ for rate in 0; do
                          --frequency="$freq,$freq,$freq" \
                          --rate="$rate" \
                          --timernodes="$usetimernodes" \
-                         --outputdir="$outputdir/tt-functors" \
+                         --outputdir="$outputdir" \
                          >> "$outputdir/output-$($datecmd).txt"
                 done
             done
@@ -37,7 +37,7 @@ for rate in 0; do
                      --frequency="$freq,$freq,$freq" \
                      --rate="$rate" \
                      --timernodes=true \
-                     --outputdir="$outputdir/tt-functors" \
+                     --outputdir="$outputdir" \
                      >> "$outputdir/output-$($datecmd).txt"
             done
             
@@ -49,7 +49,7 @@ for rate in 0; do
                      --frequency="$freq,$freq,$freq" \
                      --rate="$rate" \
                      --timernodes=false \
-                     --outputdir="$outputdir/tt-threads" \
+                     --outputdir="$outputdir" \
                      >> "$outputdir/output-$($datecmd).txt"
             done
         done
