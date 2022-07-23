@@ -1278,10 +1278,12 @@ int main(int argc, char *argv[]) {
     const unsigned long start_time = current_time();
     graph.run();
     const unsigned long elapsed_time = difference(current_time(), start_time);
-    const double        throughput =
+
+    const double throughput =
         elapsed_time > 0
-                   ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
-                   : global_sent_tuples.load();
+            ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
+            : global_sent_tuples.load();
+
     const double service_time = 1 / throughput;
 
     const auto latency_stats =
