@@ -1138,8 +1138,7 @@ public:
             }
             break;
         default:
-            cerr << "[ALERT TRIGGERER] Error: unknown execution "
-                    "mode\n";
+            cerr << "[ALERT TRIGGERER] Error: unknown execution mode\n";
             exit(EXIT_FAILURE);
             break;
         }
@@ -1225,8 +1224,7 @@ public:
             }
             break;
         default:
-            cerr << "[ALERT TRIGGERER] Error: unknown execution "
-                    "mode\n";
+            cerr << "[ALERT TRIGGERER] Error: unknown execution mode\n";
             exit(EXIT_FAILURE);
             break;
         }
