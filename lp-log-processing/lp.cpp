@@ -352,7 +352,7 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
             }
         } break;
         case 'c':
-            parameters.use_chaining = get_chaining_value_from_string(optarg);
+            parameters.use_chaining = get_bool_from_string(optarg);
             break;
         case 'd':
             parameters.duration = atoi(optarg);
