@@ -218,21 +218,17 @@ Return a brand new list, the original list is left untouched."
            (mapcar (lambda (k) (gethash k json)) frequency-keys))))
 
 (defun filter-jsons-by-frequency (jsons frequency)
-  (if (notany #'contains-frequency-fields-p jsons)
-      jsons
-      (remove-if-not (lambda (j) (frequency-fields-equal-value-p j frequency))
-                     jsons)))
+  (remove-if-not (lambda (j) (frequency-fields-equal-value-p j frequency))
+                 jsons))
 
 (defun contains-timer-node-key (json)
   (let ((keys (alexandria:hash-table-keys json)))
     (member "using timer nodes" keys :test #'equal)))
 
 (defun filter-jsons-by-timernode-impl (jsons timer-nodes-p)
-  (if (notany #'contains-timer-node-key jsons)
-      jsons
-      (remove-if-not (lambda (j) (eql (gethash "using timer nodes" j)
-                                      timer-nodes-p))
-                     jsons)))
+  (remove-if-not (lambda (j) (eql (gethash "using timer nodes" j)
+                                  timer-nodes-p))
+                 jsons))
 
 (defun filter-jsons (parameters jsons)
   (with-accessors ((metric metric) (sampling-rate sampling-rate)
@@ -251,11 +247,13 @@ Return a brand new list, the original list is left untouched."
       (setf jsons (filter-jsons-by-batch-size jsons batch-size)))
     (unless (or (eql plot-by :chaining) (eql compare-by :chaining))
       (setf jsons (filter-jsons-by-chaining jsons chaining-p)))
-    (unless (eql compare-by :frequency)
+    (when (and (some #'contains-frequency-fields-p jsons)
+               (not (eql compare-by :frequency)))
       (setf jsons (filter-jsons-by-frequency jsons single-freq)))
     (unless (eql compare-by :execmode)
       (setf jsons (filter-jsons-by-execmode jsons execmode)))
-    (unless (eql compare-by :timernode-impl)
+    (when (and (some #'contains-timer-node-key jsons)
+               (not (eql compare-by :timernode-impl)))
       (setf jsons (filter-jsons-by-timernode-impl jsons timer-nodes-p)))
     (setf jsons (ecase plot-by
                   (:parallelism (sort-jsons-by-parallelism jsons))
