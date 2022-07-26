@@ -6,6 +6,9 @@ outputdir="testresults-$($datecmd)"
 nproc=$(nproc)
 timerthreads=3
 
+# frequencies="2 4 6 8 10"
+frequencies="2"
+
 cd $(dirname "$0")
 echo Test started on $(date)
 mkdir -p "$outputdir"
@@ -13,7 +16,7 @@ mkdir -p "$outputdir"
 set -x
 make -j$nproc -B
 for rate in 0; do
-    for freq in 2 4 6 8 10; do
+    for freq in $frequencies; do
         for batching in 0 1 2 4 8 16 32 64 128; do
             for pardeg in $(seq 1 $((($nproc - $timerthreads) / 6))); do
                 for usetimernodes in false true; do
