@@ -898,6 +898,12 @@ public:
                 parent_timestamp.reset();
             }
         } else {
+            {
+                lock_guard lock {print_mutex};
+                clog << "[ROLLING COUNTER " << context.getReplicaIndex()
+                     << "] Received normal (non-tick) tuple contaiing word "
+                     << topic.word << '\n';
+            }
             counter.increment_count(topic.word);
             if (!parent_timestamp) {
                 parent_timestamp = topic.parent_timestamp;
@@ -923,8 +929,8 @@ class RollingCounterFunctorWithTimerThread {
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
-                clog << "[ROLLING COUNTER] " << context.getReplicaIndex()
-                     << "Received tick tuple at "
+                clog << "[ROLLING COUNTER " << context.getReplicaIndex()
+                     << "] Received tick tuple at "
                         "time (in miliseconds) "
                      << current_time_msecs() << '\n';
             }
