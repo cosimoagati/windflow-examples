@@ -226,8 +226,8 @@ Return a brand new list, the original list is left untouched."
     (member "using timer nodes" keys :test #'equal)))
 
 (defun filter-jsons-by-timernode-impl (jsons timer-nodes-p)
-  (remove-if-not (lambda (j) (eql (gethash "using timer nodes" j)
-                                  timer-nodes-p))
+  (remove-if-not (lambda (j)
+                   (eql (gethash "using timer nodes" j) timer-nodes-p))
                  jsons))
 
 (defun filter-jsons (parameters jsons)
