@@ -45,6 +45,10 @@
                 :initform (list 0 5 25 50 75 95 100))
    (compare-by :accessor compare-by :initarg :compare-by
                :initform :batch-size)
+   (timer-nodes-p :accessor timer-nodes-p :initarg :timer-nodes-p
+                  :initform t)
+   (single-frequency :accessor single-freq :initarg :single-freq
+                     :initform 2)
    (directory-to-plot :accessor plotdir :initarg :plotdir
                       :initform "")))
 
@@ -202,6 +206,63 @@ Return a brand new list, the original list is left untouched."
                                 sampling-rate))
                  jsons))
 
+(defun contains-frequency-fields-p (json)
+  (let ((keys (alexandria:hash-table-keys json)))
+    (some (lambda (k) (ends-with k "frequency")) keys)))
+
+(defun frequency-fields-equal-value-p (json value)
+  (let ((frequency-keys (remove-if-not (lambda (k)
+                                         (ends-with k "frequency"))
+                                       (alexandria:hash-table-keys json))))
+    (every (lambda (v) (equal v value))
+           (mapcar (lambda (k) (gethash k json)) frequency-keys))))
+
+(defun filter-jsons-by-frequency (jsons frequency)
+  (if (notany #'contains-frequency-fields-p jsons)
+      jsons
+      (remove-if-not (lambda (j) (frequency-fields-equal-value-p j frequency))
+                     jsons)))
+
+(defun contains-timer-node-key (json)
+  (let ((keys (alexandria:hash-table-keys json)))
+    (member "using timer nodes" keys :test #'equal)))
+
+(defun filter-jsons-by-timernode-impl (jsons timer-nodes-p)
+  (if (notany #'contains-timer-node-key jsons)
+      jsons
+      (remove-if-not (lambda (j) (eql (gethash "using timer nodes" j)
+                                      timer-nodes-p))
+                     jsons)))
+
+(defun filter-jsons (parameters jsons)
+  (with-accessors ((metric metric) (sampling-rate sampling-rate)
+                   (tuple-rate tuple-rate) (plot-by plot-by)
+                   (compare-by compare-by) (chaining-p chaining-p)
+                   (execmode execmode) (pardeg single-pardeg)
+                   (batch-size single-batch-size) (single-freq single-freq)
+                   (timer-nodes-p timer-nodes-p))
+      parameters
+    (setf jsons (filter-jsons-by-name jsons metric)
+          jsons (filter-jsons-by-sampling-rate jsons sampling-rate)
+          jsons (filter-jsons-by-tuple-rate jsons tuple-rate))
+    (unless (or (eql plot-by :parallelism) (eql compare-by :parallelism))
+      (setf jsons (filter-jsons-by-parallelism jsons pardeg)))
+    (unless (or (eql plot-by :batch-size) (eql compare-by :batch-size))
+      (setf jsons (filter-jsons-by-batch-size jsons batch-size)))
+    (unless (or (eql plot-by :chaining) (eql compare-by :chaining))
+      (setf jsons (filter-jsons-by-chaining jsons chaining-p)))
+    (unless (eql compare-by :frequency)
+      (setf jsons (filter-jsons-by-frequency jsons single-freq)))
+    (unless (eql compare-by :execmode)
+      (setf jsons (filter-jsons-by-execmode jsons execmode)))
+    (unless (eql compare-by :timernode-impl)
+      (setf jsons (filter-jsons-by-timernode-impl jsons timer-nodes-p)))
+    (setf jsons (ecase plot-by
+                  (:parallelism (sort-jsons-by-parallelism jsons))
+                  (:batch-size (sort-jsons-by-batch-size jsons))
+                  (:chaining (sort-jsons-by-chaining jsons))))
+    jsons))
+
 (defun get-tuple-rate (json)
   "Extract tuple generation rate from the specified JSON object."
   (multiple-value-bind (val1 present1-p) (gethash "tuple_rate" json)
@@ -327,7 +388,12 @@ Return a brand new list, the original list is left untouched."
                          (concatenate 'string initial-title
                                       "(chaining " chaining
                                       ") (generation rate: " tuple-rate
-                                      ") (batch size: " batch-size ")"))))
+                                      ") (batch size: " batch-size ")"))
+                        (:frequency
+                         (concatenate 'string initial-title
+                                      "(chaining: " chaining
+                                      ") (generation rate: "  tuple-rate
+                                      ") (batch-size: " batch-size))))
         (:batch-size (ecase (compare-by parameters)
                        (:parallelism
                         (concatenate 'string initial-title
@@ -402,29 +468,11 @@ Return a brand new list, the original list is left untouched."
       (draw-boxplot :title title :x-label xlabel :y-label ylabel
                     :x-axis x-axis :y-axis y-axis))))
 
-(defun filter-jsons (parameters jsons)
-  (with-accessors ((metric metric) (sampling-rate sampling-rate)
-                   (tuple-rate tuple-rate) (plot-by plot-by)
-                   (compare-by compare-by) (chaining-p chaining-p)
-                   (execmode execmode) (pardeg single-pardeg)
-                   (batch-size single-batch-size))
-      parameters
-    (setf jsons (filter-jsons-by-name jsons metric)
-          jsons (filter-jsons-by-sampling-rate jsons sampling-rate)
-          jsons (filter-jsons-by-tuple-rate jsons tuple-rate))
-    (unless (or (eql plot-by :parallelism) (eql compare-by :parallelism))
-      (setf jsons (filter-jsons-by-parallelism jsons pardeg)))
-    (unless (or (eql plot-by :batch-size) (eql compare-by :batch-size))
-      (setf jsons (filter-jsons-by-batch-size jsons batch-size)))
-    (unless (or (eql plot-by :chaining) (eql compare-by :chaining))
-      (setf jsons (filter-jsons-by-chaining jsons chaining-p)))
-    (unless (eql compare-by :execmode)
-      (setf jsons (filter-jsons-by-execmode jsons execmode)))
-    (setf jsons (ecase plot-by
-                  (:parallelism (sort-jsons-by-parallelism jsons))
-                  (:batch-size (sort-jsons-by-batch-size jsons))
-                  (:chaining (sort-jsons-by-chaining jsons))))
-    jsons))
+(defmacro push-to-triples (x-axis y-axis label triples)
+  `(progn
+     (push ,label ,triples)
+     (push ,y-axis ,triples)
+     (push ,x-axis ,triples)))
 
 (defun get-triples-for-parallelism-comparison (parameters jsons)
   (with-accessors ((name metric) (pardegs pardegs)
@@ -437,13 +485,12 @@ Return a brand new list, the original list is left untouched."
           (when current-jsons
             (let ((x-axis (get-x-axis (plot-by parameters) current-jsons))
                   (y-axis (get-y-axis name current-jsons percentile time-unit))
-                  (pardeg-label (write-to-string
-                                 (gethash "parallelism"
-                                          (first current-jsons)))))
-              (push (concatenate 'string "Parallelism degree: " pardeg-label)
-                    plot-triples)
-              (push y-axis plot-triples)
-              (push x-axis plot-triples))))))))
+                  (label
+                    (concatenate 'string "Parallelism degree: "
+                                 (write-to-string
+                                  (gethash "parallelism"
+                                           (first current-jsons))))))
+              (push-to-triples x-axis y-axis label plot-triples))))))))
 
 (defun get-triples-for-batch-size-comparison (parameters jsons)
   "Get the values to plot for a batch size comparison.
@@ -463,13 +510,12 @@ PERCENTILE and TIME-UNIT are used to extract the appropriate Y values."
             (let ((x-axis (get-x-axis (plot-by parameters) current-jsons))
                   (y-axis (get-y-axis name current-jsons percentile
                                       time-unit))
-                  (batch-size-label (write-to-string
-                                     (gethash "batch size"
-                                              (first current-jsons)))))
-              (push (concatenate 'string "Batch size: " batch-size-label)
-                    plot-triples)
-              (push y-axis plot-triples)
-              (push x-axis plot-triples))))))))
+                  (label
+                    (concatenate 'string "Batch size: "
+                                 (write-to-string
+                                  (gethash "batch size"
+                                           (first current-jsons))))))
+              (push-to-triples x-axis y-axis label plot-triples))))))))
 
 (defun get-triples-for-chaining-comparison (parameters jsons)
   (with-accessors ((name metric) (percentile percentile)) parameters
@@ -480,12 +526,10 @@ PERCENTILE and TIME-UNIT are used to extract the appropriate Y values."
           (when current-jsons
             (let ((x-axis (get-x-axis (plot-by parameters) current-jsons))
                   (y-axis (get-y-axis name current-jsons percentile
-                                      time-unit)))
-              (push (concatenate 'string "Chaining: "
-                                 (chaining-to-string chaining-p))
-                    plot-triples)
-              (push y-axis plot-triples)
-              (push x-axis plot-triples))))))))
+                                      time-unit))
+                  (label (concatenate 'string "Chaining: "
+                                      (chaining-to-string chaining-p))))
+              (push-to-triples x-axis y-axis label plot-triples))))))))
 
 (defun get-triples-for-execmode-comparison (parameters jsons)
   (with-accessors ((name metric) (percentile percentile)) parameters
@@ -496,18 +540,32 @@ PERCENTILE and TIME-UNIT are used to extract the appropriate Y values."
           (when current-jsons
             (let ((x-axis (get-x-axis (plot-by parameters) current-jsons))
                   (y-axis (get-y-axis name current-jsons percentile
-                                      time-unit)))
-              (push (concatenate 'string "Execution mode: " execmode)
-                    plot-triples)
-              (push y-axis plot-triples)
-              (push x-axis plot-triples))))))))
+                                      time-unit))
+                  (label (concatenate 'string "Execution mode: " execmode)))
+              (push-to-triples x-axis y-axis label plot-triples))))))))
+
+(defun get-triples-for-frequency-comparison (parameters jsons)
+  (with-accessors ((name metric) (percentile percentile)) parameters
+    (let ((time-unit (gethash "time unit" (first jsons)))
+          plot-triples)
+      (dolist (frequency '(2 4 6 8 10) plot-triples)
+        (let ((current-jsons (filter-jsons-by-frequency jsons frequency)))
+          (when current-jsons
+            (let ((x-axis (get-x-axis (plot-by parameters) current-jsons))
+                  (y-axis (get-y-axis name current-jsons percentile
+                                      time-unit))
+                  (label (concatenate 'string
+                                      "Output frequency for all operators:"
+                                      (write-to-string frequency))))
+              (push-to-triples x-axis y-axis label plot-triples))))))))
 
 (defun get-triples (parameters jsons)
   (ecase (compare-by parameters)
     (:parallelism (get-triples-for-parallelism-comparison parameters jsons))
     (:batch-size (get-triples-for-batch-size-comparison parameters jsons))
     (:chaining (get-triples-for-chaining-comparison parameters jsons))
-    (:execmode (get-triples-for-execmode-comparison parameters jsons))))
+    (:execmode (get-triples-for-execmode-comparison parameters jsons))
+    (:frequency (get-triples-for-frequency-comparison parameters jsons))))
 
 (defun plot (&optional (parameters *default-plot-parameters*) jsons
                image-path)
