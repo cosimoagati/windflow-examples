@@ -655,6 +655,9 @@ public:
             usleep(time_units_between_ticks / timeunit_scale_factor * 1000000);
             for (unsigned i = 0; i < replicas; ++i) {
                 OutputTuple tuple;
+                if constexpr (!is_same_v<OutputTuple, RankingsTuple>) {
+                    tuple.word = to_string(i);
+                }
                 tuple.is_tick_tuple = true;
                 shipper.push(move(tuple));
             }
