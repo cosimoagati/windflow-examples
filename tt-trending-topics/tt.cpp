@@ -901,12 +901,14 @@ public:
                 parent_timestamp.reset();
             }
         } else {
+#ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
                 clog << "[ROLLING COUNTER " << context.getReplicaIndex()
                      << "] Received normal (non-tick) tuple contaiing word "
                      << topic.word << '\n';
             }
+#endif
             counter.increment_count(topic.word);
             if (!parent_timestamp) {
                 parent_timestamp = topic.parent_timestamp;
