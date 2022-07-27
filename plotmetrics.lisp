@@ -10,7 +10,7 @@
 
 (declaim (optimize (speed 3)))
 
-(eval-when (:compile-toplevel)
+(eval-when (:compile-toplevel :load-toplevel)
   (ql:quickload '(:vgplot :yason :alexandria :cl-ppcre :py4cl))
   (py4cl:import-module "matplotlib.pyplot" :as "plt"))
 
@@ -472,7 +472,7 @@ Return a brand new list, the original list is left untouched."
 (defun draw-boxplot (&key title x-label y-label y-axis x-axis)
   (declare (string title x-label y-label)
            (list x-axis y-axis))
-  (py4cl:import-module "matplotlib.pyplot" :as "plt")
+  ;; (py4cl:import-module "matplotlib.pyplot" :as "plt")
   (plt:figure)
   (plt:xlabel x-label)
   (plt:ylabel y-label)
