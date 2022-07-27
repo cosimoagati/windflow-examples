@@ -515,110 +515,58 @@ Return a brand new list, the original list is left untouched."
       (draw-boxplot :title title :x-label xlabel :y-label ylabel
                     :x-axis x-axis :y-axis y-axis))))
 
-(defmacro push-to-triples (x-axis y-axis label triples)
-  `(progn
-     (push ,label ,triples)
-     (push ,y-axis ,triples)
-     (push ,x-axis ,triples)))
+(defun get-plot-triples (parameters jsons comparison-values filter-func label-func)
+  (let ((time-unit (gethash "time unit" (first jsons)))
+        plot-triples)
+    (dolist (comparison-value comparison-values plot-triples)
+      (let ((current-jsons (funcall filter-func jsons comparison-value)))
+        (when current-jsons
+          (let ((x-axis (get-x-axis (plot-by parameters) current-jsons))
+                (y-axis (get-y-axis (metric parameters) current-jsons
+                                    (percentile parameters) time-unit))
+                (label (funcall label-func comparison-value)))
+            (push label plot-triples)
+            (push y-axis plot-triples)
+            (push x-axis plot-triples)))))))
 
-(defun get-triples-for-parallelism-comparison (parameters jsons)
-  (declare (plot-parameters parameters) (list jsons))
-  (with-accessors ((name metric) (pardegs pardegs)
-                   (percentile percentile))
-      parameters
-    (let ((time-unit (gethash "time unit" (first jsons)))
-          plot-triples)
-      (dolist (pardeg pardegs plot-triples)
-        (let ((current-jsons (filter-jsons-by-parallelism jsons pardeg)))
-          (when current-jsons
-            (let ((x-axis (get-x-axis (plot-by parameters) current-jsons))
-                  (y-axis (get-y-axis name current-jsons percentile time-unit))
-                  (label
-                    (concatenate 'string "Parallelism degree: "
-                                 (write-to-string
-                                  (gethash "parallelism"
-                                           (first current-jsons))))))
-              (push-to-triples x-axis y-axis label plot-triples))))))))
-
-(defun get-triples-for-batch-size-comparison (parameters jsons)
-  "Get the values to plot for a batch size comparison.
-Data is extracted from JSONS, whose entries must already all contain the
-same tuple generation rate, sampling rate and chaining value.
-BATCH-SIZES is a list containing the batch sizes to be compared.
-PERCENTILE and TIME-UNIT are used to extract the appropriate Y values."
-  (declare (plot-parameters parameters) (list jsons))
-  (with-accessors ((name metric) (batch-sizes batch-sizes)
-                   (percentile percentile))
-      parameters
-    (let ((time-unit (gethash "time unit" (first jsons)))
-          plot-triples)
-      (dolist (batch-size batch-sizes plot-triples)
-        (let ((current-jsons (filter-jsons-by-batch-size jsons
-                                                         batch-size)))
-          (when current-jsons
-            (let ((x-axis (get-x-axis (plot-by parameters) current-jsons))
-                  (y-axis (get-y-axis name current-jsons percentile
-                                      time-unit))
-                  (label
-                    (concatenate 'string "Batch size: "
-                                 (write-to-string
-                                  (gethash "batch size"
-                                           (first current-jsons))))))
-              (push-to-triples x-axis y-axis label plot-triples))))))))
-
-(defun get-triples-for-chaining-comparison (parameters jsons)
-  (declare (plot-parameters parameters) (list jsons))
-  (with-accessors ((name metric) (percentile percentile)) parameters
-    (let ((time-unit (gethash "time unit" (first jsons)))
-          plot-triples)
-      (dolist (chaining-p '(nil t) plot-triples)
-        (let ((current-jsons (filter-jsons-by-chaining jsons chaining-p)))
-          (when current-jsons
-            (let ((x-axis (get-x-axis (plot-by parameters) current-jsons))
-                  (y-axis (get-y-axis name current-jsons percentile
-                                      time-unit))
-                  (label (concatenate 'string "Chaining: "
-                                      (chaining-to-string chaining-p))))
-              (push-to-triples x-axis y-axis label plot-triples))))))))
-
-(defun get-triples-for-execmode-comparison (parameters jsons)
-  (declare (plot-parameters parameters) (list jsons))
-  (with-accessors ((name metric) (percentile percentile)) parameters
-    (let ((time-unit (gethash "time unit" (first jsons)))
-          plot-triples)
-      (dolist (execmode '("deterministic" "default") plot-triples)
-        (let ((current-jsons (filter-jsons-by-execmode jsons execmode)))
-          (when current-jsons
-            (let ((x-axis (get-x-axis (plot-by parameters) current-jsons))
-                  (y-axis (get-y-axis name current-jsons percentile
-                                      time-unit))
-                  (label (concatenate 'string "Execution mode: " execmode)))
-              (push-to-triples x-axis y-axis label plot-triples))))))))
-
-(defun get-triples-for-frequency-comparison (parameters jsons)
-  (declare (plot-parameters parameters) (list jsons))
-  (with-accessors ((name metric) (percentile percentile)) parameters
-    (let ((time-unit (gethash "time unit" (first jsons)))
-          plot-triples)
-      (dolist (frequency '(2 4 6 8 10) plot-triples)
-        (let ((current-jsons (filter-jsons-by-frequency jsons frequency)))
-          (when current-jsons
-            (let ((x-axis (get-x-axis (plot-by parameters) current-jsons))
-                  (y-axis (get-y-axis name current-jsons percentile
-                                      time-unit))
-                  (label (concatenate 'string
-                                      "Output frequency for all operators:"
-                                      (write-to-string frequency))))
-              (push-to-triples x-axis y-axis label plot-triples))))))))
+(defgeneric get-triples-comparing-by (parameters jsons compare-by)
+  (:method (parameters jsons (compare-by (eql :parallelism)))
+    (declare (plot-parameters parameters) (list jsons))
+    (get-plot-triples parameters jsons (pardegs parameters)
+                      #'filter-jsons-by-parallelism
+                      (lambda (value)
+                        (concatenate 'string "Parallelism degree: "
+                                     (write-to-string value)))))
+  (:method (parameters jsons (compare-by (eql :batch-size)))
+    (declare (plot-parameters parameters) (list jsons))
+    (get-plot-triples parameters jsons (batch-sizes parameters)
+                      #'filter-jsons-by-batch-size
+                      (lambda (value) (concatenate 'string "Batch size: "
+                                                   (write-to-string value)))))
+  (:method (parameters jsons (compare-by (eql :chaining)))
+    (declare (plot-parameters parameters) (list jsons))
+    (get-plot-triples parameters jsons '(nil t) #'filter-jsons-by-chaining
+                      (lambda (value)
+                        (concatenate 'string "Chaining: "
+                                     (chaining-to-string value)))))
+  (:method (parameters jsons (compare-by (eql :execmode)))
+    (declare (plot-parameters parameters) (list jsons))
+    (get-plot-triples parameters jsons '("deterministic" "default")
+                      #'filter-jsons-by-execmode
+                      (lambda (value) (concatenate 'string "Execution mode: "
+                                                   value))))
+  (:method (parameters jsons (compare-by (eql :frequency)))
+    (declare (plot-parameters parameters) (list jsons))
+    (get-plot-triples parameters jsons (frequencies parameters)
+                      #'filter-jsons-by-frequency
+                      (lambda (value)
+                        (concatenate 'string
+                                     "Output frequency for all operators: "
+                                     (write-to-string value))))))
 
 (defun get-triples (parameters jsons)
   (declare (plot-parameters parameters) (list jsons))
-  (ecase (compare-by parameters)
-    (:parallelism (get-triples-for-parallelism-comparison parameters jsons))
-    (:batch-size (get-triples-for-batch-size-comparison parameters jsons))
-    (:chaining (get-triples-for-chaining-comparison parameters jsons))
-    (:execmode (get-triples-for-execmode-comparison parameters jsons))
-    (:frequency (get-triples-for-frequency-comparison parameters jsons))))
+  (get-triples-comparing-by parameters jsons (compare-by parameters)))
 
 (defun plot (&optional (parameters *default-plot-parameters*) jsons
                image-path)
