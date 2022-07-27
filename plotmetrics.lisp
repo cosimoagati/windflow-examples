@@ -8,6 +8,8 @@
 ;;;; You should have received a copy of the GNU AGPLv3 with this software,
 ;;;; if not, please visit <https://www.gnu.org/licenses/>
 
+(declaim (optimize (speed 3)))
+
 (eval-when (:compile-toplevel)
   (ql:quickload '(:vgplot :yason :alexandria :cl-ppcre :py4cl))
   (py4cl:import-module "matplotlib.pyplot" :as "plt"))
