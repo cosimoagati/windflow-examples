@@ -9,7 +9,8 @@
 ;;;; if not, please visit <https://www.gnu.org/licenses/>
 
 (eval-when (:compile-toplevel)
-  (ql:quickload '(:vgplot :yason :alexandria :cl-ppcre :py4cl)))
+  (ql:quickload '(:vgplot :yason :alexandria :cl-ppcre :py4cl))
+  (py4cl:import-module "matplotlib.pyplot" :as "plt"))
 
 (defpackage plotmetrics
   (:use :common-lisp)
