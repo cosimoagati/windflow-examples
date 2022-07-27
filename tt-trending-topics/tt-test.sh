@@ -6,8 +6,8 @@ outputdir="testresults-$($datecmd)"
 nproc=$(nproc)
 timerthreads=3
 
-# frequencies="2 4 6 8 10"
-frequencies="2"
+frequencies="2 4 6 8 10"
+# frequencies="2"
 
 cd $(dirname "$0")
 echo Test started on $(date)
