@@ -409,47 +409,45 @@ Return a brand new list, the original list is left untouched."
                                            (metric parameters)))
                         " (" (percentile parameters) ") ")))
     (declare (string initial-title))
-    (symbol-macrolet ((chaining (chaining-to-string (chaining-p parameters)))
-                      (pardeg (write-to-string (single-pardeg parameters)))
-                      (batch-size (write-to-string
-                                   (single-batch-size parameters)))
-                      (tuple-rate (tuple-rate-to-string
-                                   (tuple-rate parameters))))
-      (ecase (plot-by parameters)
-        (:parallelism (ecase (compare-by parameters)
-                        (:batch-size
-                         (concatenate 'string initial-title
-                                      "(chaining: " chaining
-                                      ") (generation rate: " tuple-rate ")"))
-                        (:chaining
-                         (concatenate 'string initial-title
-                                      "(batch size: " batch-size
-                                      ") (generation rate: " tuple-rate ")"))
-                        (:execmode
-                         (concatenate 'string initial-title
-                                      "(chaining " chaining
-                                      ") (generation rate: " tuple-rate
-                                      ") (batch size: " batch-size ")"))
-                        (:frequency
-                         (concatenate 'string initial-title
-                                      "(chaining: " chaining
-                                      ") (generation rate: "  tuple-rate
-                                      ") (batch-size: " batch-size))))
-        (:batch-size (ecase (compare-by parameters)
-                       (:parallelism
-                        (concatenate 'string initial-title
-                                     "(chaining " chaining
-                                     ") (generation rate: " tuple-rate ")"))
-                       (:chaining
-                        (concatenate 'string initial-title
-                                     " (parallelism degree per node: " pardeg
-                                     ") (generation rate: " tuple-rate ")"))
-                       (:execmode
-                        (concatenate 'string initial-title
-                                     " (parallelism degree per node: " pardeg
-                                     ") (chaining: " chaining
-                                     ") (generation rate: " tuple-rate ")"))))
-        (:chaining (error "Not implemented yet"))))))
+    (title-from-plotby-compareby initial-title parameters (plot-by parameters)
+                                 (compare-by parameters))))
+
+(symbol-macrolet ((chaining (chaining-to-string (chaining-p parameters)))
+                  (pardeg (write-to-string (single-pardeg parameters)))
+                  (batch-size (write-to-string
+                               (single-batch-size parameters)))
+                  (tuple-rate (tuple-rate-to-string
+                               (tuple-rate parameters))))
+  (defgeneric title-from-plotby-compareby (title parameters plot-by compare-by)
+    (:method (title parameters (plot-by (eql :parallelism))
+              (compare-by (eql :batch-size)))
+      (concatenate 'string title "(chaining: " chaining
+                   ") (generation rate: " tuple-rate ")"))
+    (:method (title parameters (plot-by (eql :parallelism))
+              (compare-by (eql :chaining)))
+      (concatenate 'string title "(batch size: " batch-size
+                   ") (generation rate: " tuple-rate ")"))
+    (:method (title parameters (plot-by (eql :parallelism))
+              (compare-by (eql :execmode)))
+      (concatenate 'string title "(chaining " chaining ") (generation rate: "
+                   tuple-rate ") (batch size: " batch-size ")"))
+    (:method (title parameters (plot-by (eql :parallelism))
+              (compare-by (eql :frequency)))
+      (concatenate 'string title "(chaining: " chaining ") (generation rate: "
+                   tuple-rate ") (batch-size: " batch-size))
+    (:method (title parameters (plot-by (eql :batch-size))
+              (compare-by (eql :parallelism)))
+      (concatenate 'string title "(chaining " chaining
+                   ") (generation rate: " tuple-rate ")"))
+    (:method (title parameters (plot-by (eql :batch-size))
+              (compare-by (eql :chaining)))
+      (concatenate 'string title " (parallelism degree per node: " pardeg
+                   ") (generation rate: " tuple-rate ")"))
+    (:method (title parameters (plot-by (eql :batch-size))
+              (compare-by (eql :execmode)))
+      (concatenate 'string title " (parallelism degree per node: " pardeg
+                   ") (chaining: " chaining ") (generation rate: "
+                   tuple-rate ")"))))
 
 (defun sort-jsons-by-parallelism (jsons)
   (declare (list jsons))
