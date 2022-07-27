@@ -151,9 +151,8 @@
 (defun title-from-directory (directory)
   (let* ((words (cl-ppcre:split "-" (base-dirname directory)))
          (acronym (first words))
-         (title (concatenate 'string (second words) " " (third words))))
-    (concatenate 'string (string-capitalize title) " ("
-                 (string-upcase acronym) ")")))
+         (title (concat (second words) " " (third words))))
+    (concat (string-capitalize title) " (" (string-upcase acronym) ")")))
 
 (defun ends-with (word suffix)
   "Return non-NIL if WORD ends with SUFFIX, NIL otherwise."
@@ -309,12 +308,12 @@ Return a brand new list, the original list is left untouched."
   (declare (string kind))
   (cond ((member kind '("0th" "5th" "25th" "50th" "75th" "95th" "100th")
                  :test #'equal)
-         (concatenate 'string kind " percentile"))
+         (concat kind " percentile"))
         ((member kind '("0" "5" "25" "50" "75" "95" "100")
                  :test #'equal)
-         (concatenate 'string kind "th percentile"))
+         (concat kind "th percentile"))
         ((member kind '(0 5 25 50 75 95 100))
-         (concatenate 'string (write-to-string kind) "th percentile"))
+         (concat (write-to-string kind) "th percentile"))
         (t kind)))
 
 (defun get-x-label (plot-by)
@@ -332,8 +331,8 @@ Return a brand new list, the original list is left untouched."
          (unit-string (if (not (search "throughput" (string-downcase name)))
                           time-unit-string
                           "tuples per second")))
-    (concatenate 'string (string-capitalize (substitute #\Space #\- name))
-                 " (" unit-string ")")))
+    (concat (string-capitalize (substitute #\Space #\- name))
+            " (" unit-string ")")))
 
 (defun get-y-axis (name jsons percentile time-unit)
   (let ((map-func (if (not (search name "throughput"))
@@ -368,8 +367,7 @@ Return a brand new list, the original list is left untouched."
 
 (defun get-percentile-values (percentile-map percentile-keys)
   (declare (hash-table percentile-map) (list percentile-keys))
-  (mapcar (lambda (p) (let ((key (concatenate 'string (write-to-string p)
-                                              "th percentile")))
+  (mapcar (lambda (p) (let ((key (concat (write-to-string p) "th percentile")))
                         (gethash key percentile-map)))
           percentile-keys))
 
@@ -402,12 +400,11 @@ Return a brand new list, the original list is left untouched."
 
 (defun title-for-plot (parameters)
   (declare (plot-parameters parameters))
-  (let ((initial-title (concatenate
-                        'string (title-from-directory (plotdir parameters))
-                        " - " (substitute #\Space #\-
-                                          (string-capitalize
-                                           (metric parameters)))
-                        " (" (percentile parameters) ") ")))
+  (let ((initial-title (concat (title-from-directory (plotdir parameters))
+                               " - " (substitute #\Space #\-
+                                                 (string-capitalize
+                                                  (metric parameters)))
+                               " (" (percentile parameters) ") ")))
     (declare (string initial-title))
     (title-from-plotby-compareby initial-title parameters (plot-by parameters)
                                  (compare-by parameters))))
@@ -421,33 +418,32 @@ Return a brand new list, the original list is left untouched."
   (defgeneric title-from-plotby-compareby (title parameters plot-by compare-by)
     (:method (title parameters (plot-by (eql :parallelism))
               (compare-by (eql :batch-size)))
-      (concatenate 'string title "(chaining: " chaining
-                   ") (generation rate: " tuple-rate ")"))
+      (concat title "(chaining: " chaining ") (generation rate: "
+              tuple-rate ")"))
     (:method (title parameters (plot-by (eql :parallelism))
               (compare-by (eql :chaining)))
-      (concatenate 'string title "(batch size: " batch-size
-                   ") (generation rate: " tuple-rate ")"))
+      (concat title "(batch size: " batch-size ") (generation rate: "
+              tuple-rate ")"))
     (:method (title parameters (plot-by (eql :parallelism))
               (compare-by (eql :execmode)))
-      (concatenate 'string title "(chaining " chaining ") (generation rate: "
-                   tuple-rate ") (batch size: " batch-size ")"))
+      (concat title "(chaining " chaining ") (generation rate: " tuple-rate
+              ") (batch size: " batch-size ")"))
     (:method (title parameters (plot-by (eql :parallelism))
               (compare-by (eql :frequency)))
-      (concatenate 'string title "(chaining: " chaining ") (generation rate: "
-                   tuple-rate ") (batch-size: " batch-size))
+      (concat title "(chaining: " chaining ") (generation rate: " tuple-rate
+              ") (batch-size: " batch-size))
     (:method (title parameters (plot-by (eql :batch-size))
               (compare-by (eql :parallelism)))
-      (concatenate 'string title "(chaining " chaining
-                   ") (generation rate: " tuple-rate ")"))
+      (concat title "(chaining " chaining ") (generation rate: "
+              tuple-rate ")"))
     (:method (title parameters (plot-by (eql :batch-size))
               (compare-by (eql :chaining)))
-      (concatenate 'string title " (parallelism degree per node: " pardeg
-                   ") (generation rate: " tuple-rate ")"))
+      (concat title " (parallelism degree per node: " pardeg
+              ") (generation rate: " tuple-rate ")"))
     (:method (title parameters (plot-by (eql :batch-size))
               (compare-by (eql :execmode)))
-      (concatenate 'string title " (parallelism degree per node: " pardeg
-                   ") (chaining: " chaining ") (generation rate: "
-                   tuple-rate ")"))))
+      (concat title " (parallelism degree per node: " pardeg ") (chaining: "
+              chaining ") (generation rate: " tuple-rate ")"))))
 
 (defun sort-jsons-by-parallelism (jsons)
   (declare (list jsons))
@@ -490,11 +486,11 @@ Return a brand new list, the original list is left untouched."
                    (batch-size single-batch-size)
                    (chaining-p chaining-p) (percentiles percentiles))
       parameters
-    (concatenate 'string (title-from-directory plotdir) " - "
-                 (substitute #\Space #\- (string-capitalize metric))
-                 " (batch size: " (write-to-string batch-size)
-                 ") (chaining: " (if chaining-p "enabled " "disabled")
-                 ") (percentiles: " (write-to-string percentiles) ")")))
+    (concat (title-from-directory plotdir) " - "
+            (substitute #\Space #\- (string-capitalize metric))
+            " (batch size: " (write-to-string batch-size)
+            ") (chaining: " (if chaining-p "enabled " "disabled")
+            ") (percentiles: " (write-to-string percentiles) ")")))
 
 (defun boxplot (&optional (parameters *default-plot-parameters*) jsons
                   image-path)
@@ -537,34 +533,31 @@ Return a brand new list, the original list is left untouched."
     (get-plot-triples parameters jsons (pardegs parameters)
                       #'filter-jsons-by-parallelism
                       (lambda (value)
-                        (concatenate 'string "Parallelism degree: "
-                                     (write-to-string value)))))
+                        (concat "Parallelism degree: "
+                                (write-to-string value)))))
   (:method (parameters jsons (compare-by (eql :batch-size)))
     (declare (plot-parameters parameters) (list jsons))
     (get-plot-triples parameters jsons (batch-sizes parameters)
                       #'filter-jsons-by-batch-size
-                      (lambda (value) (concatenate 'string "Batch size: "
-                                                   (write-to-string value)))))
+                      (lambda (value) (concat "Batch size: "
+                                              (write-to-string value)))))
   (:method (parameters jsons (compare-by (eql :chaining)))
     (declare (plot-parameters parameters) (list jsons))
     (get-plot-triples parameters jsons '(nil t) #'filter-jsons-by-chaining
                       (lambda (value)
-                        (concatenate 'string "Chaining: "
-                                     (chaining-to-string value)))))
+                        (concat "Chaining: " (chaining-to-string value)))))
   (:method (parameters jsons (compare-by (eql :execmode)))
     (declare (plot-parameters parameters) (list jsons))
     (get-plot-triples parameters jsons '("deterministic" "default")
                       #'filter-jsons-by-execmode
-                      (lambda (value) (concatenate 'string "Execution mode: "
-                                                   value))))
+                      (lambda (value) (concat "Execution mode: " value))))
   (:method (parameters jsons (compare-by (eql :frequency)))
     (declare (plot-parameters parameters) (list jsons))
     (get-plot-triples parameters jsons (frequencies parameters)
                       #'filter-jsons-by-frequency
                       (lambda (value)
-                        (concatenate 'string
-                                     "Output frequency for all operators: "
-                                     (write-to-string value))))))
+                        (concat "Output frequency for all operators: "
+                                (write-to-string value))))))
 
 (defun get-triples (parameters jsons)
   (declare (plot-parameters parameters) (list jsons))
