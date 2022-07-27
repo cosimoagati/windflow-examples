@@ -131,7 +131,8 @@
                       ("s" . "s"))))
   (defun unit-to-abbrev (unit)
     "Return the time unit abbreviation for UNIT."
-    (cdr (assoc unit unit-abbrevs :test #'equal))))
+    (declare (string unit))
+    (cdr (assoc unit unit-abbrevs :test #'string=))))
 
 (let ((scale-factors '(("ns" . 1000000000)
                        ("us" . 1000000)
