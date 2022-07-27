@@ -177,6 +177,7 @@ Otherwise, return NIL."
 
 (defun filter-jsons-by-name (jsons name)
   "Return a list containing only the json files whose \"name\" field is NAME"
+  (declare (list jsons) (string name))
   (remove-if-not (lambda (j) (json-name-match (gethash "name" j) name))
                  jsons))
 
@@ -326,12 +327,14 @@ Return a brand new list, the original list is left untouched."
             " (" unit-string ")")))
 
 (defun get-y-axis (name jsons percentile time-unit)
+  (declare (string name percentile time-unit) (list jsons))
   (let ((map-func (if (not (search name "throughput"))
                       (lambda (j)
                         (gethash (percentile-to-dictkey percentile) j))
                       (lambda (j)
                         (* (time-unit-scale-factor (unit-to-abbrev time-unit))
                            (gethash (percentile-to-dictkey percentile) j))))))
+    (declare (function map-func))
     (mapcar map-func jsons)))
 
 (defun scale-by-base-value (base-value y measure)
@@ -342,6 +345,7 @@ Return a brand new list, the original list is left untouched."
   (declare (string name percentile) (list jsons) (real base-value))
   (let ((unscaled-y-axis (mapcar (lambda (j) (gethash percentile j))
                                  jsons)))
+    (declare (list unscaled-y-axis))
     (mapcar (lambda (y) (scale-by-base-value base-value y name))
             unscaled-y-axis)))
 
@@ -349,6 +353,7 @@ Return a brand new list, the original list is left untouched."
   (declare (string name percentile) (list jsons) (real base-value))
   (let ((scaled-y-axis (get-scaled-y-axis name jsons
                                           percentile base-value)))
+    (declare (list scaled-y-axis))
     (dotimes (i (length scaled-y-axis) scaled-y-axis)
       (setf (elt scaled-y-axis i) (/ (elt scaled-y-axis i) (1+ i))))))
 
