@@ -335,9 +335,7 @@ Return a brand new list, the original list is left untouched."
 
 (defun scale-by-base-value (base-value y measure)
   (declare (real base-value y) (string measure))
-  (if (search "throughput" measure)
-      (/ y base-value)
-      (/ base-value y)))
+  (if (search "throughput" measure) (/ y base-value) (/ base-value y)))
 
 (defun get-scaled-y-axis (name jsons percentile base-value)
   (declare (string name percentile) (list jsons) (real base-value))
@@ -351,8 +349,7 @@ Return a brand new list, the original list is left untouched."
   (let ((scaled-y-axis (get-scaled-y-axis name jsons
                                           percentile base-value)))
     (dotimes (i (length scaled-y-axis))
-      (setf (elt scaled-y-axis i) (/ (elt scaled-y-axis i)
-                                     (1+ i))))
+      (setf (elt scaled-y-axis i) (/ (elt scaled-y-axis i) (1+ i))))
     scaled-y-axis))
 
 (defun get-percentile-values (percentile-map percentile-keys)
