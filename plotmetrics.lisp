@@ -549,7 +549,7 @@ Return a brand new list, the original list is left untouched."
       (vgplot:grid t)
       (let ((plot-triples (get-triples parameters jsons)))
         (when *debug*
-          (print plot-triples))
+          (print (reverse plot-triples)))
         (plot-from-triples plot-triples))
       (when image-path
         (save-plot image-path)))))
