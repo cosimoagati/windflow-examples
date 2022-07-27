@@ -113,6 +113,10 @@
     (error "DIRECTORY must be a pathname or a string designating a path"))
   (setf (plotdir *default-plot-parameters*) directory))
 
+(defun concat (&rest strings)
+  (declare (list strings))
+  (apply #'concatenate 'string strings))
+
 (let ((unit-abbrevs '(("microseconds" . "us")
                       ("microsecond" . "us")
                       ("us" . "us")
