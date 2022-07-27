@@ -171,39 +171,33 @@
 Otherwise, return NIL."
   (declare (string entry) (string name))
   (or (ends-with entry name)
-      (ends-with (substitute #\Space #\- entry)
-                 name)
-      (ends-with (substitute #\Space #\- entry)
-                 name)))
+      (ends-with (substitute #\Space #\- entry) name)
+      (ends-with (substitute #\Space #\- entry) name)))
 
 (defun filter-jsons-by-name (jsons name)
   "Return a list containing only the json files whose \"name\" field is NAME"
-  (remove-if-not (lambda (j) (json-name-match (gethash "name" j)
-                                              name))
+  (remove-if-not (lambda (j) (json-name-match (gethash "name" j) name))
                  jsons))
 
 (defun filter-jsons-by-parallelism (jsons parallelism)
   "Filter out entries in JSONS not matching PARALLELISM.
 Return a brand new list, the original list is left untouched."
   (declare (list jsons) (fixnum parallelism))
-  (remove-if-not (lambda (j) (= (first (gethash "parallelism" j))
-                                parallelism))
+  (remove-if-not (lambda (j) (= (first (gethash "parallelism" j)) parallelism))
                  jsons))
 
 (defun filter-jsons-by-batch-size (jsons batch-size)
   "Filter out entries in JSONS not matching BATCH-SIZE.
 Return a brand new list, the original list is left untouched."
   (declare (list jsons) (fixnum batch-size))
-  (remove-if-not (lambda (j) (= (first (gethash "batch size" j))
-                                batch-size))
+  (remove-if-not (lambda (j) (= (first (gethash "batch size" j)) batch-size))
                  jsons))
 
 (defun filter-jsons-by-chaining (jsons chaining-p)
   "Filter out entries in JSONS not matching CHAINING-P.
 Return a brand new list, the original list is left untouched."
   (declare (list jsons) (boolean chaining-p))
-  (remove-if-not (lambda (j) (eql (gethash "chaining enabled" j)
-                                  chaining-p))
+  (remove-if-not (lambda (j) (eql (gethash "chaining enabled" j) chaining-p))
                  jsons))
 
 (defun get-sampling-rate (json)
@@ -217,8 +211,7 @@ Return a brand new list, the original list is left untouched."
   "Filter out entries in JSONS not matching SAMPLING-RATE.
 Return a brand new list, the original list is left untouched."
   (declare (hash-table jsons) (fixnum sampling-rate))
-  (remove-if-not (lambda (j) (= (get-sampling-rate j)
-                                sampling-rate))
+  (remove-if-not (lambda (j) (= (get-sampling-rate j) sampling-rate))
                  jsons))
 
 (defun contains-frequency-fields-p (json)
@@ -228,8 +221,7 @@ Return a brand new list, the original list is left untouched."
 
 (defun frequency-fields-equal-value-p (json value)
   (declare (hash-table json) (fixnum value))
-  (let ((frequency-keys (remove-if-not (lambda (k)
-                                         (ends-with k "frequency"))
+  (let ((frequency-keys (remove-if-not (lambda (k) (ends-with k "frequency"))
                                        (alexandria:hash-table-keys json))))
     (every (lambda (v) (equal v value))
            (mapcar (lambda (k) (gethash k json)) frequency-keys))))
@@ -291,16 +283,14 @@ Return a brand new list, the original list is left untouched."
   "Filter out entries in JSONS not matching TUPLE-RATE.
 Return a brand new list, the original list is left untouched."
   (declare (list jsons) (fixnum tuple-rate))
-  (remove-if-not (lambda (j) (= (get-tuple-rate j)
-                                tuple-rate))
+  (remove-if-not (lambda (j) (= (get-tuple-rate j) tuple-rate))
                  jsons))
 
 (defun filter-jsons-by-execmode (jsons execmode)
   "Filter out entries in JSONS not matching EXECMODE.
 Return a brand new list, the original list is left untouched."
   (declare (list jsons) (string execmode))
-  (remove-if-not (lambda (j) (string= (gethash "execution mode" j)
-                                      execmode))
+  (remove-if-not (lambda (j) (string= (gethash "execution mode" j) execmode))
                  jsons))
 
 (defun percentile-to-dictkey (kind)
