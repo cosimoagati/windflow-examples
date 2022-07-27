@@ -50,6 +50,8 @@
                :initform :batch-size)
    (timer-nodes-p :accessor timer-nodes-p :initarg :timer-nodes-p
                   :initform t)
+   (frequencies :accessor frequencies :initarg :frequencies
+                :initform (list 2 4 6 8 10))
    (single-frequency :accessor single-freq :initarg :single-freq
                      :initform 2)
    (directory-to-plot :accessor plotdir :initarg :plotdir
