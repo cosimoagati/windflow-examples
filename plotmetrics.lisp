@@ -492,27 +492,6 @@ Return a brand new list, the original list is left untouched."
             ") (chaining: " (if chaining-p "enabled " "disabled")
             ") (percentiles: " (write-to-string percentiles) ")")))
 
-(defun boxplot (&optional (parameters *default-plot-parameters*) jsons
-                  image-path)
-  (declare (plot-parameters parameters) (list jsons)
-           ((or pathname string) image-path) )
-  (unless jsons
-    (setf jsons (get-json-objs-from-directory (plotdir parameters))))
-  (setf jsons (filter-jsons parameters jsons))
-  (unless jsons
-    (format t "No data found with the specified parameters, not plotting...")
-    (return-from boxplot))
-  (let ((time-unit (gethash "time unit" (first jsons))))
-    (let ((title (boxplot-title parameters))
-          (xlabel (get-x-label (plot-by parameters)))
-          (ylabel (get-y-label (metric parameters) time-unit))
-          (x-axis (get-x-axis (plot-by parameters) jsons))
-          (y-axis (mapcar (lambda (j)
-                            (get-percentile-values j (percentiles parameters)))
-                          jsons)))
-      (draw-boxplot :title title :x-label xlabel :y-label ylabel
-                    :x-axis x-axis :y-axis y-axis))))
-
 (defun get-plot-triples (parameters jsons comparison-values filter-func label-func)
   (let ((time-unit (gethash "time unit" (first jsons)))
         plot-triples)
@@ -587,3 +566,24 @@ Return a brand new list, the original list is left untouched."
         (plot-from-triples plot-triples))
       (when image-path
         (save-plot image-path)))))
+
+(defun boxplot (&optional (parameters *default-plot-parameters*) jsons
+                  image-path)
+  (declare (plot-parameters parameters) (list jsons)
+           ((or pathname string) image-path) )
+  (unless jsons
+    (setf jsons (get-json-objs-from-directory (plotdir parameters))))
+  (setf jsons (filter-jsons parameters jsons))
+  (unless jsons
+    (format t "No data found with the specified parameters, not plotting...")
+    (return-from boxplot))
+  (let ((time-unit (gethash "time unit" (first jsons))))
+    (let ((title (boxplot-title parameters))
+          (xlabel (get-x-label (plot-by parameters)))
+          (ylabel (get-y-label (metric parameters) time-unit))
+          (x-axis (get-x-axis (plot-by parameters) jsons))
+          (y-axis (mapcar (lambda (j)
+                            (get-percentile-values j (percentiles parameters)))
+                          jsons)))
+      (draw-boxplot :title title :x-label xlabel :y-label ylabel
+                    :x-axis x-axis :y-axis y-axis))))
