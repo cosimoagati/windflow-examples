@@ -480,6 +480,8 @@ Return a brand new list, the original list is left untouched."
 
 (defun get-plot-triples (parameters jsons comparison-values filter-func
                          label-func)
+  (declare (plot-parameters parameters) (list jsons comparison-values)
+           (function filter-func label-func))
   (let ((time-unit (gethash "time unit" (first jsons)))
         plot-triples)
     (dolist (comparison-value comparison-values plot-triples)
