@@ -348,9 +348,8 @@ Return a brand new list, the original list is left untouched."
   (declare (string name percentile) (list jsons) (real base-value))
   (let ((scaled-y-axis (get-scaled-y-axis name jsons
                                           percentile base-value)))
-    (dotimes (i (length scaled-y-axis))
-      (setf (elt scaled-y-axis i) (/ (elt scaled-y-axis i) (1+ i))))
-    scaled-y-axis))
+    (dotimes (i (length scaled-y-axis) scaled-y-axis)
+      (setf (elt scaled-y-axis i) (/ (elt scaled-y-axis i) (1+ i))))))
 
 (defun get-percentile-values (percentile-map percentile-keys)
   (declare (hash-table percentile-map) (list percentile-keys))
