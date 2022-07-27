@@ -348,25 +348,28 @@ Return a brand new list, the original list is left untouched."
     (dotimes (i (length scaled-y-axis) scaled-y-axis)
       (setf (elt scaled-y-axis i) (/ (elt scaled-y-axis i) (1+ i))))))
 
-(defgeneric get-y-axis (name jsons percentile plot-kind)
-  (:method (name jsons percentile (plot-kind (eql :normal)))
-    (let* ((time-unit (gethash "time unit" (first jsons)))
-           (map-func (if (not (search name "throughput"))
-                         (lambda (j)
-                           (gethash (percentile-to-dictkey percentile) j))
-                         (lambda (j)
-                           (* (time-unit-scale-factor (unit-to-abbrev time-unit))
-                              (gethash (percentile-to-dictkey percentile) j))))))
-      (declare (function map-func))
-      (mapcar map-func jsons)))
-  (:method (name jsons percentile (plot-kind (eql :scalability)))
-    (let ((base-value (gethash (percentile-to-dictkey percentile)
-                               (first jsons))))
-      (get-scaled-y-axis name jsons percentile base-value)))
-  (:method (name jsons percentile (plot-kind (eql :efficiency)))
-    (let ((base-value (gethash (percentile-to-dictkey percentile)
-                               (first jsons))))
-      (get-efficiency-y-axis name jsons percentile base-value))))
+(defun get-y-axis (name jsons percentile plot-kind)
+  (declare (string name percentile) (list jsons) (symbol plot-kind))
+  (ecase plot-kind
+    (:normal
+     (let* ((time-unit (gethash "time unit" (first jsons)))
+            (map-func
+              (if (not (search name "throughput"))
+                  (lambda (j)
+                    (gethash (percentile-to-dictkey percentile) j))
+                  (lambda (j)
+                    (* (time-unit-scale-factor (unit-to-abbrev time-unit))
+                       (gethash (percentile-to-dictkey percentile) j))))))
+       (declare (function map-func))
+       (mapcar map-func jsons)))
+    (:scalability
+     (let ((base-value (gethash (percentile-to-dictkey percentile)
+                                (first jsons))))
+       (get-scaled-y-axis name jsons percentile base-value)))
+    (:efficiency
+     (let ((base-value (gethash (percentile-to-dictkey percentile)
+                                (first jsons))))
+       (get-efficiency-y-axis name jsons percentile base-value)))))
 
 (defun get-percentile-values (percentile-map percentile-keys)
   (declare (hash-table percentile-map) (list percentile-keys))
@@ -512,49 +515,46 @@ Return a brand new list, the original list is left untouched."
             (push y-axis plot-triples)
             (push x-axis plot-triples)))))))
 
-(defgeneric get-triples-comparing-by (parameters jsons compare-by)
-  (:method (parameters jsons (compare-by (eql :parallelism)))
-    (declare (plot-parameters parameters) (list jsons) (symbol compare-by))
-    (get-plot-triples parameters jsons (pardegs parameters)
-                      #'filter-jsons-by-parallelism
-                      (lambda (value)
-                        (concat "Parallelism degree: "
-                                (write-to-string value)))))
-  (:method (parameters jsons (compare-by (eql :batch-size)))
-    (declare (plot-parameters parameters) (list jsons) (symbol compare-by))
-    (get-plot-triples parameters jsons (batch-sizes parameters)
-                      #'filter-jsons-by-batch-size
-                      (lambda (value) (concat "Batch size: "
-                                              (write-to-string value)))))
-  (:method (parameters jsons (compare-by (eql :chaining)))
-    (declare (plot-parameters parameters) (list jsons) (symbol compare-by))
-    (get-plot-triples parameters jsons '(nil t) #'filter-jsons-by-chaining
-                      (lambda (value)
-                        (concat "Chaining: " (chaining-to-string value)))))
-  (:method (parameters jsons (compare-by (eql :execmode)))
-    (declare (plot-parameters parameters) (list jsons) (symbol compare-by))
-    (get-plot-triples parameters jsons '("deterministic" "default")
-                      #'filter-jsons-by-execmode
-                      (lambda (value) (concat "Execution mode: " value))))
-  (:method (parameters jsons (compare-by (eql :frequency)))
-    (declare (plot-parameters parameters) (list jsons) (symbol compare-by))
-    (get-plot-triples parameters jsons (frequencies parameters)
-                      #'filter-jsons-by-frequency
-                      (lambda (value)
-                        (concat "Output frequency for all operators: "
-                                (write-to-string value))))))
+(defun get-triples-comparing-by (parameters jsons compare-by)
+  (declare (plot-parameters parameters) (list jsons) (symbol compare-by))
+  (ecase compare-by
+    (:parallelism
+     (get-plot-triples parameters jsons (pardegs parameters)
+                       #'filter-jsons-by-parallelism
+                       (lambda (value)
+                         (concat "Parallelism degree: "
+                                 (write-to-string value)))))
+    (:batch-size
+     (get-plot-triples parameters jsons (batch-sizes parameters)
+                       #'filter-jsons-by-batch-size
+                       (lambda (value)
+                         (concat "Batch size: " (write-to-string value)))))
+    (:chaining
+     (get-plot-triples parameters jsons '(nil t)
+                       #'filter-jsons-by-chaining
+                       (lambda (value)
+                         (concat "Chaining: " (chaining-to-string value)))))
+    (:execmode
+     (get-plot-triples parameters jsons '("deterministic" "default")
+                       #'filter-jsons-by-execmode
+                       (lambda (value) (concat "Execution mode: " value))))
+    (:frequency
+     (get-plot-triples parameters jsons (frequencies parameters)
+                       #'filter-jsons-by-frequency
+                       (lambda (value)
+                         (concat "Output frequency for all operators: "
+                                 (write-to-string value)))))))
 
-(defgeneric get-additional-triples (length plot-kind)
-  (:method (length (plot-kind (eql :scalability)))
-    (let* ((x-axis (loop for i from 1 to length collect i))
-           (y-axis x-axis)
-           (label "Ideal scalability"))
-      (list x-axis y-axis label)))
-  (:method (length (plot-kind (eql :efficiency)))
-    (let ((x-axis (loop for i from 1 to length collect i))
-          (y-axis (loop repeat length collect 1))
-          (label "Ideal efficiency"))
-      (list x-axis y-axis label))))
+(defun get-additional-triples (length plot-kind)
+  (ecase plot-kind
+    (:scalability (let* ((x-axis (loop for i from 1 to length collect i))
+                         (y-axis x-axis)
+                         (label "Ideal scalability"))
+                    (list x-axis y-axis label)))
+    (:efficiency (let ((x-axis (loop for i from 1 to length collect i))
+                       (y-axis (loop repeat length collect 1))
+                       (label "Ideal efficiency"))
+                   (list x-axis y-axis label)))))
 
 (defun get-triples (parameters jsons)
   (declare (plot-parameters parameters) (list jsons))
