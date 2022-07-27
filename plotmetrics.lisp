@@ -478,7 +478,8 @@ Return a brand new list, the original list is left untouched."
             ") (chaining: " (if chaining-p "enabled " "disabled")
             ") (percentiles: " (write-to-string percentiles) ")")))
 
-(defun get-plot-triples (parameters jsons comparison-values filter-func label-func)
+(defun get-plot-triples (parameters jsons comparison-values filter-func
+                         label-func)
   (let ((time-unit (gethash "time unit" (first jsons)))
         plot-triples)
     (dolist (comparison-value comparison-values plot-triples)
