@@ -610,5 +610,7 @@ Return a brand new list, the original list is left untouched."
           (y-axis (mapcar (lambda (j)
                             (get-percentile-values j (percentiles parameters)))
                           jsons)))
+      (when *debug*
+        (format t "x-axis: ~a~%y-axis: ~a~%" x-axis y-axis))
       (draw-boxplot :title title :x-label xlabel :y-label ylabel
                     :x-axis x-axis :y-axis y-axis))))
