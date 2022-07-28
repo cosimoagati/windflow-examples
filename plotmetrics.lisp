@@ -572,8 +572,9 @@ Return a brand new list, the original list is left untouched."
     (if (eql (plot-kind parameters) :normal)
         actual-triples
         (let ((length (length (second actual-triples))))
-          (nconc (get-additional-triples length (plot-kind parameters))
-                 actual-triples)))))
+          (multiple-value-bind (x-axis y-axis label)
+              (get-additional-triples length (plot-kind parameters))
+            (nconc (list x-axis y-axis label) actual-triples))))))
 
 (defun plot (&optional (parameters *default-plot-parameters*) jsons
                image-path)
