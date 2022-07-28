@@ -655,8 +655,7 @@ Return a brand new list, the original list is left untouched."
     (pathname (concat (namestring (plotdir parameters))
                       "/graphs/" output-file-name))))
 
-(defun generate-images-by-parallelism-compare-by-chaining
-    (&optional (parameters *default-plot-parameters*))
+(defun generate-images (&optional (parameters *default-plot-parameters*))
   (with-accessors ((plot-by plot-by) (plotdir plotdir)
                    (compare-by compare-by) (plot-kind plot-kind))
       parameters
