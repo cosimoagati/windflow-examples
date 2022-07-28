@@ -450,7 +450,15 @@ Return a brand new list, the original list is left untouched."
     (:method (title parameters (plot-by (eql :batch-size))
               (compare-by (eql :execmode)))
       (concat title " (parallelism degree per node: " pardeg ") (chaining: "
-              chaining ") (generation rate: " tuple-rate ")"))))
+              chaining ") (generation rate: " tuple-rate ")"))
+    (:method (title parameters (plot-by (eql :chaining))
+              (compare-by (eql :parallelism)))
+      (concat title " (batch size : " batch-size
+              ") (generation rate: " tuple-rate ")"))
+    (:method (title parameters (plot-by (eql :chaining))
+              (compare-by (eql :batch-size)))
+      (concat title " (parallelism degree per node: " pardeg
+              ") (generation rate: " tuple-rate ")"))))
 
 (defun sort-jsons-by-parallelism (jsons)
   (declare (list jsons))
