@@ -16,7 +16,7 @@
 
 (defpackage plotmetrics
   (:use :common-lisp)
-  (:export :plot :make-parameters))
+  (:export :plot :make-parameters :generate-images))
 
 (in-package plotmetrics)
 
