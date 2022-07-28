@@ -638,25 +638,41 @@ Return a brand new list, the original list is left untouched."
                                   ".png")))
     (pathname (concat (namestring plotdir) "/graphs/" output-file-name))))
 
+(defun get-image-file-name (parameters)
+  (declare (plot-parameters parameters))
+  (let ((output-file-name
+          (concat (string-downcase (symbol-name (plot-kind parameters)))
+                  "-by-" (string-downcase
+                          (symbol-name (plot-by parameters)))
+                  "-compare-by-"
+                  (string-downcase
+                   (symbol-name (compare-by parameters)))
+                  (if (eql (compare-by parameters) :batch-size)
+                      (concat "-chaining-"
+                              (chaining-to-string (chaining-p parameters)))
+                      "")
+                  ".png")))
+    (pathname (concat (namestring (plotdir parameters))
+                      "/graphs/" output-file-name))))
+
 (defun generate-images-by-parallelism-compare-by-chaining
     (&optional (parameters *default-plot-parameters*))
-  (setf (plot-by parameters) :parallelism)
-  (setf (compare-by parameters) :batch-size)
-  (let ((jsons (get-json-objs-from-directory (plotdir parameters))))
-    (dolist (metric '("throughput"))
-      (setf (metric parameters) metric)
-      (dolist (plot-kind '(:normal :scalability :efficiency))
-        (setf (plot-kind parameters) plot-kind)
-        (dolist (chaining-p '(nil t))
-          (setf (chaining-p parameters) chaining-p)
-          (let ((image-path
-                  (get-image-filename-by-parallelism-compare-by-chaining
-                   (plotdir parameters)
-                   plot-kind
-                   chaining-p)))
-            (when *debug*
-              (format t "Plotting with and CHAINING-P: ~A, saving to ~a"
-                      chaining-p
-                      image-path))
-            (plot parameters jsons image-path))))))
-  (vgplot:close-all-plots))
+  (with-accessors ((plot-by plot-by) (plotdir plotdir)
+                   (compare-by compare-by) (plot-kind plot-kind))
+      parameters
+    (dolist (current-plot-by '(:parallelism :batch-size :chaining))
+      (setf plot-by current-plot-by)
+      (dolist (current-compare-by '(:parallelism :batch-size :chaining))
+        (when *debug*
+          (print (list current-plot-by current-compare-by)))
+        (unless (eql current-plot-by current-compare-by)
+          (setf compare-by current-compare-by)
+          (let ((jsons (get-json-objs-from-directory plotdir)))
+            (dolist (metric '("throughput"))
+              (setf (metric parameters) metric)
+              (dolist (plot-kind '(:normal :scalability :efficiency))
+                (setf (plot-kind parameters) plot-kind)
+                (dolist (chaining-p '(nil t))
+                  (setf (chaining-p parameters) chaining-p)
+                  (let ((image-path (get-image-file-name parameters)))
+                    (plot parameters jsons image-path)))))))))))
