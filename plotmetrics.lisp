@@ -165,7 +165,7 @@
 
 (defun get-json-objs-from-directory (directory)
   "Return a list containing containing pathnames to JSON files in DIRECTORY."
-  (let ((file-list (directory directory)))
+  (let ((file-list (directory (merge-pathnames directory "*"))))
     (mapcar #'yason:parse
             (remove-if-not (lambda (f) (ends-with (namestring f) ".json"))
                            file-list))))
