@@ -646,6 +646,7 @@ Return a brand new list, the original list is left untouched."
                       "/graphs/" output-file-name))))
 
 (defun generate-images (&optional (parameters *default-plot-parameters*))
+  (declare (plot-parameters parameters))
   (with-accessors ((plot-by plot-by) (plotdir plotdir)
                    (compare-by compare-by) (plot-kind plot-kind))
       parameters
