@@ -619,3 +619,36 @@ Return a brand new list, the original list is left untouched."
         (format t "x-axis: ~a~%y-axis: ~a~%" x-axis y-axis))
       (draw-boxplot :title title :x-label xlabel :y-label ylabel
                     :x-axis x-axis :y-axis y-axis))))
+
+(defun get-image-filename-by-parallelism-compare-by-chaining (plotdir
+                                                              plot-kind
+                                                              chaining-p)
+  (let ((output-file-name (concat (string-downcase (symbol-name plot-kind))
+                                  "-by-parallelism-compare-batch-size"
+                                  "-chaining-"
+                                  (chaining-to-string chaining-p)
+                                  ".png")))
+    (pathname (concat (namestring plotdir) "/graphs/" output-file-name))))
+
+(defun generate-images-by-parallelism-compare-by-chaining
+    (&optional (parameters *default-plot-parameters*))
+  (setf (plot-by parameters) :parallelism)
+  (setf (compare-by parameters) :batch-size)
+  (let ((jsons (get-json-objs-from-directory (plotdir parameters))))
+    (dolist (metric '("throughput"))
+      (setf (metric parameters) metric)
+      (dolist (plot-kind '(:normal :scalability :efficiency))
+        (setf (plot-kind parameters) plot-kind)
+        (dolist (chaining-p '(nil t))
+          (setf (chaining-p parameters) chaining-p)
+          (let ((image-path
+                  (get-image-filename-by-parallelism-compare-by-chaining
+                   (plotdir parameters)
+                   plot-kind
+                   chaining-p)))
+            (when *debug*
+              (format t "Plotting with and CHAINING-P: ~A, saving to ~a"
+                      chaining-p
+                      image-path))
+            (plot parameters jsons image-path))))))
+  (vgplot:close-all-plots))
