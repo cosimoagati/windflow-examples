@@ -559,11 +559,11 @@ Return a brand new list, the original list is left untouched."
     (:scalability (let* ((x-axis (loop for i from 1 to length collect i))
                          (y-axis x-axis)
                          (label "Ideal scalability"))
-                    (list x-axis y-axis label)))
+                    (values x-axis y-axis label)))
     (:efficiency (let ((x-axis (loop for i from 1 to length collect i))
                        (y-axis (loop repeat length collect 1))
                        (label "Ideal efficiency"))
-                   (list x-axis y-axis label)))))
+                   (values x-axis y-axis label)))))
 
 (defun get-triples (parameters jsons)
   (declare (plot-parameters parameters) (list jsons))
