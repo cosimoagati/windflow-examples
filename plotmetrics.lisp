@@ -628,16 +628,6 @@ Return a brand new list, the original list is left untouched."
       (draw-boxplot :title title :x-label xlabel :y-label ylabel
                     :x-axis x-axis :y-axis y-axis))))
 
-(defun get-image-filename-by-parallelism-compare-by-chaining (plotdir
-                                                              plot-kind
-                                                              chaining-p)
-  (let ((output-file-name (concat (string-downcase (symbol-name plot-kind))
-                                  "-by-parallelism-compare-batch-size"
-                                  "-chaining-"
-                                  (chaining-to-string chaining-p)
-                                  ".png")))
-    (pathname (concat (namestring plotdir) "/graphs/" output-file-name))))
-
 (defun get-image-file-name (parameters)
   (declare (plot-parameters parameters))
   (let ((output-file-name
