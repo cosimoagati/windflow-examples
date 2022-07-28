@@ -167,7 +167,7 @@
   "Return a list containing containing pathnames to JSON files in DIRECTORY."
   (let ((file-list (directory (merge-pathnames directory "*"))))
     (mapcar #'yason:parse
-            (remove-if-not (lambda (f) (ends-with (namestring f) ".json"))
+            (delete-if-not (lambda (f) (ends-with (namestring f) ".json"))
                            file-list))))
 
 (Defun json-name-match (entry name)
