@@ -23,40 +23,41 @@
 (defvar *debug* t)
 
 (defclass plot-parameters ()
-  ((batch-sizes :accessor batch-sizes  :initarg :batch-sizes
+  ((batch-sizes :type list :accessor batch-sizes  :initarg :batch-sizes
                 :initform (list 0 1 2 4 8 16 32 64 128))
-   (single-batch-size :accessor single-batch-size :initarg :single-batch-size
-                      :initform 0)
-   (parallelism-degrees :accessor pardegs :initarg :pardegs
+   (single-batch-size :type fixnum :accessor single-batch-size
+                      :initarg :single-batch-size :initform 0)
+   (parallelism-degrees :type list :accessor pardegs :initarg :pardegs
                         :initform (list 1 5 10))
-   (single-parallelism-degree :accessor single-pardeg :initarg :single-pardeg
-                              :initform 1)
-   (sampling-rate :accessor sampling-rate :initarg :sampling-rate
+   (single-parallelism-degree :type fixnum :accessor single-pardeg
+                              :initarg :single-pardeg :initform 1)
+   (sampling-rate :type fixnum :accessor sampling-rate :initarg :sampling-rate
                   :initform 100)
-   (tuple-generation-rate :accessor tuple-rate :initarg :tuple-rate
-                          :initform 0)
-   (chaining-p :accessor chaining-p :initarg :chaining-p
+   (tuple-generation-rate :type fixnum :accessor tuple-rate
+                          :initarg :tuple-rate :initform 0)
+   (chaining-p :type boolean :accessor chaining-p :initarg :chaining-p
                :initform nil)
-   (execution-mode :accessor execmode :initarg :execmode
+   (execution-mode :type string :accessor execmode :initarg :execmode
                    :initform "default")
-   (plot-by :accessor plot-by :initarg :plot-by :initform :parallelism)
-   (metric-to-plot :accessor metric :initarg :metric
+   (plot-by :type symbol :accessor plot-by :initarg :plot-by
+            :initform :parallelism)
+   (metric-to-plot :type string :accessor metric :initarg :metric
                    :initform "throughput")
-   (percentile :accessor percentile :initarg :percentile
+   (percentile :type string :accessor percentile :initarg :percentile
                :initform "mean")
-   (percentiles :accessor percentiles :initarg :percentiles
+   (percentiles :type list :accessor percentiles :initarg :percentiles
                 :initform (list 0 5 25 50 75 95 100))
-   (compare-by :accessor compare-by :initarg :compare-by
+   (compare-by :type symbol :accessor compare-by :initarg :compare-by
                :initform :batch-size)
-   (timer-nodes-p :accessor timer-nodes-p :initarg :timer-nodes-p
+   (timer-nodes-p :type boolean :accessor timer-nodes-p :initarg :timer-nodes-p
                   :initform t)
-   (frequencies :accessor frequencies :initarg :frequencies
+   (frequencies :type list :accessor frequencies :initarg :frequencies
                 :initform (list 2 4 6 8 10))
-   (single-frequency :accessor single-freq :initarg :single-freq
+   (single-frequency :type fixnum :accessor single-freq :initarg :single-freq
                      :initform 2)
-   (directory-to-plot :accessor plotdir :initarg :plotdir
-                      :initform "")
-   (plot-kind :accessor plot-kind :initarg :plot-kind
+   (directory-to-plot :type (or string pathname) :accessor plotdir
+                      :initarg :plotdir :initform "")
+   (plot-kind :type symbol :accessor plot-kind :initarg :plot-kind
               :initform :default)))
 
 (defun make-parameters (&rest args)
