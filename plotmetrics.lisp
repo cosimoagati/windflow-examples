@@ -58,7 +58,7 @@
    (directory-to-plot :type (or string pathname) :accessor plotdir
                       :initarg :plotdir :initform "")
    (plot-kind :type symbol :accessor plot-kind :initarg :plot-kind
-              :initform :default)))
+              :initform :normal)))
 
 (defun make-parameters (&rest args)
   (apply #'make-instance 'plot-parameters args))
