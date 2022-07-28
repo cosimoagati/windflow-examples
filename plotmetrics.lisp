@@ -598,10 +598,15 @@ Return a brand new list, the original list is left untouched."
            ((or pathname string) image-path) )
   (unless jsons
     (setf jsons (get-json-objs-from-directory (plotdir parameters))))
-  (setf jsons (filter-jsons parameters jsons))
+  (setf jsons (filter-jsons-by-name jsons (metric parameters))
+        jsons (filter-jsons-by-chaining jsons (chaining-p parameters))
+        jsons (filter-jsons-by-batch-size jsons (single-batch-size parameters))
+        jsons (filter-jsons-by-sampling-rate jsons (sampling-rate parameters))
+        jsons (filter-jsons-by-tuple-rate jsons (tuple-rate parameters)))
   (unless jsons
     (format t "No data found with the specified parameters, not plotting...")
     (return-from boxplot))
+  (setf jsons (sort-jsons-by-parallelism jsons))
   (let ((time-unit (gethash "time unit" (first jsons))))
     (let ((title (boxplot-title parameters))
           (xlabel (get-x-label (plot-by parameters)))
