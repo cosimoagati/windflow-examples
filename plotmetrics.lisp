@@ -634,7 +634,8 @@ Return a brand new list, the original list is left untouched."
 (defun get-image-file-name (parameters)
   (declare (plot-parameters parameters))
   (let ((output-file-name
-          (concat (string-downcase (symbol-name (plot-kind parameters)))
+          (concat (metric parameters) "-"
+                  (string-downcase (symbol-name (plot-kind parameters)))
                   "-by-" (string-downcase
                           (symbol-name (plot-by parameters)))
                   "-compare-by-"
