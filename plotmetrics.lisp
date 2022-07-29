@@ -16,7 +16,7 @@
 
 (defpackage plotmetrics
   (:use :common-lisp)
-  (:export :plot :make-parameters :generate-images))
+  (:export :plot :make-parameters :generate-images :*debug*))
 
 (in-package plotmetrics)
 
@@ -335,11 +335,11 @@ Return a brand new list, the original list is left untouched."
 
 (defun get-scaled-y-axis (name jsons percentile base-value)
   (declare (string name percentile) (list jsons) (real base-value))
-  (let ((unscaled-y-axis (mapcar (lambda (j) (gethash percentile j))
-                                 jsons)))
-    (declare (list unscaled-y-axis))
-    (mapcar (lambda (y) (scale-by-base-value base-value y name))
-            unscaled-y-axis)))
+  (let ((y-axis (mapcar (lambda (j) (gethash percentile j))
+                        jsons)))
+    (declare (list y-axis))
+    (map-into y-axis (lambda (y) (scaole-by-base-value base-value y name))
+              y-axis)))
 
 (defun get-efficiency-y-axis (name jsons percentile base-value)
   (declare (string name percentile) (list jsons) (real base-value))
