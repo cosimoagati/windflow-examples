@@ -338,7 +338,7 @@ Return a brand new list, the original list is left untouched."
   (let ((y-axis (mapcar (lambda (j) (gethash percentile j))
                         jsons)))
     (declare (list y-axis))
-    (map-into y-axis (lambda (y) (scaole-by-base-value base-value y name))
+    (map-into y-axis (lambda (y) (scale-by-base-value base-value y name))
               y-axis)))
 
 (defun get-efficiency-y-axis (name jsons percentile base-value)
