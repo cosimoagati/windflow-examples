@@ -636,8 +636,7 @@ Return a brand new list, the original list is left untouched."
   (let ((output-file-name
           (concat (metric parameters) "-"
                   (string-downcase (symbol-name (plot-kind parameters)))
-                  "-by-" (string-downcase
-                          (symbol-name (plot-by parameters)))
+                  "-by-" (string-downcase (symbol-name (plot-by parameters)))
                   "-compare-by-"
                   (string-downcase
                    (symbol-name (compare-by parameters)))
