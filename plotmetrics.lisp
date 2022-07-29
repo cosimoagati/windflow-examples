@@ -654,16 +654,16 @@ Return a brand new list, the original list is left untouched."
   (with-accessors ((plot-by plot-by) (plotdir plotdir)
                    (compare-by compare-by) (plot-kind plot-kind))
       parameters
-    (dolist (current-plot-by '(:parallelism :batch-size :chaining))
-      (setf plot-by current-plot-by)
-      (dolist (current-compare-by (remove current-plot-by '(:parallelism
-                                                            :batch-size
-                                                            :chaining)))
-        (when *debug*
-          (print (list current-plot-by current-compare-by)))
-        (setf compare-by current-compare-by)
-        (let ((jsons (get-json-objs-from-directory plotdir)))
-          (dolist (metric '("throughput"))
+    (let ((jsons (get-json-objs-from-directory plotdir)))
+      (dolist (current-plot-by '(:parallelism :batch-size :chaining))
+        (setf plot-by current-plot-by)
+        (dolist (current-compare-by (remove current-plot-by '(:parallelism
+                                                              :batch-size
+                                                              :chaining)))
+          (when *debug*
+            (print (list current-plot-by current-compare-by)))
+          (setf compare-by current-compare-by)
+          (dolist (metric '("throughput" "service time" "latency"))
             (setf (metric parameters) metric)
             (dolist (plot-kind '(:normal :scalability :efficiency))
               (setf (plot-kind parameters) plot-kind)
