@@ -106,7 +106,7 @@
                            :volume-latency :status-latency))
     (error "Invalid metric"))
   (setf (metric *default-plot-parameters*)
-        (nstring-downcase (symbol-name metric))))
+        (string-downcase (symbol-name metric))))
 
 (defun set-percentile (percentile)
   (setf (percentile *default-plot-parameters*) percentile))
