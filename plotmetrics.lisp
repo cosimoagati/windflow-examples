@@ -346,8 +346,10 @@ Return a brand new list, the original list is left untouched."
   (let ((scaled-y-axis (get-scaled-y-axis name jsons
                                           percentile base-value)))
     (declare (list scaled-y-axis))
-    (dotimes (i (length scaled-y-axis) scaled-y-axis)
-      (setf (elt scaled-y-axis i) (/ (elt scaled-y-axis i) (1+ i))))))
+    (do ((y-axis scaled-y-axis (rest y-axis))
+         (i 1 (1+ i)))
+        ((null y-axis) scaled-y-axis)
+      (setf (car y-axis) (/ (car y-axis) i)))))
 
 (defun get-y-axis (name jsons percentile plot-kind)
   (declare (string name percentile) (list jsons) (symbol plot-kind))
