@@ -215,7 +215,7 @@ Return a brand new list, the original list is left untouched."
 (defun filter-jsons-by-sampling-rate (jsons sampling-rate)
   "Filter out entries in JSONS not matching SAMPLING-RATE.
 Return a brand new list, the original list is left untouched."
-  (declare (hash-table jsons) (fixnum sampling-rate))
+  (declare (list jsons) (fixnum sampling-rate))
   (remove-if-not (lambda (j) (= (get-sampling-rate j) sampling-rate))
                  jsons))
 
