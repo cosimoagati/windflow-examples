@@ -210,7 +210,7 @@ Return a brand new list, the original list is left untouched."
   (declare (hash-table json))
   (multiple-value-bind (val1 present1-p) (gethash "sampling_rate" json)
     (multiple-value-bind (val2 present2-p) (gethash "sampling rate" json)
-      (if present1-p val1 (values val2 present2-p)))))
+      (if present1-p (values val1 present1-p) (values val2 present2-p)))))
 
 (defun filter-jsons-by-sampling-rate (jsons sampling-rate)
   "Filter out entries in JSONS not matching SAMPLING-RATE.
