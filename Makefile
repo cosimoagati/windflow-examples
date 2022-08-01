@@ -1,8 +1,3 @@
-CPU_EXAMPLES:= example1 example2 sa-sentiment-analysis/sa \
-mo-machine-outlier/mo tt-trending-topics/tt-timer-functors \
-tt-trending-topics/tt-timer-threads rl-reinforcement-learner/rl \
-lp-log-processing/lp
-
 GPU_EXAMPLES:= example3 example4 example5
 
 GPULIBS = -ltbb
@@ -21,7 +16,6 @@ ifeq ($(ARCH), aarch64)
 	NVOPTFLAGS := $(NVOPTFLAGS) -gencode arch=compute_53,code=sm_53
 endif
 
-CPU_SRCS:=$(CPU_EXAMPLES:=.cpp)
 GPU_SRCS:=$(GPU_EXAMPLES:=.cu)
 CPU_OBJS:=$(CPU_SRCS:.cpp=.o)
 GPU_OBJS:=$(GPU_SRCS:.cu=.o)
@@ -66,6 +60,17 @@ rl-debug-optimized:
 lp-debug-optimized:
 	$(MAKE) debug-optimized -C lp-log-processing
 
+sa-clean:
+	$(MAKE) clean -C sa-sentiment-analysis
+mo-clean:
+	$(MAKE) clean -C mo-machine-outlier
+tt-clean:
+	$(MAKE) clean -C tt-trending-topics
+rl-clean:
+	$(MAKE) clean -C rl-reinforcement-learner
+lp-clean:
+	$(MAKE) clean -C lp-log-processing
+
 cpu: sa mo tt rl lp
 debug-cpu: sa-debug mo-debug tt-debug rl-debug lp-debug
 debug-cpu-optimized: sa-debug-optimized mo-debug-optimized tt-debug-optimized \
@@ -73,8 +78,8 @@ rl-debug-optimized lp-debug-optimized
 
 gpu: $(GPU_EXAMPLES)
 
-clean:
-	rm -f $(CPU_EXAMPLES) $(GPU_EXAMPLES) $(CPU_OBJS) $(GPU_OBJS)
+clean: sa-clean mo-clean tt-clean rl-clean lp-clean
+	rm -f $(GPU_EXAMPLES) $(CPU_OBJS) $(GPU_OBJS)
 
 $(GPU_OBJS): %.o: %.cu
 	$(NVXX) $(NVXXFLAGS) $(INCLUDE_FLAGS) $(MACRO) $(NVOPTFLAGS) \
