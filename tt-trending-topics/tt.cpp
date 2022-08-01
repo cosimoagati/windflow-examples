@@ -804,8 +804,7 @@ public:
     }
 };
 
-class TopicExtractorFunctor {
-public:
+struct TopicExtractorFunctor {
     void operator()(const Tweet &tweet, Shipper<Topic> &shipper,
                     RuntimeContext &context) {
         DO_NOT_WARN_IF_UNUSED(context);
