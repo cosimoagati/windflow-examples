@@ -86,6 +86,7 @@ cpu: sa mo tt rl lp
 debug-cpu: sa-debug mo-debug tt-debug rl-debug lp-debug
 debug-cpu-optimized: sa-debug-optimized mo-debug-optimized tt-debug-optimized \
 rl-debug-optimized lp-debug-optimized
+profile-cpu: sa-profile mo-profile tt-profile rl-profile lp-profile
 
 gpu: $(GPU_EXAMPLES)
 
