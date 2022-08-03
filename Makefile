@@ -60,6 +60,17 @@ rl-debug-optimized:
 lp-debug-optimized:
 	$(MAKE) debug-optimized -C lp-log-processing
 
+sa-profile:
+	$(MAKE) profile -C sa-sentiment-analysis
+mo-profile:
+	$(MAKE) profile -C mo-machine-outlier
+tt-profile:
+	$(MAKE) profile -C tt-trending-topics
+rl-profile:
+	$(MAKE) profile -C rl-reinforcement-learner
+lp-profile:
+	$(MAKE) profile -C lp-log-processing
+
 sa-clean:
 	$(MAKE) clean -C sa-sentiment-analysis
 mo-clean:

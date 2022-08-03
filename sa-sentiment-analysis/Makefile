@@ -27,6 +27,9 @@ debug: all
 debug-optimized: CXXFLAGS := $(CXXFLAGS) -fno-lto -g3 -UNDEBUG
 debug-optimized: all
 
+profile: CXXFLAGS := $(CXXFLAGS) -fno-lto -g3
+profile: all
+
 clean:
 	rm -rf $(SA) $(SA_OBJS)
 
