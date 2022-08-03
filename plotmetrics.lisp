@@ -645,7 +645,7 @@ Return a brand new list, the original list is left untouched."
                               (chaining-to-string (chaining-p parameters)))
                       "")
                   ".png")))
-    (pathname (concat (namestring (plotdir parameters))
+    (pathname (concat (namestring (base-dirname (plotdir parameters)))
                       "/graphs/" output-file-name))))
 
 (defun generate-images (&optional (parameters *default-plot-parameters*))
