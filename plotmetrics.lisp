@@ -601,6 +601,7 @@ Return a brand new list, the original list is left untouched."
           (print (reverse plot-triples)))
         (plot-from-triples plot-triples))
       (when image-path
+        (ensure-directories-exist image-path)
         (save-plot image-path)))))
 
 (defun boxplot (&optional (parameters *default-plot-parameters*) jsons
