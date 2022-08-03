@@ -8,7 +8,7 @@
 ;;;; You should have received a copy of the GNU AGPLv3 with this software,
 ;;;; if not, please visit <https://www.gnu.org/licenses/>
 
-(declaim (optimize (safety 3)))
+(declaim (optimize (speed 0) (debug 3) (safety 3)))
 
 (eval-when (:compile-toplevel :load-toplevel)
   (ql:quickload '(:vgplot :yason :alexandria :cl-ppcre :py4cl))
