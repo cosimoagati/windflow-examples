@@ -318,16 +318,22 @@ Return a brand new list, the original list is left untouched."
     (:batch-size "Initial batch size")
     (:chaining "Chaining enabled?")))
 
-(defun get-y-label (name time-unit)
-  "Return the proper Y label name from NAME and TIME-UNIT."
-  (declare (string name time-unit))
-  (let* ((time-unit-string (let ((abbrev (unit-to-abbrev time-unit)))
-                             (if abbrev abbrev "unknown unit")))
-         (unit-string (if (not (search "throughput" (string-downcase name)))
-                          time-unit-string
-                          "tuples per second")))
-    (concat (string-capitalize (substitute #\Space #\- name))
-            " (" unit-string ")")))
+(defun get-y-label (parameters time-unit)
+  "Return the proper Y label name from PARAMETERS and TIME-UNIT."
+  (declare (plot-parameters parameters) (string time-unit))
+  (with-accessors ((kind plot-kind) (name metric)) parameters
+    (ecase kind
+      (:scalability "Performance with respect to base case")
+      (:efficiency "Ratio with respect to base case")
+      (:normal
+       (let* ((time-unit-string (let ((abbrev (unit-to-abbrev time-unit)))
+                                  (if abbrev abbrev "unknown unit")))
+              (unit-string (if (not (search "throughput"
+                                            (string-downcase name)))
+                               time-unit-string
+                               "tuples per second")))
+         (concat (string-capitalize (substitute #\Space #\- name))
+                 " (" unit-string ")"))))))
 
 (defun scale-by-base-value (base-value y measure)
   (declare (real base-value y) (string measure))
@@ -591,7 +597,7 @@ Return a brand new list, the original list is left untouched."
   (let ((time-unit (gethash "time unit" (first jsons))))
     (let ((title (title-for-plot parameters))
           (xlabel (get-x-label (plot-by parameters)))
-          (ylabel (get-y-label (metric parameters) time-unit)))
+          (ylabel (get-y-label parameters time-unit)))
       (vgplot:title title)
       (vgplot:xlabel xlabel)
       (vgplot:ylabel ylabel)
