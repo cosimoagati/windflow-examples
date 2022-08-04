@@ -587,7 +587,7 @@ Return a brand new list, the original list is left untouched."
 (defun plot (&optional (parameters *default-plot-parameters*) jsons
                image-path)
   (declare (plot-parameters parameters) (list jsons)
-           ((or pathname string) image-path))
+           ((or null pathname string) image-path))
   (unless jsons
     (setf jsons (get-json-objs-from-directory (plotdir parameters))))
   (setf jsons (filter-jsons parameters jsons))
