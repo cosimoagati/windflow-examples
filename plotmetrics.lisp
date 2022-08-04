@@ -645,12 +645,15 @@ Return a brand new list, the original list is left untouched."
                   (string-downcase (symbol-name (plot-kind parameters)))
                   "-by-" (string-downcase (symbol-name (plot-by parameters)))
                   "-compare-by-"
-                  (string-downcase
-                   (symbol-name (compare-by parameters)))
-                  (if (eql (compare-by parameters) :batch-size)
-                      (concat "-chaining-"
-                              (chaining-to-string (chaining-p parameters)))
-                      "")
+                  (string-downcase (symbol-name (compare-by parameters)))
+                  (case (compare-by parameters)
+                    (:batch-size
+                     (concat "-chaining-"
+                             (chaining-to-string (chaining-p parameters))))
+                    (:chaining
+                     (concat "-batchsize-"
+                             (write-to-string (single-batch-size parameters))))
+                    (otherwise ""))
                   ".png")))
     (pathname (concat (namestring (base-dirname (plotdir parameters)))
                       "/graphs/" output-file-name))))
