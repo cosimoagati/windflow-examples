@@ -165,6 +165,14 @@
          (title (concat (second words) " " (third words))))
     (concat (string-capitalize title) " (" (string-upcase acronym) ")")))
 
+(defun starts-with (word prefix)
+  "Return non-NIL if WORD starts with PREFIX, NIL otherwise"
+  (declare (string word prefix))
+  (let ((prefix-position (search prefix word)))
+    (if (numberp prefix-position)
+        (zerop prefix-position)
+        nil)))
+
 (defun ends-with (word suffix)
   "Return non-NIL if WORD ends with SUFFIX, NIL otherwise."
   (declare (string word suffix))
@@ -409,7 +417,7 @@ Return a brand new list, the original list is left untouched."
                          (if x 1 0))
                        (mapcar (lambda (j)
                                  (declare (hash-table j))
-                                 (gethash "chaining" j))
+                                 (gethash "chaining enabled" j))
                                jsons)))))
 
 (defun chaining-to-string (chaining-p)
@@ -444,16 +452,16 @@ Return a brand new list, the original list is left untouched."
               tuple-rate ")"))
     (:method (title parameters (plot-by (eql :parallelism))
               (compare-by (eql :chaining)))
-      (concat title "(batch size: " batch-size ") (generation rate: "
+      (concat title "(batch size per node: " batch-size ") (generation rate: "
               tuple-rate ")"))
     (:method (title parameters (plot-by (eql :parallelism))
               (compare-by (eql :execmode)))
       (concat title "(chaining " chaining ") (generation rate: " tuple-rate
-              ") (batch size: " batch-size ")"))
+              ") (batch size per node: " batch-size ")"))
     (:method (title parameters (plot-by (eql :parallelism))
               (compare-by (eql :frequency)))
       (concat title "(chaining: " chaining ") (generation rate: " tuple-rate
-              ") (batch-size: " batch-size))
+              ") (batch size per node: " batch-size))
     (:method (title parameters (plot-by (eql :batch-size))
               (compare-by (eql :parallelism)))
       (concat title "(chaining " chaining ") (generation rate: "
@@ -473,6 +481,11 @@ Return a brand new list, the original list is left untouched."
     (:method (title parameters (plot-by (eql :chaining))
               (compare-by (eql :batch-size)))
       (concat title " (parallelism degree per node: " pardeg
+              ") (generation rate: " tuple-rate ")"))
+    (:method (title parameters (plot-by (eql :chaining))
+              (compare-by (eql :execmode)))
+      (concat title " (parallelism degree per node: " pardeg
+              ") (batch size per node: " batch-size
               ") (generation rate: " tuple-rate ")"))))
 
 (defun sort-jsons-by-parallelism (jsons)
@@ -504,7 +517,7 @@ Return a brand new list, the original list is left untouched."
   (plt:figure)
   (plt:xlabel x-label)
   (plt:ylabel y-label)
-  (plt:title title :loc "right" :y 1.00)
+  (plt:title title :loc "right" :y 1.08)
   (plt:grid t)
   (plt:boxplot y-axis :positions x-axis)
   (plt:show)
@@ -620,14 +633,15 @@ Return a brand new list, the original list is left untouched."
 (defun boxplot (&optional (parameters *default-plot-parameters*) jsons
                   image-path)
   (declare (plot-parameters parameters) (list jsons)
-           ((or pathname string) image-path) )
+           ((or null pathname string) image-path) )
   (unless jsons
     (setf jsons (get-json-objs-from-directory (plotdir parameters))))
   (setf jsons (filter-jsons-by-name jsons (metric parameters))
         jsons (filter-jsons-by-chaining jsons (chaining-p parameters))
         jsons (filter-jsons-by-batch-size jsons (single-batch-size parameters))
         jsons (filter-jsons-by-sampling-rate jsons (sampling-rate parameters))
-        jsons (filter-jsons-by-tuple-rate jsons (tuple-rate parameters)))
+        jsons (filter-jsons-by-tuple-rate jsons (tuple-rate parameters))
+        jsons (filter-jsons-by-execmode jsons (execmode parameters)))
   (unless jsons
     (format t "No data found with the specified parameters, not plotting...")
     (return-from boxplot))
@@ -635,7 +649,7 @@ Return a brand new list, the original list is left untouched."
   (let ((time-unit (gethash "time unit" (first jsons))))
     (let ((title (boxplot-title parameters))
           (xlabel (get-x-label (plot-by parameters)))
-          (ylabel (get-y-label (metric parameters) time-unit))
+          (ylabel (get-y-label parameters time-unit))
           (x-axis (get-x-axis (plot-by parameters) jsons))
           (y-axis (mapcar (lambda (j)
                             (get-percentile-values j (percentiles parameters)))
@@ -661,30 +675,73 @@ Return a brand new list, the original list is left untouched."
                      (concat "-batchsize-"
                              (write-to-string (single-batch-size parameters))))
                     (otherwise ""))
+                  (if (starts-with (namestring (plotdir parameters))
+                                   "tt-trending-topics")
+                      (concat "-timernodes-" (if (timer-nodes-p parameters)
+                                                 "yes"
+                                                 "no"))
+                      "")
                   ".png")))
     (pathname (concat (namestring (base-dirname (plotdir parameters)))
                       "/graphs/" output-file-name))))
+
+(defun get-metric-list (parameters)
+  (declare (plot-parameters parameters))
+  (if (starts-with (namestring (plotdir parameters)) "lp-log-processing")
+      (list "throughput" "service time" "total-latency")
+      (list "throughput" "service time" "latency")))
+
+(defun get-timer-nodes-mode-list (parameters)
+  (declare (plot-parameters parameters))
+  (if (starts-with (namestring (plotdir parameters)) "tt-trending-topics")
+      (list nil t)
+      (list nil)))
 
 (defun generate-images (&optional (parameters *default-plot-parameters*))
   (declare (plot-parameters parameters))
   (with-accessors ((plot-by plot-by) (plotdir plotdir)
                    (compare-by compare-by) (plot-kind plot-kind))
       parameters
+    (when (starts-with (namestring plotdir) "mo-machine-outlier")
+      (generate-images-comparing-execmode parameters))
+    (let ((jsons (get-json-objs-from-directory plotdir))
+          (timer-nodes-mode-list (get-timer-nodes-mode-list parameters))
+          (metrics (get-metric-list parameters)))
+      (dolist (timer-nodes-p timer-nodes-mode-list)
+        (setf (timer-nodes-p parameters) timer-nodes-p)
+        (dolist (current-plot-by '(:parallelism :batch-size :chaining))
+          (setf plot-by current-plot-by)
+          (dolist (current-compare-by (remove current-plot-by '(:parallelism
+                                                                :batch-size
+                                                                :chaining)))
+            (when *debug*
+              (print (list current-plot-by current-compare-by)))
+            (setf compare-by current-compare-by)
+            (dolist (metric metrics)
+              (setf (metric parameters) metric)
+              (dolist (plot-kind '(:normal :scalability :efficiency))
+                (setf (plot-kind parameters) plot-kind)
+                (unless (eql current-plot-by :chaining)
+                  (dolist (chaining-p '(nil t))
+                    (setf (chaining-p parameters) chaining-p)
+                    (let ((image-path (get-image-file-name parameters)))
+                      (plot parameters jsons image-path))))))))))))
+
+(defun generate-images-comparing-execmode (parameters)
+  (declare (plot-parameters parameters))
+  (with-accessors ((plot-by plot-by) (plotdir plotdir)
+                   (compare-by compare-by) (plot-kind plot-kind))
+      parameters
     (let ((jsons (get-json-objs-from-directory plotdir)))
-      (dolist (current-plot-by '(:parallelism :batch-size :chaining))
+      (setf compare-by :execmode)
+      (dolist (current-plot-by '(:parallelism :chaining))
         (setf plot-by current-plot-by)
-        (dolist (current-compare-by (remove current-plot-by '(:parallelism
-                                                              :batch-size
-                                                              :chaining)))
-          (when *debug*
-            (print (list current-plot-by current-compare-by)))
-          (setf compare-by current-compare-by)
-          (dolist (metric '("throughput" "service time" "latency"))
-            (setf (metric parameters) metric)
-            (dolist (plot-kind '(:normal :scalability :efficiency))
-              (setf (plot-kind parameters) plot-kind)
-              (unless (eql current-plot-by :chaining)
-                (dolist (chaining-p '(nil t))
-                  (setf (chaining-p parameters) chaining-p)
-                  (let ((image-path (get-image-file-name parameters)))
-                    (plot parameters jsons image-path)))))))))))
+        (dolist (metric '("throughput" "service time" "latency"))
+          (setf (metric parameters) metric)
+          (dolist (current-plot-kind '(:normal :scalability :efficiency))
+            (setf plot-kind current-plot-kind)
+            (unless (eql current-plot-by :chaining)
+              (dolist (chaining-p '(nil t))
+                (setf (chaining-p parameters) chaining-p)
+                (let ((image-path (get-image-file-name parameters)))
+                  (plot parameters jsons image-path))))))))))
