@@ -124,7 +124,6 @@
   (setf (plotdir *default-plot-parameters*) directory))
 
 (defun concat (&rest strings)
-  (declare (list strings))
   (apply #'concatenate 'string strings))
 
 (let ((unit-abbrevs '(("microseconds" . "us")
