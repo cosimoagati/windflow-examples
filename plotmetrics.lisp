@@ -22,6 +22,13 @@
 
 (defvar *debug* t)
 
+(deftype field-to-plot-by () '(member :parallelism :batch-size :chaining))
+
+(deftype plot-comparison-field () '(member :parallelism :batch-size :chaining
+                                    :frequency :execmode))
+
+(deftype plot-kind () '(member :normal :scalability :efficiency))
+
 (defclass plot-parameters ()
   ((batch-sizes :type list :accessor batch-sizes  :initarg :batch-sizes
                 :initform (list 0 1 2 4 8 16 32 64 128))
@@ -39,7 +46,7 @@
                :initform nil)
    (execution-mode :type string :accessor execmode :initarg :execmode
                    :initform "default")
-   (plot-by :type symbol :accessor plot-by :initarg :plot-by
+   (plot-by :type field-to-plot-by :accessor plot-by :initarg :plot-by
             :initform :parallelism)
    (metric-to-plot :type string :accessor metric :initarg :metric
                    :initform "throughput")
@@ -47,8 +54,8 @@
                :initform "mean")
    (percentiles :type list :accessor percentiles :initarg :percentiles
                 :initform (list 0 5 25 50 75 95 100))
-   (compare-by :type symbol :accessor compare-by :initarg :compare-by
-               :initform :batch-size)
+   (compare-by :type plot-comparison-field :accessor compare-by
+               :initarg :compare-by :initform :batch-size)
    (timer-nodes-p :type boolean :accessor timer-nodes-p :initarg :timer-nodes-p
                   :initform t)
    (frequencies :type list :accessor frequencies :initarg :frequencies
@@ -57,7 +64,7 @@
                      :initform 2)
    (directory-to-plot :type (or string pathname) :accessor plotdir
                       :initarg :plotdir :initform "")
-   (plot-kind :type symbol :accessor plot-kind :initarg :plot-kind
+   (plot-kind :type plot-kind :accessor plot-kind :initarg :plot-kind
               :initform :normal)))
 
 (defun make-parameters (&rest args)
@@ -312,7 +319,7 @@ Return a brand new list, the original list is left untouched."
         (t kind)))
 
 (defun get-x-label (plot-by)
-  (declare (symbol plot-by))
+  (declare (field-to-plot-by plot-by))
   (ecase plot-by
     (:parallelism "Parallelism degree for each node")
     (:batch-size "Initial batch size")
@@ -387,7 +394,7 @@ Return a brand new list, the original list is left untouched."
           percentile-keys))
 
 (defun get-x-axis (plot-by jsons)
-  (declare (symbol plot-by) (list jsons))
+  (declare (field-to-plot-by plot-by) (list jsons))
   (ecase plot-by
     (:parallelism (mapcar (lambda (j)
                             (declare (hash-table j))
