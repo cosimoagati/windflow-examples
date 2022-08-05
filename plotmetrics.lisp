@@ -180,7 +180,7 @@
 (defun get-json-objs-from-directory (directory)
   "Return a sequence containing containing pathnames to JSONs in DIRECTORY."
   (let ((file-list (directory (merge-pathnames directory "*"))))
-    (map 'vector #'yason:parse
+    (map '(vector hash-table) #'yason:parse
          (delete-if-not (lambda (f) (ends-with (namestring f) ".json"))
                         file-list))))
 
