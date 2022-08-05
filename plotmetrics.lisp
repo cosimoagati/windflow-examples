@@ -178,11 +178,11 @@
   (alexandria:ends-with-subseq suffix word :test #'equal))
 
 (defun get-json-objs-from-directory (directory)
-  "Return a list containing containing pathnames to JSON files in DIRECTORY."
+  "Return a sequence containing containing pathnames to JSONs in DIRECTORY."
   (let ((file-list (directory (merge-pathnames directory "*"))))
-    (mapcar #'yason:parse
-            (delete-if-not (lambda (f) (ends-with (namestring f) ".json"))
-                           file-list))))
+    (map 'vector #'yason:parse
+         (delete-if-not (lambda (f) (ends-with (namestring f) ".json"))
+                        file-list))))
 
 (Defun json-name-match (entry name)
   "Return non-NIL if ENTRY ends with NAME (with some transformations.
@@ -193,29 +193,29 @@ Otherwise, return NIL."
       (ends-with (substitute #\Space #\- entry) name)))
 
 (defun filter-jsons-by-name (jsons name)
-  "Return a list containing only the json files whose \"name\" field is NAME"
-  (declare (list jsons) (string name))
+  "Return a sequence containing only the json files whose \"name\" field is NAME"
+  (declare (sequence jsons) (string name))
   (remove-if-not (lambda (j) (json-name-match (gethash "name" j) name))
                  jsons))
 
 (defun filter-jsons-by-parallelism (jsons parallelism)
   "Filter out entries in JSONS not matching PARALLELISM.
-Return a brand new list, the original list is left untouched."
-  (declare (list jsons) (fixnum parallelism))
+Return a brand new sequence, the original sequence is left untouched."
+  (declare (sequence jsons) (fixnum parallelism))
   (remove-if-not (lambda (j) (= (first (gethash "parallelism" j)) parallelism))
                  jsons))
 
 (defun filter-jsons-by-batch-size (jsons batch-size)
   "Filter out entries in JSONS not matching BATCH-SIZE.
-Return a brand new list, the original list is left untouched."
-  (declare (list jsons) (fixnum batch-size))
+Return a brand new sequence, the original sequence is left untouched."
+  (declare (sequence jsons) (fixnum batch-size))
   (remove-if-not (lambda (j) (= (first (gethash "batch size" j)) batch-size))
                  jsons))
 
 (defun filter-jsons-by-chaining (jsons chaining-p)
   "Filter out entries in JSONS not matching CHAINING-P.
-Return a brand new list, the original list is left untouched."
-  (declare (list jsons) (boolean chaining-p))
+Return a brand new sequence, the original sequence is left untouched."
+  (declare (sequence jsons) (boolean chaining-p))
   (remove-if-not (lambda (j) (eql (gethash "chaining enabled" j) chaining-p))
                  jsons))
 
@@ -228,8 +228,8 @@ Return a brand new list, the original list is left untouched."
 
 (defun filter-jsons-by-sampling-rate (jsons sampling-rate)
   "Filter out entries in JSONS not matching SAMPLING-RATE.
-Return a brand new list, the original list is left untouched."
-  (declare (list jsons) (fixnum sampling-rate))
+Return a brand new sequence, the original sequence is left untouched."
+  (declare (sequence jsons) (fixnum sampling-rate))
   (remove-if-not (lambda (j) (= (get-sampling-rate j) sampling-rate))
                  jsons))
 
@@ -246,7 +246,7 @@ Return a brand new list, the original list is left untouched."
            (mapcar (lambda (k) (gethash k json)) frequency-keys))))
 
 (defun filter-jsons-by-frequency (jsons frequency)
-  (declare (list jsons) (fixnum frequency))
+  (declare (sequence jsons) (fixnum frequency))
   (remove-if-not (lambda (j) (frequency-fields-equal-value-p j frequency))
                  jsons))
 
@@ -256,13 +256,13 @@ Return a brand new list, the original list is left untouched."
     (member "using timer nodes" keys :test #'equal)))
 
 (defun filter-jsons-by-timernode-impl (jsons timer-nodes-p)
-  (declare (list jsons) (boolean timer-nodes-p))
+  (declare (sequence jsons) (boolean timer-nodes-p))
   (remove-if-not (lambda (j)
                    (eql (gethash "using timer nodes" j) timer-nodes-p))
                  jsons))
 
 (defun filter-jsons (parameters jsons)
-  (declare (plot-parameters parameters) (list jsons))
+  (declare (plot-parameters parameters) (sequence jsons))
   (with-accessors ((plot-by plot-by) (compare-by compare-by))
       parameters
     (setf jsons (filter-jsons-by-name jsons (metric parameters))
@@ -300,15 +300,15 @@ Return a brand new list, the original list is left untouched."
 
 (defun filter-jsons-by-tuple-rate (jsons tuple-rate)
   "Filter out entries in JSONS not matching TUPLE-RATE.
-Return a brand new list, the original list is left untouched."
-  (declare (list jsons) (fixnum tuple-rate))
+Return a brand new sequence, the original sequence is left untouched."
+  (declare (sequence jsons) (fixnum tuple-rate))
   (remove-if-not (lambda (j) (= (get-tuple-rate j) tuple-rate))
                  jsons))
 
 (defun filter-jsons-by-execmode (jsons execmode)
   "Filter out entries in JSONS not matching EXECMODE.
-Return a brand new list, the original list is left untouched."
-  (declare (list jsons) (string execmode))
+Return a brand new sequence, the original sequence is left untouched."
+  (declare (sequence jsons) (string execmode))
   (remove-if-not (lambda (j) (string= (gethash "execution mode" j) execmode))
                  jsons))
 
@@ -354,28 +354,26 @@ Return a brand new list, the original list is left untouched."
   (if (search "throughput" measure) (/ y base-value) (/ base-value y)))
 
 (defun get-scaled-y-axis (name jsons percentile base-value)
-  (declare (string name percentile) (list jsons) (real base-value))
-  (let ((y-axis (mapcar (lambda (j) (gethash percentile j))
-                        jsons)))
-    (declare (list y-axis))
+  (declare (string name percentile) (sequence jsons) (real base-value))
+  (let ((y-axis (map (type-of jsons) (lambda (j) (gethash percentile j))
+                     jsons)))
+    (declare (sequence y-axis))
     (map-into y-axis (lambda (y) (scale-by-base-value base-value y name))
               y-axis)))
 
 (defun get-efficiency-y-axis (name jsons percentile base-value)
-  (declare (string name percentile) (list jsons) (real base-value))
+  (declare (string name percentile) (sequence jsons) (real base-value))
   (let ((scaled-y-axis (get-scaled-y-axis name jsons
                                           percentile base-value)))
-    (declare (list scaled-y-axis))
-    (do ((y-axis scaled-y-axis (rest y-axis))
-         (i 1 (1+ i)))
-        ((null y-axis) scaled-y-axis)
-      (setf (car y-axis) (/ (car y-axis) i)))))
+    (declare (sequence scaled-y-axis))
+    (dotimes (i (length scaled-y-axis) scaled-y-axis)
+      (setf (elt scaled-y-axis i) (/ (elt scaled-y-axis i) (1+ i))))))
 
 (defun get-y-axis (name jsons percentile plot-kind)
-  (declare (string name percentile) (list jsons) (symbol plot-kind))
+  (declare (string name percentile) (sequence jsons) (symbol plot-kind))
   (ecase plot-kind
     (:normal
-     (let* ((time-unit (gethash "time unit" (first jsons)))
+     (let* ((time-unit (gethash "time unit" (elt jsons 0)))
             (map-func
               (if (not (search name "throughput"))
                   (lambda (j)
@@ -384,40 +382,40 @@ Return a brand new list, the original list is left untouched."
                     (* (time-unit-scale-factor (unit-to-abbrev time-unit))
                        (gethash (percentile-to-dictkey percentile) j))))))
        (declare (function map-func))
-       (mapcar map-func jsons)))
+       (map (type-of jsons) map-func jsons)))
     (:scalability
      (let ((base-value (gethash (percentile-to-dictkey percentile)
-                                (first jsons))))
+                                (elt jsons 0))))
        (get-scaled-y-axis name jsons percentile base-value)))
     (:efficiency
      (let ((base-value (gethash (percentile-to-dictkey percentile)
-                                (first jsons))))
+                                (elt jsons 0))))
        (get-efficiency-y-axis name jsons percentile base-value)))))
 
 (defun get-percentile-values (percentile-map percentile-keys)
-  (declare (hash-table percentile-map) (list percentile-keys))
+  (declare (hash-table percentile-map) (sequence percentile-keys))
   (mapcar (lambda (p) (let ((key (concat (write-to-string p) "th percentile")))
                         (gethash key percentile-map)))
           percentile-keys))
 
 (defun get-x-axis (plot-by jsons)
-  (declare (field-to-plot-by plot-by) (list jsons))
+  (declare (field-to-plot-by plot-by) (sequence jsons))
   (ecase plot-by
-    (:parallelism (mapcar (lambda (j)
-                            (declare (hash-table j))
-                            (first (gethash "parallelism" j)))
-                          jsons))
-    (:batch-size (mapcar (lambda (j)
-                           (declare (hash-table j))
-                           (first (gethash "batch size" j)))
-                         jsons))
-    (:chaining (mapcar (lambda (x)
-                         (declare (boolean x))
-                         (if x 1 0))
-                       (mapcar (lambda (j)
+    (:parallelism (map 'vector (lambda (j)
                                  (declare (hash-table j))
-                                 (gethash "chaining enabled" j))
-                               jsons)))))
+                                 (first (gethash "parallelism" j)))
+                       jsons))
+    (:batch-size (map 'vector (lambda (j)
+                                (declare (hash-table j))
+                                (first (gethash "batch size" j)))
+                      jsons))
+    (:chaining (map 'vector (lambda (x)
+                              (declare (boolean x))
+                              (if x 1 0))
+                    (map 'vector (lambda (j)
+                                   (declare (hash-table j))
+                                   (gethash "chaining enabled" j))
+                         jsons)))))
 
 (defun chaining-to-string (chaining-p)
   (declare (boolean chaining-p))
@@ -488,15 +486,15 @@ Return a brand new list, the original list is left untouched."
               ") (generation rate: " tuple-rate ")"))))
 
 (defun sort-jsons-by-parallelism (jsons)
-  (declare (list jsons))
+  (declare (sequence jsons))
   (sort jsons #'< :key (lambda (j) (first (gethash "parallelism" j)))))
 
 (defun sort-jsons-by-batch-size (jsons)
-  (declare (list jsons))
+  (declare (sequence jsons))
   (sort jsons #'< :key (lambda (j) (first (gethash "batch size" j)))))
 
 (defun sort-jsons-by-chaining (jsons)
-  (declare (list jsons))
+  (declare (sequence jsons))
   (sort jsons (lambda (a b) (and a (not b)))
         :key (lambda (j) (gethash "chaining" j))))
 
@@ -511,7 +509,7 @@ Return a brand new list, the original list is left untouched."
 
 (defun draw-boxplot (&key title x-label y-label y-axis x-axis)
   (declare (string title x-label y-label)
-           (list x-axis y-axis))
+           (sequence x-axis y-axis))
   ;; (py4cl:import-module "matplotlib.pyplot" :as "plt")
   (plt:figure)
   (plt:xlabel x-label)
@@ -534,14 +532,17 @@ Return a brand new list, the original list is left untouched."
             ") (chaining: " (if chaining-p "enabled " "disabled")
             ") (percentiles: " (write-to-string percentiles) ")")))
 
+(defun emptyp (sequence)
+  (zerop (length sequence)))
+
 (defun get-plot-triples (parameters jsons comparison-values filter-func
                          label-func)
-  (declare (plot-parameters parameters) (list jsons comparison-values)
+  (declare (plot-parameters parameters) (sequence jsons comparison-values)
            (function filter-func label-func))
   (let (plot-triples)
     (dolist (comparison-value comparison-values plot-triples)
       (let ((current-jsons (funcall filter-func jsons comparison-value)))
-        (when current-jsons
+        (unless (emptyp current-jsons)
           (let ((x-axis (get-x-axis (plot-by parameters) current-jsons))
                 (y-axis (get-y-axis (metric parameters) current-jsons
                                     (percentile parameters)
@@ -552,7 +553,7 @@ Return a brand new list, the original list is left untouched."
             (push x-axis plot-triples)))))))
 
 (defun get-triples-comparing-by (parameters jsons compare-by)
-  (declare (plot-parameters parameters) (list jsons) (symbol compare-by))
+  (declare (plot-parameters parameters) (sequence jsons) (symbol compare-by))
   (ecase compare-by
     (:parallelism
      (get-plot-triples parameters jsons (pardegs parameters)
@@ -593,7 +594,7 @@ Return a brand new list, the original list is left untouched."
                    (values x-axis y-axis label)))))
 
 (defun get-triples (parameters jsons)
-  (declare (plot-parameters parameters) (list jsons))
+  (declare (plot-parameters parameters) (sequence jsons))
   (let ((actual-triples (get-triples-comparing-by parameters jsons
                                                   (compare-by parameters))))
     (if (eql (plot-kind parameters) :normal)
@@ -605,7 +606,7 @@ Return a brand new list, the original list is left untouched."
 
 (defun plot (&optional (parameters *default-plot-parameters*) jsons
                image-path)
-  (declare (plot-parameters parameters) (list jsons)
+  (declare (plot-parameters parameters) (sequence jsons)
            ((or null pathname string) image-path))
   (unless jsons
     (setf jsons (get-json-objs-from-directory (plotdir parameters))))
@@ -613,7 +614,7 @@ Return a brand new list, the original list is left untouched."
   (unless jsons
     (format t "No data found with the specified parameters, not plotting...")
     (return-from plot))
-  (let ((time-unit (gethash "time unit" (first jsons))))
+  (let ((time-unit (gethash "time unit" (elt jsons 0))))
     (let ((title (title-for-plot parameters))
           (xlabel (get-x-label (plot-by parameters)))
           (ylabel (get-y-label parameters time-unit)))
@@ -631,7 +632,7 @@ Return a brand new list, the original list is left untouched."
 
 (defun boxplot (&optional (parameters *default-plot-parameters*) jsons
                   image-path)
-  (declare (plot-parameters parameters) (list jsons)
+  (declare (plot-parameters parameters) (sequence jsons)
            ((or null pathname string) image-path) )
   (unless jsons
     (setf jsons (get-json-objs-from-directory (plotdir parameters))))
@@ -645,7 +646,7 @@ Return a brand new list, the original list is left untouched."
     (format t "No data found with the specified parameters, not plotting...")
     (return-from boxplot))
   (setf jsons (sort-jsons-by-parallelism jsons))
-  (let ((time-unit (gethash "time unit" (first jsons))))
+  (let ((time-unit (gethash "time unit" (elt jsons 0))))
     (let ((title (boxplot-title parameters))
           (xlabel (get-x-label (plot-by parameters)))
           (ylabel (get-y-label parameters time-unit))
