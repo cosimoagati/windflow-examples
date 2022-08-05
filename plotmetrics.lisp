@@ -371,26 +371,25 @@ Return a brand new sequence, the original sequence is left untouched."
 
 (defun get-y-axis (name jsons percentile plot-kind)
   (declare (string name percentile) (sequence jsons) (symbol plot-kind))
-  (ecase plot-kind
-    (:normal
-     (let* ((time-unit (gethash "time unit" (elt jsons 0)))
-            (map-func
-              (if (not (search name "throughput"))
-                  (lambda (j)
-                    (gethash (percentile-to-dictkey percentile) j))
-                  (lambda (j)
-                    (* (time-unit-scale-factor (unit-to-abbrev time-unit))
-                       (gethash (percentile-to-dictkey percentile) j))))))
-       (declare (function map-func))
-       (map (type-of jsons) map-func jsons)))
-    (:scalability
-     (let ((base-value (gethash (percentile-to-dictkey percentile)
-                                (elt jsons 0))))
-       (get-scaled-y-axis name jsons percentile base-value)))
-    (:efficiency
-     (let ((base-value (gethash (percentile-to-dictkey percentile)
-                                (elt jsons 0))))
-       (get-efficiency-y-axis name jsons percentile base-value)))))
+  (flet ((get-y-value (j)
+           (gethash (percentile-to-dictkey percentile) j)))
+    (ecase plot-kind
+      (:normal
+       (let* ((time-unit (gethash "time unit" (elt jsons 0)))
+              (map-func
+                (if (not (search name "throughput"))
+                    (lambda (j) (get-y-value j))
+                    (lambda (j)
+                      (* (time-unit-scale-factor (unit-to-abbrev time-unit))
+                         (get-y-value j))))))
+         (declare (function map-func))
+         (map (type-of jsons) map-func jsons)))
+      (:scalability
+       (let ((base-value (get-y-value (elt jsons 0))))
+         (get-scaled-y-axis name jsons percentile base-value)))
+      (:efficiency
+       (let ((base-value (get-y-value (elt jsons 0))))
+         (get-efficiency-y-axis name jsons percentile base-value))))))
 
 (defun get-percentile-values (percentile-map percentile-keys)
   (declare (hash-table percentile-map) (sequence percentile-keys))
