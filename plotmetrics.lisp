@@ -536,7 +536,8 @@ Return a brand new sequence, the original sequence is left untouched."
 
 (defun get-plot-triples (parameters jsons comparison-values filter-func
                          label-func)
-  (declare (plot-parameters parameters) (sequence jsons comparison-values)
+  (declare (plot-parameters parameters) (sequence jsons)
+           (list comparison-values)
            (function filter-func label-func))
   (let (plot-triples)
     (dolist (comparison-value comparison-values plot-triples)
