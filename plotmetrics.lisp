@@ -539,18 +539,19 @@ Return a brand new sequence, the original sequence is left untouched."
   (declare (plot-parameters parameters) (sequence jsons)
            (list comparison-values)
            (function filter-func label-func))
-  (let (plot-triples)
-    (dolist (comparison-value comparison-values plot-triples)
-      (let ((current-jsons (funcall filter-func jsons comparison-value)))
-        (unless (emptyp current-jsons)
-          (let ((x-axis (get-x-axis (plot-by parameters) current-jsons))
-                (y-axis (get-y-axis (metric parameters) current-jsons
-                                    (percentile parameters)
-                                    (plot-kind parameters)))
-                (label (funcall label-func comparison-value)))
-            (push label plot-triples)
-            (push y-axis plot-triples)
-            (push x-axis plot-triples)))))))
+  (loop with plot-triples
+        for comparison-value in comparison-values
+        for current-jsons = (funcall filter-func jsons comparison-value)
+        unless (emptyp current-jsons)
+          do (let ((x-axis (get-x-axis (plot-by parameters) current-jsons))
+                   (y-axis (get-y-axis (metric parameters) current-jsons
+                                       (percentile parameters)
+                                       (plot-kind parameters)))
+                   (label (funcall label-func comparison-value)))
+               (push label plot-triples)
+               (push y-axis plot-triples)
+               (push x-axis plot-triples))
+        finally (return plot-triples)))
 
 (defun get-triples-comparing-by (parameters jsons compare-by)
   (declare (plot-parameters parameters) (sequence jsons) (symbol compare-by))
