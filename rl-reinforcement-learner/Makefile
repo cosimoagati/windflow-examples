@@ -30,6 +30,9 @@ debug-optimized: all
 profile: CXXFLAGS := $(CXXFLAGS) -fno-lto -g3
 profile: all
 
+tracing: CXXFLAGS := $(CXXFLAGS) -DWF_TRACING_ENABLED
+tracing: all
+
 clean:
 	rm -rf $(RL) $(RL_OBJS)
 
