@@ -71,6 +71,17 @@ rl-profile:
 lp-profile:
 	$(MAKE) profile -C lp-log-processing
 
+sa-tracing:
+	$(MAKE) tracing -C sa-sentiment-analysis
+mo-tracing:
+	$(MAKE) tracing -C mo-machine-outlier
+tt-tracing:
+	$(MAKE) tracing -C tt-trending-topics
+rl-tracing:
+	$(MAKE) tracing -C rl-reinforcement-learner
+lp-tracing:
+	$(MAKE) tracing -C lp-log-processing
+
 sa-clean:
 	$(MAKE) clean -C sa-sentiment-analysis
 mo-clean:
@@ -87,6 +98,7 @@ debug-cpu: sa-debug mo-debug tt-debug rl-debug lp-debug
 debug-cpu-optimized: sa-debug-optimized mo-debug-optimized tt-debug-optimized \
 rl-debug-optimized lp-debug-optimized
 profile-cpu: sa-profile mo-profile tt-profile rl-profile lp-profile
+tracing-cpu: sa-tracing mo-tracing tt-tracing rl-tracing lp-tracing
 
 gpu: $(GPU_EXAMPLES)
 
