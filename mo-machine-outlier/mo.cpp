@@ -347,6 +347,7 @@ static inline void validate_args(const Parameters &parameters) {
         }
     }
 
+#ifndef WF_TRACING_ENABLED
     const unsigned max_threads = thread::hardware_concurrency();
 
     for (size_t i = 0; i < num_nodes; ++i) {
@@ -368,6 +369,7 @@ static inline void validate_args(const Parameters &parameters) {
              << max_threads << '\n';
         exit(EXIT_FAILURE);
     }
+#endif
 }
 
 static inline void print_initial_parameters(const Parameters &parameters) {
