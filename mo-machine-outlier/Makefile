@@ -31,6 +31,7 @@ profile: CXXFLAGS := $(CXXFLAGS) -fno-lto -g3
 profile: all
 
 tracing: CXXFLAGS := $(CXXFLAGS) -DWF_TRACING_ENABLED
+tracing: LIBS := $(LIBS) -ltbb -lgvc -lcgraph
 tracing: all
 
 clean:
