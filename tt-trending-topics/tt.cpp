@@ -1003,8 +1003,7 @@ public:
           window_length_in_seconds {other.window_length_in_seconds},
           counter {other.counter},
           last_modified_tracker {other.last_modified_tracker},
-          parent_timestamp {other.parent_timestamp}, emit_mutex {},
-          was_timer_thread_created {other.was_timer_thread_created} {}
+          parent_timestamp {other.parent_timestamp}, emit_mutex {} {}
 
     void operator()(const Topic &topic, Shipper<Counts> &shipper,
                     RuntimeContext &context) {
@@ -1106,8 +1105,7 @@ public:
         : time_units_between_ticks {other.time_units_between_ticks},
           last_shipping_time {other.last_shipping_time}, count {other.count},
           rankings {other.rankings}, parent_timestamp {other.parent_timestamp},
-          emit_mutex {}, was_timer_thread_created {
-                             other.was_timer_thread_created} {}
+          emit_mutex {} {}
 
     void operator()(const InputType &counts, Shipper<RankingsTuple> &shipper,
                     RuntimeContext &context) {
