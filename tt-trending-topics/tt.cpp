@@ -769,8 +769,7 @@ public:
           duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate} {
         if (tweets.empty()) {
             cerr << "Error: empty tweet stream.  Check whether dataset "
-                    "file "
-                    "exists and is readable\n";
+                    "file exists and is readable\n";
             exit(EXIT_FAILURE);
         }
     }
