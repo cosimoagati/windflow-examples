@@ -25,7 +25,7 @@
 (deftype field-to-plot-by () '(member :parallelism :batch-size :chaining))
 
 (deftype plot-comparison-field () '(member :parallelism :batch-size :chaining
-                                    :frequency :execmode))
+                                    :frequency :execmode :timer-nodes-p))
 
 (deftype plot-kind () '(member :normal :scalability :efficiency))
 
@@ -282,7 +282,7 @@ Return a brand new sequence, the original sequence is left untouched."
     (unless (eql compare-by :execmode)
       (setf jsons (filter-jsons-by-execmode jsons (execmode parameters))))
     (when (and (some #'contains-timer-node-key jsons)
-               (not (eql compare-by :timernode-impl)))
+               (not (eql compare-by :timer-nodes-p)))
       (setf jsons (filter-jsons-by-timernode-impl jsons
                                                   (timer-nodes-p parameters))))
     (setf jsons (ecase plot-by
@@ -458,6 +458,10 @@ Return a brand new sequence, the original sequence is left untouched."
               (compare-by (eql :frequency)))
       (concat title "(chaining: " chaining ") (generation rate: " tuple-rate
               ") (batch size per node: " batch-size))
+    (:method (title parameters (plot-by (eql :parallelism))
+              (compare-by (eql :timer-nodes-p)))
+      (concat title "(chaining: " chaining ") (generation rate:" tuple-rate
+              ") (batch size per node: " batch-size))
     (:method (title parameters (plot-by (eql :batch-size))
               (compare-by (eql :parallelism)))
       (concat title "(chaining " chaining ") (generation rate: "
@@ -581,6 +585,12 @@ Return a brand new sequence, the original sequence is left untouched."
                        #'filter-jsons-by-frequency
                        (lambda (value)
                          (concat "Output frequency for all operators: "
+                                 (write-to-string value)))))
+    (:timer-nodes-p
+     (get-plot-triples parameters jsons '(nil t)
+                       #'filter-jsons-by-timernode-impl
+                       (lambda (value)
+                         (concat "Timer nodes used: "
                                  (write-to-string value)))))))
 
 (defun get-additional-triples (length plot-kind)
