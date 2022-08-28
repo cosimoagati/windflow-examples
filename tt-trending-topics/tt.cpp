@@ -911,6 +911,7 @@ public:
 #endif
             counter.increment_count(topic.word);
             if (!parent_timestamp) {
+                assert(topic.parent_timestamp > 0);
                 parent_timestamp = topic.parent_timestamp;
             }
         }
@@ -935,8 +936,7 @@ class RollingCounterFunctorWithTimerThread {
             {
                 lock_guard lock {print_mutex};
                 clog << "[ROLLING COUNTER " << context.getReplicaIndex()
-                     << "] Received tick tuple at "
-                        "time (in miliseconds) "
+                     << "] Shipping all tuples  at time (in miliseconds) "
                      << current_time_msecs() << '\n';
             }
 #endif
@@ -1007,9 +1007,6 @@ public:
     void operator()(const Topic &topic, Shipper<Counts> &shipper,
                     RuntimeContext &context) {
         if (!was_timer_thread_created) {
-            Counts dummy_tuple_to_wakeup_next_node;
-            shipper.push(move(dummy_tuple_to_wakeup_next_node));
-
             thread timer_thread {
                 &RollingCounterFunctorWithTimerThread::periodic_ship, this,
                 ref(shipper), ref(context)};
@@ -1020,6 +1017,7 @@ public:
         lock_guard lock {emit_mutex};
         counter.increment_count(topic.word);
         if (!parent_timestamp) {
+            assert(topic.parent_timestamp > 0);
             parent_timestamp = topic.parent_timestamp;
         }
     }
@@ -1054,6 +1052,7 @@ public:
         } else {
             update_rankings(counts, rankings);
             if (!parent_timestamp) {
+                assert(counts.parent_timestamp > 0);
                 parent_timestamp = counts.parent_timestamp;
             }
         }
@@ -1079,16 +1078,17 @@ class RankerFunctorWithTimerThread {
             usleep(time_units_between_ticks / timeunit_scale_factor * 1000000);
             lock_guard lock {emit_mutex};
             if (parent_timestamp) {
+#ifndef NDEBUG
+                {
+                    lock_guard lock {print_mutex};
+                    clog << "[RANKER " << context.getReplicaIndex()
+                         << "] Sending the following rankings: " << rankings
+                         << '\n';
+                }
+#endif
                 shipper.push({rankings, *parent_timestamp, false});
                 parent_timestamp.reset();
             }
-#ifndef NDEBUG
-            {
-                lock_guard lock {print_mutex};
-                clog << "[RANKER " << context.getReplicaIndex()
-                     << "] Current rankings are " << rankings << '\n';
-            }
-#endif
         }
     }
 
@@ -1109,11 +1109,6 @@ public:
     void operator()(const InputType &counts, Shipper<RankingsTuple> &shipper,
                     RuntimeContext &context) {
         if (!was_timer_thread_created) {
-            if constexpr (is_same_v<InputType, Counts>) {
-                RankingsTuple dummy_tuple_to_wakeup_next_node;
-                shipper.push(move(dummy_tuple_to_wakeup_next_node));
-            }
-
             thread timer_thread {
                 &RankerFunctorWithTimerThread<InputType,
                                               update_rankings>::periodic_ship,
@@ -1128,10 +1123,19 @@ public:
             }
 #endif
         }
-
+#ifndef NDEBUG
+        {
+            lock_guard lock {print_mutex};
+            if constexpr (is_same_v<InputType, Counts>) {
+                clog << "[INTERMEDIATE RANKER " << context.getReplicaIndex()
+                     << "] Received counts for topic: " << counts.word << '\n';
+            }
+        }
+#endif
         lock_guard lock {emit_mutex};
         update_rankings(counts, rankings);
         if (!parent_timestamp) {
+            assert(counts.parent_timestamp > 0);
             parent_timestamp = counts.parent_timestamp;
         }
     }
