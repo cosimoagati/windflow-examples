@@ -366,8 +366,9 @@ Return a brand new sequence, the original sequence is left untouched."
   (let ((scaled-y-axis (get-scaled-y-axis name jsons
                                           percentile base-value)))
     (declare (sequence scaled-y-axis))
-    (dotimes (i (length scaled-y-axis) scaled-y-axis)
-      (setf (elt scaled-y-axis i) (/ (elt scaled-y-axis i) (1+ i))))))
+    (loop for i below (length scaled-y-axis)
+          do (setf (elt scaled-y-axis i) (/ (elt scaled-y-axis i) (1+ i)))
+          finally (return scaled-y-axis))))
 
 (defun get-y-axis (name jsons percentile plot-kind)
   (declare (string name percentile) (sequence jsons) (symbol plot-kind))
