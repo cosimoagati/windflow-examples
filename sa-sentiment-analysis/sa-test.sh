@@ -22,16 +22,15 @@ for rate in 0; do
                  --outputdir="$outputdir" \
                  >> "$outputdir/output-$($datecmd).txt"
         done
-
-        for pardeg in $(seq 1 $nproc); do
-            ./sa --duration=$duration \
-                 --parallelism=$pardeg,$pardeg,$pardeg \
-                 --batch=$batching,0 \
-                 --chaining=true \
-                 --rate=$rate \
-                 --outputdir="$outputdir" \
-                 >> "$outputdir/output-$($datecmd).txt"
-        done
+    done
+    for pardeg in $(seq 1 $nproc); do
+        ./sa --duration=$duration \
+             --parallelism=$pardeg,$pardeg,$pardeg \
+             --batch=0,0 \
+             --chaining=true \
+             --rate=$rate \
+             --outputdir="$outputdir" \
+             >> "$outputdir/output-$($datecmd).txt"
     done
 done
 

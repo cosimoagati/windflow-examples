@@ -41,7 +41,7 @@ for rate in 0; do
                     for pardeg in $(seq 1 $(($nproc / 2))); do
                         ./mo --duration=$duration \
                              --parallelism=$pardeg,$pardeg,$pardeg,$pardeg,$pardeg \
-                             --batch=$batching,$batching,$batching,$batching \
+                             --batch=0,$batching,0,0 \
                              --chaining=true \
                              --rate=$rate \
                              --execmode=$execmode \

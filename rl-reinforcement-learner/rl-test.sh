@@ -26,7 +26,7 @@ for rate in 0; do
         for pardeg in $(seq 1 $(($nproc / 3))); do
             ./rl --duration=$duration \
                  --parallelism=$pardeg,$pardeg,$pardeg,$pardeg \
-                 --batch=$batching,$batching,$batching \
+                 --batch=$batching,$batching,0 \
                  --chaining=true \
                  --rate=$rate \
                  --outputdir="$outputdir" \

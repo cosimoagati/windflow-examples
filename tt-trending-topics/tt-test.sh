@@ -45,7 +45,7 @@ for rate in 0; do
             for pardeg in $(seq 1 $((($nproc - $timerthreads) / 4))); do
                 ./tt --duration=$duration \
                      --parallelism=$pardeg,$pardeg,$pardeg,$pardeg,$pardeg,$pardeg \
-                     --batch=$batching,$batching,$batching,$batching,$batching \
+                     --batch=0,$batching,$batching,$batching,0 \
                      --chaining=true \
                      --frequency=$freq,$freq,$freq \
                      --rate=$rate \
@@ -57,7 +57,7 @@ for rate in 0; do
             for pardeg in $(seq $(($nproc / 3))); do
                 ./tt --duration=$duration \
                      --parallelism=$pardeg,$pardeg,$pardeg,$pardeg,$pardeg,$pardeg \
-                     --batch=$batching,$batching,$batching,$batching,$batching \
+                     --batch=0,$batching,$batching,0,0 \
                      --chaining=true \
                      --frequency=$freq,$freq,$freq \
                      --rate=$rate \
