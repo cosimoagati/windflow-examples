@@ -209,7 +209,8 @@ Return a brand new sequence, the original sequence is left untouched."
   "Filter out entries in JSONS not matching BATCH-SIZE.
 Return a brand new sequence, the original sequence is left untouched."
   (declare (sequence jsons) (fixnum batch-size))
-  (remove-if-not (lambda (j) (= (first (gethash "batch size" j)) batch-size))
+  (remove-if-not (lambda (j) (some (lambda (b) (= b batch-size))
+                                   (gethash "batch size" j)))
                  jsons))
 
 (defun filter-jsons-by-chaining (jsons chaining-p)
@@ -329,7 +330,7 @@ Return a brand new sequence, the original sequence is left untouched."
   (declare (field-to-plot-by plot-by))
   (ecase plot-by
     (:parallelism "Parallelism degree for each node")
-    (:batch-size "Initial batch size")
+    (:batch-size "Output batch size")
     (:chaining "Chaining enabled?")))
 
 (defun get-y-label (parameters time-unit)
@@ -405,9 +406,13 @@ Return a brand new sequence, the original sequence is left untouched."
                                          (declare (hash-table j))
                                          (first (gethash "parallelism" j)))
                        jsons))
-    (:batch-size (map (type-of jsons) (lambda (j)
-                                        (declare (hash-table j))
-                                        (first (gethash "batch size" j)))
+    (:batch-size (map (type-of jsons)
+                      (lambda (j)
+                        (declare (hash-table j))
+                        (let* ((batch-sizes (gethash "batch size" j))
+                               (nonzero-batch-size (find-if-not #'zerop
+                                                                batch-sizes)))
+                          (if nonzero-batch-size nonzero-batch-size 0)))
                       jsons))
     (:chaining (map (type-of jsons) (lambda (x)
                                       (declare (boolean x))
