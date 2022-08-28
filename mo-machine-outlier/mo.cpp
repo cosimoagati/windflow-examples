@@ -833,17 +833,16 @@ public:
 };
 
 class SlidingWindowStreamAnomalyScorerFunctor {
-    unordered_map<string, deque<double>> sliding_window_map;
-    size_t                               window_length;
+    unordered_map<string, deque<double>>           sliding_window_map;
+    TimestampPriorityQueue<ObservationResultTuple> tuple_queue;
+    Execution_Mode_t                               execution_mode;
+    size_t                                         window_length;
 
     unsigned long previous_timestamp = 0; // XXX: is this needed?
 
-public:
-    SlidingWindowStreamAnomalyScorerFunctor(size_t length = 10)
-        : window_length {length} {}
-
-    AnomalyResultTuple operator()(const ObservationResultTuple &tuple,
-                                  RuntimeContext &              context) {
+    void process(const ObservationResultTuple &tuple,
+                 Shipper<AnomalyResultTuple> & shipper,
+                 RuntimeContext &              context) {
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
@@ -874,12 +873,49 @@ public:
         const unsigned long next_ordering_timestamp =
             context.getCurrentTimestamp();
 
-        return {tuple.id,
-                score_sum,
-                next_ordering_timestamp,
-                tuple.parent_execution_timestamp,
-                tuple.observation,
-                tuple.score};
+        shipper.push({tuple.id, score_sum, next_ordering_timestamp,
+                      tuple.parent_execution_timestamp, tuple.observation,
+                      tuple.score});
+    }
+
+public:
+    SlidingWindowStreamAnomalyScorerFunctor(Execution_Mode_t e,
+                                            size_t           length = 10)
+        : execution_mode {e}, window_length {length} {}
+
+    void operator()(const ObservationResultTuple &tuple,
+                    Shipper<AnomalyResultTuple> & shipper,
+                    RuntimeContext &              context) {
+        const unsigned long watermark = context.getLastWatermark();
+#ifndef NDEBUG
+        {
+            lock_guard lock {print_mutex};
+            clog << "[ANOMALY SCORER " << context.getReplicaIndex()
+                 << "] Received tuple with ordering timestamp: "
+                 << tuple.ordering_timestamp
+                 << ", WindFlow timestamp: " << context.getCurrentTimestamp()
+                 << ", current amount of tuples cached: " << tuple_queue.size()
+                 << ", current watermark: " << watermark << '\n';
+        }
+#endif
+        switch (execution_mode) {
+        case Execution_Mode_t::DETERMINISTIC:
+            process(tuple, shipper, context);
+            break;
+        case Execution_Mode_t::DEFAULT:
+            tuple_queue.push(tuple);
+
+            while (!tuple_queue.empty()
+                   && tuple_queue.top().ordering_timestamp <= watermark) {
+                process(tuple_queue.top(), shipper, context);
+                tuple_queue.pop();
+            }
+            break;
+        default:
+            cerr << "[ANOMALY SCORER] Error: unknown execution mode\n";
+            exit(EXIT_FAILURE);
+            break;
+        }
     }
 };
 
@@ -1345,9 +1381,10 @@ static MultiPipe &get_anomaly_scorer_pipe(const Parameters &parameters,
         return use_chaining ? pipe.chain(anomaly_scorer_node)
                             : pipe.add(anomaly_scorer_node);
     } else if (name == "sliding-window" || name == "sliding_window") {
-        SlidingWindowStreamAnomalyScorerFunctor anomaly_scorer_functor;
-        const auto                              anomaly_scorer_node =
-            Map_Builder {anomaly_scorer_functor}
+        SlidingWindowStreamAnomalyScorerFunctor anomaly_scorer_functor {
+            parameters.execution_mode};
+        const auto anomaly_scorer_node =
+            FlatMap_Builder {anomaly_scorer_functor}
                 .withParallelism(parameters.parallelism[anomaly_scorer_id])
                 .withName("anomaly scorer")
                 .withKeyBy([](const ObservationResultTuple &tuple) -> string {
