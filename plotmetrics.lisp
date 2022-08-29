@@ -522,17 +522,20 @@ Return a brand new sequence, the original sequence is left untouched."
                      :terminal "png size 1280,960"))
 
 (defun draw-boxplot (&key title x-label y-label y-axis x-axis)
-  (declare (string title x-label y-label)
+  (declare (string x-label y-label)
+           ((or string null) title)
            (sequence x-axis y-axis))
   ;; (py4cl:import-module "matplotlib.pyplot" :as "plt")
-  (plt:figure)
+  (plt:boxplot y-axis :positions x-axis)
+  ;; (plt:figure)
   (plt:xlabel x-label)
   (plt:ylabel y-label)
-  (plt:title title :loc "right" :y 1.08)
+  (when title
+    (plt:title title :loc "right" :y 1.08))
   (plt:grid t)
-  (plt:boxplot y-axis :positions x-axis)
-  (plt:show)
-  (plt:close "all"))
+  ;; (plt:show)
+  ;; (plt:close "all")
+  )
 
 (defun boxplot-title (parameters)
   (declare (plot-parameters parameters))
@@ -653,7 +656,7 @@ Return a brand new sequence, the original sequence is left untouched."
     (save-plot image-path)))
 
 (defun boxplot (&optional (parameters *default-plot-parameters*) jsons
-                  image-path)
+                  image-path (title-p t))
   (declare (plot-parameters parameters) (sequence jsons)
            ((or null pathname string) image-path) )
   (unless jsons
@@ -669,13 +672,14 @@ Return a brand new sequence, the original sequence is left untouched."
     (return-from boxplot))
   (setf jsons (sort-jsons-by-parallelism jsons))
   (let ((time-unit (gethash "time unit" (elt jsons 0))))
-    (let ((title (boxplot-title parameters))
+    (let ((title (if title-p (boxplot-title parameters) nil))
           (xlabel (get-x-label (plot-by parameters)))
           (ylabel (get-y-label parameters time-unit))
           (x-axis (get-x-axis (plot-by parameters) jsons))
-          (y-axis (mapcar (lambda (j)
-                            (get-percentile-values j (percentiles parameters)))
-                          jsons)))
+          (y-axis (map (type-of jsons)
+                       (lambda (j)
+                         (get-percentile-values j (percentiles parameters)))
+                       jsons)))
       (when *debug*
         (format t "x-axis: ~a~%y-axis: ~a~%" x-axis y-axis))
       (draw-boxplot :title title :x-label xlabel :y-label ylabel
@@ -769,9 +773,23 @@ Return a brand new sequence, the original sequence is left untouched."
                   (plot parameters jsons image-path))))))))))
 
 (defun plot-subplots (&rest parameters)
+  (unless (member (length parameters) '(2 4))
+    (error "Can only plot exactly 2 or 4 parameters"))
   (loop initially (vgplot:close-all-plots)
-        with subplot-dimension = (ceiling (sqrt (length parameters)))
+        with subplot-dimension = 2
         for parameter in parameters
         and i from 0
-        do (vgplot:subplot subplot-dimension subplot-dimension i)
+        do (vgplot:subplot subplot-dimension (/ (length parameters) 2) i)
            (plot parameter nil nil nil)))
+
+;; TODO: Super repetitive, can we simplify it?
+(defun boxplot-subplots (&rest parameters)
+  (unless (member (length parameters) '(2 4))
+    (error "Can only plot exactly 2 or 4 parameters"))
+  (loop initially (plt:close "all")
+        with subplot-dimension = 2
+        for parameter in parameters
+        and i from 1
+        do (plt:subplot subplot-dimension (/ (length parameters) 2) i)
+           (boxplot parameter nil nil nil)
+        finally (plt:show)))
