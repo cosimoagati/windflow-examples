@@ -622,7 +622,7 @@ Return a brand new sequence, the original sequence is left untouched."
             (nconc (list x-axis y-axis label) actual-triples))))))
 
 (defun plot (&optional (parameters *default-plot-parameters*) jsons
-               image-path title-p)
+               image-path (title-p t))
   (declare (plot-parameters parameters) (sequence jsons)
            ((or null pathname string) image-path))
   (unless jsons
