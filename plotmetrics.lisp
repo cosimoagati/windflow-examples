@@ -782,7 +782,6 @@ Return a brand new sequence, the original sequence is left untouched."
         do (vgplot:subplot subplot-dimension (/ (length parameters) 2) i)
            (plot parameter nil nil nil)))
 
-;; TODO: Super repetitive, can we simplify it?
 (defun boxplot-subplots (&rest parameters)
   (unless (member (length parameters) '(2 4))
     (error "Can only plot exactly 2 or 4 parameters"))
