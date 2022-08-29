@@ -16,7 +16,7 @@
 
 (defpackage plotmetrics
   (:use :common-lisp)
-  (:export :plot :make-parameters :generate-images :*debug*))
+  (:export :plot :make-parameters :generate-images :plot-subplots :*debug*))
 
 (in-package plotmetrics)
 
@@ -622,7 +622,7 @@ Return a brand new sequence, the original sequence is left untouched."
             (nconc (list x-axis y-axis label) actual-triples))))))
 
 (defun plot (&optional (parameters *default-plot-parameters*) jsons
-               image-path)
+               image-path title-p)
   (declare (plot-parameters parameters) (sequence jsons)
            ((or null pathname string) image-path))
   (unless jsons
@@ -631,21 +631,21 @@ Return a brand new sequence, the original sequence is left untouched."
   (unless jsons
     (format t "No data found with the specified parameters, not plotting...")
     (return-from plot))
-  (let ((time-unit (gethash "time unit" (elt jsons 0))))
-    (let ((title (title-for-plot parameters))
-          (xlabel (get-x-label (plot-by parameters)))
-          (ylabel (get-y-label parameters time-unit)))
-      (vgplot:title title)
-      (vgplot:xlabel xlabel)
-      (vgplot:ylabel ylabel)
-      (vgplot:grid t)
-      (let ((plot-triples (get-triples parameters jsons)))
-        (when *debug*
-          (print (reverse plot-triples)))
-        (plot-from-triples plot-triples))
-      (when image-path
-        (ensure-directories-exist image-path :verbose *debug*)
-        (save-plot image-path)))))
+  (let ((plot-triples (get-triples parameters jsons)))
+    (when *debug*
+      (print (reverse plot-triples)))
+    (plot-from-triples plot-triples))
+  (when title-p
+    (vgplot:title (title-for-plot parameters)))
+  (let* ((xlabel (get-x-label (plot-by parameters)))
+         (time-unit (gethash "time unit" (elt jsons 0)))
+         (ylabel (get-y-label parameters time-unit)))
+    (vgplot:xlabel xlabel)
+    (vgplot:ylabel ylabel))
+  (vgplot:grid t)
+  (when image-path
+    (ensure-directories-exist image-path :verbose *debug*)
+    (save-plot image-path)))
 
 (defun boxplot (&optional (parameters *default-plot-parameters*) jsons
                   image-path)
@@ -762,3 +762,11 @@ Return a brand new sequence, the original sequence is left untouched."
                 (setf (chaining-p parameters) chaining-p)
                 (let ((image-path (get-image-file-name parameters)))
                   (plot parameters jsons image-path))))))))))
+
+(defun plot-subplots (&rest parameters)
+  (loop initially (vgplot:close-all-plots)
+        with subplot-dimension = (ceiling (sqrt (length parameters)))
+        for parameter in parameters
+        and i from 0
+        do (vgplot:subplot subplot-dimension subplot-dimension i)
+           (plot parameter nil nil nil)))
