@@ -209,9 +209,14 @@ Return a brand new sequence, the original sequence is left untouched."
   "Filter out entries in JSONS not matching BATCH-SIZE.
 Return a brand new sequence, the original sequence is left untouched."
   (declare (sequence jsons) (fixnum batch-size))
-  (remove-if-not (lambda (j) (some (lambda (b) (= b batch-size))
-                                   (gethash "batch size" j)))
-                 jsons))
+  (let ((batch-good-p
+          (if (zerop batch-size)
+              (lambda (batch-sizes) (every #'zerop batch-sizes))
+              (lambda (batch-sizes) (some (lambda (b) (= b batch-size))
+                                          batch-sizes)))))
+    (remove-if-not (lambda (j)
+                     (funcall batch-good-p (gethash "batch size" j)))
+                   jsons)))
 
 (defun filter-jsons-by-chaining (jsons chaining-p)
   "Filter out entries in JSONS not matching CHAINING-P.
