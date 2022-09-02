@@ -773,25 +773,29 @@ Return a brand new sequence, the original sequence is left untouched."
                   (plot parameters jsons image-path))))))))))
 
 (defun plot-subplots (&rest parameters)
-  (unless (member (length parameters) '(2 4))
-    (error "Can only plot exactly 2 or 4 parameters"))
-  (loop initially (vgplot:close-all-plots)
-        with subplot-rows = 2
-        and subplot-columns = (/ (length parameters) 2)
-        with legend-location = (if (= 2 subplot-columns) :inside :outside)
-        for parameter in parameters
-        and i from 0
-        do (vgplot:subplot subplot-rows subplot-columns i)
-           (vgplot:legend legend-location)
-           (plot parameter nil nil nil)))
+  (ecase (length parameters)
+    (1 (plot (first parameters) nil nil t))
+    ((2 4) (loop initially (vgplot:close-all-plots)
+                 with subplot-rows = 2
+                 and subplot-columns = (/ (length parameters) 2)
+                 with legend-location = (if (= 2 subplot-columns)
+                                            :inside
+                                            :outside)
+                 for parameter in parameters
+                 and i from 0
+                 do (vgplot:subplot subplot-rows subplot-columns i)
+                    (vgplot:legend legend-location)
+                    (plot parameter nil nil nil)))))
 
 (defun boxplot-subplots (&rest parameters)
-  (unless (member (length parameters) '(2 4))
-    (error "Can only plot exactly 2 or 4 parameters"))
-  (loop initially (plt:close "all")
-        with subplot-dimension = 2
-        for parameter in parameters
-        and i from 1
-        do (plt:subplot subplot-dimension (/ (length parameters) 2) i)
-           (boxplot parameter nil nil nil)
-        finally (plt:show)))
+  (ecase (length parameters)
+    (1
+     (boxplot (first parameters) nil nil nil)
+     (plt:show))
+    ((2 4) (loop initially (plt:close "all")
+                 with subplot-dimension = 2
+                 for parameter in parameters
+                 and i from 1
+                 do (plt:subplot subplot-dimension (/ (length parameters) 2) i)
+                    (boxplot parameter nil nil nil)
+                 finally (plt:show)))))
