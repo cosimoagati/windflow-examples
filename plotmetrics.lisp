@@ -343,8 +343,8 @@ Return a brand new sequence, the original sequence is left untouched."
   (declare (plot-parameters parameters) (string time-unit))
   (with-accessors ((kind plot-kind) (name metric)) parameters
     (ecase kind
-      (:scalability "Performance with respect to base case")
-      (:efficiency "Ratio with respect to base case")
+      (:scalability "Performance wrt base case")
+      (:efficiency "Ratio wrtt base case")
       (:normal
        (let* ((time-unit-string (let ((abbrev (unit-to-abbrev time-unit)))
                                   (if abbrev abbrev "unknown unit")))
