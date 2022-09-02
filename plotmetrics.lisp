@@ -593,7 +593,7 @@ Return a brand new sequence, the original sequence is left untouched."
     (:execmode
      (get-plot-triples parameters jsons '("deterministic" "default")
                        #'filter-jsons-by-execmode
-                       (lambda (value) (concat "Execution mode: " value))))
+                       (lambda (value) (string-upcase value))))
     (:frequency
      (get-plot-triples parameters jsons (frequencies parameters)
                        #'filter-jsons-by-frequency
