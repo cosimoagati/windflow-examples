@@ -643,8 +643,7 @@ Return a brand new sequence, the original sequence is left untouched."
     (when *debug*
       (print (reverse plot-triples)))
     (plot-from-triples plot-triples))
-  (when title-p
-    (vgplot:title (title-for-plot parameters)))
+  (vgplot:title (if title-p (title-for-plot parameters) ""))
   (let* ((xlabel (get-x-label (plot-by parameters)))
          (time-unit (gethash "time unit" (elt jsons 0)))
          (ylabel (get-y-label parameters time-unit)))
@@ -774,7 +773,7 @@ Return a brand new sequence, the original sequence is left untouched."
 
 (defun plot-subplots (&rest parameters)
   (ecase (length parameters)
-    (1 (plot (first parameters) nil nil t))
+    (1 (plot (first parameters) nil nil nil))
     ((2 4) (loop initially (vgplot:close-all-plots)
                  with subplot-rows = 2
                  and subplot-columns = (/ (length parameters) 2)
