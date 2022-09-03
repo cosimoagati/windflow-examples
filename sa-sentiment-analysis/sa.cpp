@@ -24,7 +24,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <unistd.h>
 #include <unordered_map>
 #include <utility>
@@ -283,30 +282,6 @@ static inline void validate_args(const Parameters &parameters) {
             exit(EXIT_FAILURE);
         }
     }
-
-#ifndef WF_TRACING_ENABLED
-    const unsigned max_threads = thread::hardware_concurrency();
-
-    for (size_t i = 0; i < num_nodes; ++i) {
-        if (parameters.parallelism[i] > max_threads) {
-            cerr << "Error:  parallelism degree for node " << i
-                 << " is too large\n"
-                    "Maximum available number of threads is: "
-                 << max_threads << '\n';
-        }
-    }
-
-    if (accumulate(cbegin(parameters.parallelism),
-                   cend(parameters.parallelism), 0u)
-            >= max_threads
-        && !parameters.use_chaining) {
-        cerr << "Error: the total number of hardware threads specified is "
-                "too high to be used without chaining.\n"
-                "Maximum available number of threads is: "
-             << max_threads << '\n';
-        exit(EXIT_FAILURE);
-    }
-#endif
 }
 
 static inline void print_initial_parameters(const Parameters &parameters) {
