@@ -1420,6 +1420,7 @@ int main(int argc, char *argv[]) {
     graph.run();
     const unsigned long elapsed_time = difference(current_time(), start_time);
 
+#if defined(NDEBUG) && !defined(PROFILE)
     const double throughput =
         elapsed_time > 0
             ? (global_sent_tuples.load() / static_cast<double>(elapsed_time))
@@ -1447,6 +1448,7 @@ int main(int argc, char *argv[]) {
                      parameters);
     serialize_json(service_time_stats, "tt-service-time",
                    parameters.metric_output_directory);
+#endif
 
     const double average_latency =
         accumulate(global_latency_metric.begin(), global_latency_metric.end(),

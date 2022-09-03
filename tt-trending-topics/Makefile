@@ -27,7 +27,7 @@ debug: all
 debug-optimized: CXXFLAGS := $(CXXFLAGS) -fno-lto -g3 -UNDEBUG
 debug-optimized: all
 
-profile: CXXFLAGS := $(CXXFLAGS) -fno-lto -g3
+profile: CXXFLAGS := $(CXXFLAGS) -fno-lto -g3 -DPROFILE
 profile: all
 
 tracing: CXXFLAGS := $(CXXFLAGS) -DWF_TRACING_ENABLED
