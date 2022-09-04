@@ -16,7 +16,8 @@
 
 (defpackage plotmetrics
   (:use :common-lisp)
-  (:export :plot :make-parameters :generate-images :plot-subplots :*debug*))
+  (:export :plot :make-parameters :generate-images :plot-subplots
+           :boxplot-subplots :*debug*))
 
 (in-package plotmetrics)
 
