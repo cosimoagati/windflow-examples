@@ -636,7 +636,7 @@ Return a brand new sequence, the original sequence is left untouched."
   (unless jsons
     (setf jsons (get-json-objs-from-directory (plotdir parameters))))
   (setf jsons (filter-jsons parameters jsons))
-  (unless jsons
+  (when (emptyp jsons)
     (format t "No data found with the specified parameters, not plotting...")
     (return-from plot))
   (let ((plot-triples (get-triples parameters jsons)))
@@ -666,7 +666,7 @@ Return a brand new sequence, the original sequence is left untouched."
         jsons (filter-jsons-by-sampling-rate jsons (sampling-rate parameters))
         jsons (filter-jsons-by-tuple-rate jsons (tuple-rate parameters))
         jsons (filter-jsons-by-execmode jsons (execmode parameters)))
-  (unless jsons
+  (when (emptyp jsons)
     (format t "No data found with the specified parameters, not plotting...")
     (return-from boxplot))
   (setf jsons (sort-jsons-by-parallelism jsons))
