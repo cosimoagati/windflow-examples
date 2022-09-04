@@ -550,6 +550,7 @@ Return a brand new sequence, the original sequence is left untouched."
             ") (percentiles: " (write-to-string percentiles) ")")))
 
 (defun emptyp (sequence)
+  (declare (sequence sequence))
   (zerop (length sequence)))
 
 (defun get-plot-triples (parameters jsons comparison-values filter-func
