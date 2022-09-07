@@ -776,7 +776,9 @@ Return a brand new sequence, the original sequence is left untouched."
 (defun plot-subplots (&rest parameters)
   (vgplot:close-all-plots)
   (ecase (length parameters)
-    (1 (plot (first parameters) nil nil nil))
+    (1
+     (vgplot:legend :outside)
+     (plot (first parameters) nil nil nil))
     ((2 4) (loop with subplot-rows = 2
                  and subplot-columns = (/ (length parameters) 2)
                  with legend-location = (if (= 2 subplot-columns)
