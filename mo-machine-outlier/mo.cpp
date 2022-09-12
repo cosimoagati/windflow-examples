@@ -608,7 +608,9 @@ class ObservationScorerFunctor {
                 const auto score_package_list =
                     scorer.get_scores(observation_list);
                 const unsigned long next_ordering_timestamp =
-                    context.getCurrentTimestamp();
+                    execution_mode == Execution_Mode_t::DEFAULT
+                        ? context.getLastWatermark()
+                        : tuple.observation.timestamp;
 
                 for (const auto &package : score_package_list) {
                     ObservationResultTuple result {
@@ -710,7 +712,9 @@ class DataStreamAnomalyScorerFunctor {
 
         if (tuple.ordering_timestamp > previous_ordering_timestamp) {
             const unsigned long next_ordering_timestamp =
-                context.getCurrentTimestamp();
+                execution_mode == Execution_Mode_t::DEFAULT
+                    ? context.getLastWatermark()
+                    : tuple.ordering_timestamp;
 
             for (auto &entry : stream_profile_map) {
                 auto &stream_profile = entry.second;
@@ -846,7 +850,9 @@ class SlidingWindowStreamAnomalyScorerFunctor {
         }
 #endif
         const unsigned long next_ordering_timestamp =
-            context.getCurrentTimestamp();
+            execution_mode == Execution_Mode_t::DEFAULT
+                ? context.getLastWatermark()
+                : tuple.ordering_timestamp;
 
         shipper.push({tuple.id, score_sum, next_ordering_timestamp,
                       tuple.parent_execution_timestamp, tuple.observation,
