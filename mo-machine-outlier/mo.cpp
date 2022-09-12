@@ -601,7 +601,7 @@ class ObservationScorerFunctor {
                  << '\n';
         }
 #endif
-        assert(tuple.observation.timestamp >= previous_ordering_timestamp);
+        assert(tuple.ordering_timestamp >= previous_ordering_timestamp);
 
         if (tuple.observation.timestamp > previous_ordering_timestamp) {
             if (!observation_list.empty()) {
@@ -610,7 +610,7 @@ class ObservationScorerFunctor {
                 const unsigned long next_ordering_timestamp =
                     execution_mode == Execution_Mode_t::DEFAULT
                         ? context.getLastWatermark()
-                        : tuple.observation.timestamp;
+                        : tuple.ordering_timestamp;
 
                 for (const auto &package : score_package_list) {
                     ObservationResultTuple result {
