@@ -1010,6 +1010,14 @@ public:
         DO_NOT_WARN_IF_UNUSED(context);
 
         if (counts.is_tick_tuple) {
+#ifndef NDEBUG
+            {
+                lock_guard lock {print_mutex};
+                clog << "[RANKER " << context.getReplicaIndex()
+                     << "] Received tick tuple at time (in miliseconds) "
+                     << current_time_msecs() << '\n';
+            }
+#endif
             if (parent_timestamp) {
                 shipper.push({rankings, *parent_timestamp, false});
                 parent_timestamp.reset();
