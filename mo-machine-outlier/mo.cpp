@@ -670,6 +670,7 @@ public:
 
             while (!tuple_queue.empty()
                    && tuple_queue.top().ordering_timestamp <= watermark) {
+                assert(tuple_queue.top().ordering_timestamp == watermark);
                 process(tuple_queue.top(), shipper, context);
                 tuple_queue.pop();
             }
@@ -799,6 +800,7 @@ public:
 
             while (!tuple_queue.empty()
                    && tuple_queue.top().ordering_timestamp <= watermark) {
+                assert(tuple_queue.top().ordering_timestamp == watermark);
                 process(tuple_queue.top(), shipper, context);
                 tuple_queue.pop();
             }
@@ -888,6 +890,7 @@ public:
 
             while (!tuple_queue.empty()
                    && tuple_queue.top().ordering_timestamp <= watermark) {
+                assert(tuple_queue.top().ordering_timestamp == watermark);
                 process(tuple_queue.top(), shipper, context);
                 tuple_queue.pop();
             }
