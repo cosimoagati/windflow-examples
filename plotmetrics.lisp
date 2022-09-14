@@ -673,8 +673,7 @@ Return a brand new sequence, the original sequence is left untouched."
                                                     x-axis-prefix
                                                     (write-to-string x)))
                                        (first original-triples)))
-        for triple-list = original-triples then (cdddr
-                                                 triple-list)
+        for triple-list = original-triples then (cdddr triple-list)
         while triple-list
         collect (cons (third triple-list)
                       (coerce (second triple-list) 'list))
