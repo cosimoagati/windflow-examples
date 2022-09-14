@@ -167,6 +167,8 @@
 
 (defun transpose-lists (lists)
   (declare (list lists))
+  (when (>= (length lists) call-arguments-limit)
+    (error "LISTS contains more lists than CALL-ARGUMENTS-LIMIT"))
   (apply #'mapcar #'list lists))
 
 (defun starts-with (word prefix)
