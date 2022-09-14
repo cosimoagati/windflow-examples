@@ -165,6 +165,10 @@
          (title (concat (second words) " " (third words))))
     (concat (string-capitalize title) " (" (string-upcase acronym) ")")))
 
+(defun transpose-lists (lists)
+  (declare (list lists))
+  (apply #'mapcar #'list lists))
+
 (defun starts-with (word prefix)
   "Return non-NIL if WORD starts with PREFIX, NIL otherwise"
   (declare (string word prefix))
