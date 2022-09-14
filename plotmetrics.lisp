@@ -662,6 +662,39 @@ Return a brand new sequence, the original sequence is left untouched."
     (ensure-directories-exist image-path :verbose *debug*)
     (save-plot image-path)))
 
+(defun get-csv-fields (parameters jsons)
+  (declare (plot-parameters parameters)
+           (sequence jsons))
+  (loop with original-triples = (get-triples parameters jsons)
+        with x-axis-prefix = (ecase (plot-by parameters)
+                               (:parallelism "Par. degree: ")
+                               (:batch-size "Batch size: "))
+        with x-axis = (cons "" (mapcar (lambda (x) (concatenate'string
+                                                    x-axis-prefix
+                                                    (write-to-string x)))
+                                       (first original-triples)))
+        for triple-list = original-triples then (cdddr
+                                                 triple-list)
+        while triple-list
+        collect (cons (third triple-list)
+                      (coerce (second triple-list) 'list))
+          into result
+        finally (return (transpose-lists
+                         (cons x-axis (nreverse result))))))
+
+(defun write-triples-to-csv (stream &optional (parameters *default-plot-parameters*)
+                                      jsons)
+  (declare (plot-parameters parameters)
+           (sequence jsons))
+  (unless jsons
+    (setf jsons (get-json-objs-from-directory (plotdir parameters))))
+  (setf jsons (filter-jsons parameters jsons))
+  (when (emptyp jsons)
+    (format t "No data found with the specified parameters, not plotting...")
+    (return-from write-triples-to-csv))
+  (let ((fields (get-csv-fields parameters jsons)))
+    (cl-csv:write-csv fields :stream stream)))
+
 (defun boxplot (&optional (parameters *default-plot-parameters*) jsons
                   image-path (title-p t))
   (declare (plot-parameters parameters) (sequence jsons)
