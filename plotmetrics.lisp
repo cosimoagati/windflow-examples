@@ -666,9 +666,9 @@ Return a brand new sequence, the original sequence is left untouched."
   (declare (plot-parameters parameters)
            (sequence jsons))
   (loop with original-triples = (get-triples parameters jsons)
-        with x-axis-prefix = (ecase (plot-by parameters)
-                               (:parallelism "Par. degree: ")
-                               (:batch-size "Batch size: "))
+        and x-axis-prefix = (ecase (plot-by parameters)
+                              (:parallelism "Par. degree: ")
+                              (:batch-size "Batch size: "))
         with x-axis = (cons "" (mapcar (lambda (x) (concatenate'string
                                                     x-axis-prefix
                                                     (write-to-string x)))
