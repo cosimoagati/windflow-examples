@@ -268,6 +268,11 @@ Return a brand new sequence, the original sequence is left untouched."
   (let ((keys (alexandria:hash-table-keys json)))
     (member "using timer nodes" keys :test #'equal)))
 
+(defun contains-timernode-impl-fields-p (json)
+  (declare (hash-table json))
+  (let ((keys (alexandria:hash-table-keys json)))
+    (some (lambda (k) (ends-with k "timer nodes")) keys)))
+
 (defun filter-jsons-by-timernode-impl (jsons timer-nodes-p)
   (declare (sequence jsons) (boolean timer-nodes-p))
   (remove-if-not (lambda (j)
@@ -350,8 +355,8 @@ Return a brand new sequence, the original sequence is left untouched."
   (declare (plot-parameters parameters) (string time-unit))
   (with-accessors ((kind plot-kind) (name metric)) parameters
     (ecase kind
-      (:scalability "Performance wrt base case")
-      (:efficiency "Ratio wrtt base case")
+      (:scalability "Scalability")
+      (:efficiency "Efficiency")
       (:normal
        (let* ((time-unit-string (let ((abbrev (unit-to-abbrev time-unit)))
                                   (if abbrev abbrev "unknown unit")))
@@ -442,19 +447,29 @@ Return a brand new sequence, the original sequence is left untouched."
   (declare (fixnum rate))
   (if (plusp rate) (write-to-string rate) "unlimited"))
 
-(defun title-for-plot (parameters)
+(defun initial-title (parameters)
+  (concat ;; (case (plot-kind parameters)
+   ;;   (:scalability "Scalability for ")
+   ;;   (:efficiency "Efficiency for "))
+   ;; (title-from-directory (plotdir parameters))
+   ;; " - "
+   ;; (substitute #\Space #\-
+   ;;             (string-capitalize
+   ;;              (metric parameters)))
+   ))
+
+(defun title-for-plot (parameters &optional print-title)
   (declare (plot-parameters parameters))
-  (let ((initial-title (concat (title-from-directory (plotdir parameters))
-                               " - " (substitute #\Space #\-
-                                                 (string-capitalize
-                                                  (metric parameters)))
-                               " (" (percentile parameters) ") ")))
+  (let ((initial-title (if print-title (initial-title parameters) "")))
     (declare (string initial-title))
     (title-from-plotby-compareby initial-title parameters (plot-by parameters)
                                  (compare-by parameters))))
 
 (symbol-macrolet ((chaining (chaining-to-string (chaining-p parameters)))
+                  (plotdir (plotdir parameters))
                   (pardeg (write-to-string (single-pardeg parameters)))
+                  (execmode (execmode parameters))
+                  (timer-nodes-p (timer-nodes-p parameters))
                   (batch-size (write-to-string
                                (single-batch-size parameters)))
                   (tuple-rate (tuple-rate-to-string
@@ -462,31 +477,33 @@ Return a brand new sequence, the original sequence is left untouched."
   (defgeneric title-from-plotby-compareby (title parameters plot-by compare-by)
     (:method (title parameters (plot-by (eql :parallelism))
               (compare-by (eql :batch-size)))
-      (concat title "(chaining: " chaining ") (generation rate: "
-              tuple-rate ")"))
+      (concat title "Chaining: " chaining
+              (if (starts-with (string-downcase (namestring plotdir)) "tt")
+                  (concat ", Timers: " (if timer-nodes-p
+                                           "nodes"
+                                           "threads"))
+                  "")))
     (:method (title parameters (plot-by (eql :parallelism))
               (compare-by (eql :chaining)))
-      (concat title "(batch size per node: " batch-size ") (generation rate: "
-              tuple-rate ")"))
+      (concat title "Batch size per node: " batch-size))
     (:method (title parameters (plot-by (eql :parallelism))
               (compare-by (eql :execmode)))
-      (concat title "(chaining " chaining ") (generation rate: " tuple-rate
-              ") (batch size per node: " batch-size ")"))
+      (concat title "Chaining " chaining))
     (:method (title parameters (plot-by (eql :parallelism))
               (compare-by (eql :frequency)))
-      (concat title "(chaining: " chaining ") (generation rate: " tuple-rate
+      (concat title "(Chaining: " chaining ") (generation rate: " tuple-rate
               ") (batch size per node: " batch-size))
     (:method (title parameters (plot-by (eql :parallelism))
               (compare-by (eql :timer-nodes-p)))
-      (concat title "(chaining: " chaining ") (generation rate:" tuple-rate
+      (concat title "(Chaining: " chaining ") (generation rate:" tuple-rate
               ") (batch size per node: " batch-size))
     (:method (title parameters (plot-by (eql :batch-size))
               (compare-by (eql :parallelism)))
-      (concat title "(chaining " chaining ") (generation rate: "
+      (concat title "(Chaining " chaining ") (generation rate: "
               tuple-rate ")"))
     (:method (title parameters (plot-by (eql :batch-size))
               (compare-by (eql :chaining)))
-      (concat title " (parallelism degree per node: " pardeg
+      (concat title " (Parallelism degree per node: " pardeg
               ") (generation rate: " tuple-rate ")"))
     (:method (title parameters (plot-by (eql :batch-size))
               (compare-by (eql :execmode)))
@@ -528,33 +545,30 @@ Return a brand new sequence, the original sequence is left untouched."
   (vgplot:print-plot (pathname name)
                      :terminal "png size 1280,960"))
 
-(defun draw-boxplot (&key title x-label y-label y-axis x-axis)
-  (declare (string x-label y-label)
-           ((or string null) title)
-           (sequence x-axis y-axis))
-  ;; (py4cl:import-module "matplotlib.pyplot" :as "plt")
-  (plt:boxplot y-axis :positions x-axis)
-  ;; (plt:figure)
-  (plt:xlabel x-label)
-  (plt:ylabel y-label)
-  (when title
-    (plt:title title :loc "right" :y 1.08))
-  (plt:grid t)
-  ;; (plt:show)
-  ;; (plt:close "all")
-  )
-
 (defun boxplot-title (parameters)
   (declare (plot-parameters parameters))
   (with-accessors ((plotdir plotdir) (metric metric)
+                   (compare-by compare-by)
                    (batch-size single-batch-size)
+                   (timer-nodes-p timer-nodes-p)
                    (chaining-p chaining-p) (percentiles percentiles))
       parameters
-    (concat (title-from-directory plotdir) " - "
-            (substitute #\Space #\- (string-capitalize metric))
-            " (batch size: " (write-to-string batch-size)
-            ") (chaining: " (if chaining-p "enabled " "disabled")
-            ") (percentiles: " (write-to-string percentiles) ")")))
+    ;; (concat (title-from-directory plotdir) " - "
+    ;;         (substitute #\Space #\- (string-capitalize metric))
+    ;;         " (batch size: " (write-to-string batch-size)
+    ;;         ") (chaining: " (if chaining-p "enabled " "disabled")
+    ;;         ") (percentiles: " (write-to-string percentiles) ")"))
+
+    (ecase compare-by
+      (:batch-size (if (equalp "deterministic" (execmode parameters))
+                       "DETERMINISTIC"
+                       (concat "Batch size: " (write-to-string batch-size))))
+      (:chaining  (concat "Chaining: " (if chaining-p "enabled" "disabled")
+                          ;; ", Timers: " (if timer-nodes-p "nodes" "threads")
+                          ))
+      (:timer-nodes-p
+       (concat "b = " (write-to-string batch-size)
+               ", Timers: " (if timer-nodes-p "nodes" "threads"))))))
 
 (defun emptyp (sequence)
   (declare (sequence sequence))
@@ -586,13 +600,13 @@ Return a brand new sequence, the original sequence is left untouched."
      (get-plot-triples parameters jsons (pardegs parameters)
                        #'filter-jsons-by-parallelism
                        (lambda (value)
-                         (concat "Parallelism degree: "
+                         (concat "p = "
                                  (write-to-string value)))))
     (:batch-size
      (get-plot-triples parameters jsons (batch-sizes parameters)
                        #'filter-jsons-by-batch-size
                        (lambda (value)
-                         (concat "Batch size: " (write-to-string value)))))
+                         (concat "b = " (write-to-string value)))))
     (:chaining
      (get-plot-triples parameters jsons '(nil t)
                        #'filter-jsons-by-chaining
@@ -619,11 +633,11 @@ Return a brand new sequence, the original sequence is left untouched."
   (ecase plot-kind
     (:scalability (let* ((x-axis (loop for i from 1 to length collect i))
                          (y-axis x-axis)
-                         (label "Ideal scalability"))
+                         (label "Ideal"))
                     (values x-axis y-axis label)))
     (:efficiency (let ((x-axis (loop for i from 1 to length collect i))
                        (y-axis (loop repeat length collect 1))
-                       (label "Ideal efficiency"))
+                       (label "Ideal"))
                    (values x-axis y-axis label)))))
 
 (defun get-triples (parameters jsons)
@@ -638,7 +652,7 @@ Return a brand new sequence, the original sequence is left untouched."
             (nconc (list x-axis y-axis label) actual-triples))))))
 
 (defun plot (&optional (parameters *default-plot-parameters*) jsons
-               image-path (title-p t))
+               image-path (title-p t) additional-triples)
   (declare (plot-parameters parameters) (sequence jsons)
            ((or null pathname string) image-path))
   (unless jsons
@@ -647,11 +661,12 @@ Return a brand new sequence, the original sequence is left untouched."
   (when (emptyp jsons)
     (format t "No data found with the specified parameters, not plotting...")
     (return-from plot))
-  (let ((plot-triples (get-triples parameters jsons)))
+  (let ((plot-triples (nconc (get-triples parameters jsons)
+                             additional-triples)))
     (when *debug*
       (print (reverse plot-triples)))
     (plot-from-triples plot-triples))
-  (vgplot:title (if title-p (title-for-plot parameters) ""))
+  (vgplot:title (if title-p (title-for-plot parameters t) ""))
   (let* ((xlabel (get-x-label (plot-by parameters)))
          (time-unit (gethash "time unit" (elt jsons 0)))
          (ylabel (get-y-label parameters time-unit)))
@@ -662,13 +677,14 @@ Return a brand new sequence, the original sequence is left untouched."
     (ensure-directories-exist image-path :verbose *debug*)
     (save-plot image-path)))
 
-(defun get-csv-fields (parameters jsons)
+(defun get-csv-fields (parameters jsons additional-triples)
   (declare (plot-parameters parameters)
            (sequence jsons))
-  (loop with original-triples = (get-triples parameters jsons)
+  (loop with original-triples = (nconc (get-triples parameters jsons)
+                                       additional-triples)
         and x-axis-prefix = (ecase (plot-by parameters)
-                              (:parallelism "Par. degree: ")
-                              (:batch-size "Batch size: "))
+                              (:parallelism "p = ")
+                              (:batch-size "b = "))
         with x-axis = (cons "" (mapcar (lambda (x) (concatenate'string
                                                     x-axis-prefix
                                                     (write-to-string x)))
@@ -682,7 +698,7 @@ Return a brand new sequence, the original sequence is left untouched."
                          (cons x-axis (nreverse result))))))
 
 (defun write-triples-to-csv (stream &optional (parameters *default-plot-parameters*)
-                                      jsons)
+                                      jsons additional-triples)
   (declare (plot-parameters parameters)
            (sequence jsons))
   (unless jsons
@@ -691,8 +707,24 @@ Return a brand new sequence, the original sequence is left untouched."
   (when (emptyp jsons)
     (format t "No data found with the specified parameters, not plotting...")
     (return-from write-triples-to-csv))
-  (let ((fields (get-csv-fields parameters jsons)))
+  (let ((fields (get-csv-fields parameters jsons additional-triples)))
     (cl-csv:write-csv fields :stream stream)))
+
+(defun draw-boxplot (&key title x-label y-label y-axis x-axis)
+  (declare (string x-label y-label)
+           ((or string null) title)
+           (sequence x-axis y-axis))
+  ;; (py4cl:import-module "matplotlib.pyplot" :as "plt")
+  (plt:boxplot y-axis :positions x-axis)
+  ;; (plt:figure)
+  (plt:xlabel x-label)
+  (plt:ylabel y-label)
+  (when title
+    (plt:title title :loc "center"))
+  (plt:grid t)
+  ;; (plt:show)
+  ;; (plt:close "all")
+  )
 
 (defun boxplot (&optional (parameters *default-plot-parameters*) jsons
                   image-path (title-p t))
@@ -705,8 +737,9 @@ Return a brand new sequence, the original sequence is left untouched."
         jsons (filter-jsons-by-batch-size jsons (single-batch-size parameters))
         jsons (filter-jsons-by-sampling-rate jsons (sampling-rate parameters))
         jsons (filter-jsons-by-tuple-rate jsons (tuple-rate parameters))
-        jsons (filter-jsons-by-execmode jsons (execmode parameters))
-        jsons (filter-jsons-by-timernode-impl jsons (timer-nodes-p parameters)))
+        jsons (filter-jsons-by-execmode jsons (execmode parameters)))
+  (when (some #'contains-timernode-impl-fields-p jsons)
+    (setf jsons (filter-jsons-by-timernode-impl jsons (timer-nodes-p parameters))))
   (when (emptyp jsons)
     (format t "No data found with the specified parameters, not plotting...")
     (return-from boxplot))
@@ -812,32 +845,59 @@ Return a brand new sequence, the original sequence is left untouched."
                 (let ((image-path (get-image-file-name parameters)))
                   (plot parameters jsons image-path))))))))))
 
-(defun plot-subplots (&rest parameters)
+(defun square-size-string (size)
+  (declare (fixnum size))
+  (let ((size-string (write-to-string size)))
+    (concatenate 'string size-string "," size-string)))
+
+(defun plot-subplots (additional-triples &rest parameters)
   (vgplot:close-all-plots)
   (ecase (length parameters)
     (1
-     (vgplot:legend :outside)
-     (plot (first parameters) nil nil nil))
-    ((2 4) (loop with subplot-rows = 2
-                 and subplot-columns = (/ (length parameters) 2)
-                 with legend-location = (if (= 2 subplot-columns)
-                                            :inside
-                                            :outside)
-                 for parameter in parameters
-                 and i from 0
-                 do (vgplot:subplot subplot-rows subplot-columns i)
-                    (vgplot:legend legend-location)
-                    (plot parameter nil nil nil)))))
+     (vgplot:format-plot t (concat "set terminal qt size "
+                                   (write-to-string 480)
+                                   ","
+                                   (write-to-string 360)))
+     (vgplot:legend :outside :boxon :southeast)
+     (plot (first parameters) nil nil t additional-triples))
+    ((2 4)
+     (loop with subplot-rows = 2
+           and subplot-columns = (/ (length parameters) 2)
+           with width = (if (= 4 (length parameters)) 900 600)
+           and height = (if (= 4 (length parameters)) 600 550)
+           and title-size = (if (= 4 (length parameters)) 11 11)
+           for parameter in parameters
+           and i from 0
+                 initially
+                    (vgplot:format-plot t (concat "set terminal qt size "
+                                                  (write-to-string width)
+                                                  ","
+                                                  (write-to-string height)))
+                    (vgplot:format-plot t (concat "set title font \","
+                                                  (write-to-string title-size)
+                                                  "\""))
+           do (vgplot:subplot subplot-rows subplot-columns i)
+              (vgplot:legend :outside :boxon :southeast)
+              (plot parameter nil nil t (if (consp additional-triples)
+                                            (nth i additional-triples)
+                                            nil))))))
 
 (defun boxplot-subplots (&rest parameters)
   (plt:close "all")
   (ecase (length parameters)
     (1
-     (boxplot (first parameters) nil nil nil)
+     (boxplot (first parameters) nil nil t)
      (plt:show))
     ((2 4) (loop with subplot-dimension = 2
+                 and figsize = (if (= 2 (length parameters))
+                                   (list 12.5 7)
+                                   (list 9 7))
                  for parameter in parameters
                  and i from 1
+                       initially (plt:subplots subplot-dimension
+                                               subplot-dimension
+                                               :figsize figsize)
+                                 (plt:subplots_adjust :wspace 0.3 :hspace 0.4)
                  do (plt:subplot subplot-dimension (/ (length parameters) 2) i)
-                    (boxplot parameter nil nil nil)
+                    (boxplot parameter nil nil t)
                  finally (plt:show)))))
