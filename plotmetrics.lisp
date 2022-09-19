@@ -17,7 +17,7 @@
 (defpackage plotmetrics
   (:use :common-lisp)
   (:export :plot :make-parameters :generate-images :plot-subplots
-           :boxplot-subplots :*debug*))
+           :boxplot-subplots :write-triples-to-csv :*debug*))
 
 (in-package plotmetrics)
 
@@ -66,7 +66,11 @@
    (directory-to-plot :type (or string pathname) :accessor plotdir
                       :initarg :plotdir :initform "")
    (plot-kind :type plot-kind :accessor plot-kind :initarg :plot-kind
-              :initform :normal)))
+              :initform :normal)
+   (print-title-p :type boolean :accessor print-title-p
+                  :initarg :print-title-p :initform t)
+   (extra-triples :type sequence :accessor extra-triples
+                  :initarg :extra-triples :initform nil)))
 
 (defun make-parameters (&rest args)
   (apply #'make-instance 'plot-parameters args))
@@ -652,7 +656,7 @@ Return a brand new sequence, the original sequence is left untouched."
             (nconc (list x-axis y-axis label) actual-triples))))))
 
 (defun plot (&optional (parameters *default-plot-parameters*) jsons
-               image-path (title-p t) additional-triples)
+               image-path)
   (declare (plot-parameters parameters) (sequence jsons)
            ((or null pathname string) image-path))
   (unless jsons
@@ -662,11 +666,13 @@ Return a brand new sequence, the original sequence is left untouched."
     (format t "No data found with the specified parameters, not plotting...")
     (return-from plot))
   (let ((plot-triples (nconc (get-triples parameters jsons)
-                             additional-triples)))
+                             (extra-triples parameters))))
     (when *debug*
       (print (reverse plot-triples)))
     (plot-from-triples plot-triples))
-  (vgplot:title (if title-p (title-for-plot parameters t) ""))
+  (vgplot:title (if (print-title-p parameters)
+                    (title-for-plot parameters t)
+                    ""))
   (let* ((xlabel (get-x-label (plot-by parameters)))
          (time-unit (gethash "time unit" (elt jsons 0)))
          (ylabel (get-y-label parameters time-unit)))
@@ -677,18 +683,20 @@ Return a brand new sequence, the original sequence is left untouched."
     (ensure-directories-exist image-path :verbose *debug*)
     (save-plot image-path)))
 
-(defun get-csv-fields (parameters jsons additional-triples)
+(defun get-csv-fields (parameters jsons)
   (declare (plot-parameters parameters)
            (sequence jsons))
   (loop with original-triples = (nconc (get-triples parameters jsons)
-                                       additional-triples)
+                                       (extra-triples parameters))
         and x-axis-prefix = (ecase (plot-by parameters)
                               (:parallelism "p = ")
                               (:batch-size "b = "))
-        with x-axis = (cons "" (mapcar (lambda (x) (concatenate'string
-                                                    x-axis-prefix
-                                                    (write-to-string x)))
-                                       (first original-triples)))
+        with x-axis = (cons "" (mapcar (lambda (x)
+                                         (concatenate 'string
+                                                      x-axis-prefix
+                                                      (write-to-string x)))
+                                       (coerce (first original-triples)
+                                               'list)))
         for triple-list = original-triples then (cdddr triple-list)
         while triple-list
         collect (cons (third triple-list)
@@ -698,7 +706,7 @@ Return a brand new sequence, the original sequence is left untouched."
                          (cons x-axis (nreverse result))))))
 
 (defun write-triples-to-csv (stream &optional (parameters *default-plot-parameters*)
-                                      jsons additional-triples)
+                                      jsons)
   (declare (plot-parameters parameters)
            (sequence jsons))
   (unless jsons
@@ -707,7 +715,7 @@ Return a brand new sequence, the original sequence is left untouched."
   (when (emptyp jsons)
     (format t "No data found with the specified parameters, not plotting...")
     (return-from write-triples-to-csv))
-  (let ((fields (get-csv-fields parameters jsons additional-triples)))
+  (let ((fields (get-csv-fields parameters jsons)))
     (cl-csv:write-csv fields :stream stream)))
 
 (defun draw-boxplot (&key title x-label y-label y-axis x-axis)
@@ -850,7 +858,7 @@ Return a brand new sequence, the original sequence is left untouched."
   (let ((size-string (write-to-string size)))
     (concatenate 'string size-string "," size-string)))
 
-(defun plot-subplots (additional-triples &rest parameters)
+(defun plot-subplots (&rest parameters)
   (vgplot:close-all-plots)
   (ecase (length parameters)
     (1
@@ -859,7 +867,7 @@ Return a brand new sequence, the original sequence is left untouched."
                                    ","
                                    (write-to-string 360)))
      (vgplot:legend :outside :boxon :southeast)
-     (plot (first parameters) nil nil t additional-triples))
+     (plot (first parameters) nil))
     ((2 4)
      (loop with subplot-rows = 2
            and subplot-columns = (/ (length parameters) 2)
@@ -878,9 +886,7 @@ Return a brand new sequence, the original sequence is left untouched."
                                                   "\""))
            do (vgplot:subplot subplot-rows subplot-columns i)
               (vgplot:legend :outside :boxon :southeast)
-              (plot parameter nil nil t (if (consp additional-triples)
-                                            (nth i additional-triples)
-                                            nil))))))
+              (plot parameter nil nil)))))
 
 (defun boxplot-subplots (&rest parameters)
   (plt:close "all")
