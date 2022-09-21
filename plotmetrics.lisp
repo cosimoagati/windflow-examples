@@ -17,7 +17,7 @@
 (defpackage plotmetrics
   (:use :common-lisp)
   (:export :plot :make-parameters :generate-images :plot-subplots
-           :boxplot-subplots :write-triples-to-csv :*debug*))
+           :boxplot-subplots :write-triples-to-csv :get-triples :*debug*))
 
 (in-package plotmetrics)
 
