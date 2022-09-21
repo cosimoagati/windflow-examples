@@ -644,8 +644,14 @@ Return a brand new sequence, the original sequence is left untouched."
                        (label "Ideal"))
                    (values x-axis y-axis label)))))
 
-(defun get-triples (parameters jsons)
+(defun get-triples (parameters &optional jsons)
   (declare (plot-parameters parameters) (sequence jsons))
+  (unless jsons
+    (setf jsons (get-json-objs-from-directory (plotdir parameters))
+          jsons (filter-jsons parameters jsons))
+    (when (emptyp jsons)
+      (format t "No data found with the specified parameters, not plotting...")
+      (return-from get-triples)))
   (let ((actual-triples (get-triples-comparing-by parameters jsons
                                                   (compare-by parameters))))
     (if (eql (plot-kind parameters) :normal)
