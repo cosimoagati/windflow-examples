@@ -692,15 +692,16 @@ void process_observations(const SourceTuple &tuple, RuntimeContext &context) {
 template<typename Data, typename Input,
          void process(const Input &, RuntimeContext &)>
 void process_last_tuples(RuntimeContext &context) {
-    assert(context.getLocalStorage().isContained("data"));
-    auto &storage     = context.getLocalStorage();
-    auto &data        = storage.get<Data>("data");
-    auto &tuple_queue = data.tuple_queue;
+    auto &storage = context.getLocalStorage();
+    if (storage.isContained("data")) {
+        auto &data        = storage.get<Data>("data");
+        auto &tuple_queue = data.tuple_queue;
 
-    for (; !tuple_queue.empty(); tuple_queue.pop()) {
-        process(tuple_queue.top(), context);
+        for (; !tuple_queue.empty(); tuple_queue.pop()) {
+            process(tuple_queue.top(), context);
+        }
+        storage.remove<Data>("data");
     }
-    storage.remove<Data>("data");
 }
 
 template<typename Scorer>
