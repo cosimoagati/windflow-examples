@@ -650,7 +650,7 @@ void process_observations(const SourceTuple &tuple, RuntimeContext &context) {
         context.getLocalStorage().get<ObservationScorerData<Scorer>>("data");
     assert(tuple.ordering_timestamp >= data.previous_ordering_timestamp);
 
-    if (tuple.observation.timestamp > data.previous_ordering_timestamp) {
+    if (tuple.ordering_timestamp > data.previous_ordering_timestamp) {
         if (!data.observation_list.empty()) {
             const auto score_package_list =
                 data.scorer.get_scores(data.observation_list);
