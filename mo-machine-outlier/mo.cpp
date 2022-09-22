@@ -171,6 +171,60 @@ template<typename T>
 using TimestampPriorityQueue =
     priority_queue<T, vector<T>, TimestampGreaterComparator<T>>;
 
+template<typename Scorer>
+struct ObservationScorerData {
+    Scorer                              scorer;
+    TimestampPriorityQueue<SourceTuple> tuple_queue;
+    vector<MachineMetadata>             observation_list;
+    unsigned long                       previous_ordering_timestamp = 0;
+    unsigned long                       parent_execution_timestamp;
+    Execution_Mode_t                    execution_mode;
+    Shipper<ObservationResultTuple> *   shipper;
+};
+
+template<typename T>
+struct DataStreamAnomalyScorerData {
+    unordered_map<string, StreamProfile<T>>        stream_profile_map;
+    TimestampPriorityQueue<ObservationResultTuple> tuple_queue;
+    bool                                           shrink_next_round = false;
+    unsigned long                previous_ordering_timestamp         = 0;
+    unsigned long                parent_execution_timestamp          = 0;
+    Execution_Mode_t             execution_mode;
+    Shipper<AnomalyResultTuple> *shipper;
+};
+
+struct SlidingWindowStreamAnomalyScorerData {
+    unordered_map<string, deque<double>>           sliding_window_map;
+    TimestampPriorityQueue<ObservationResultTuple> tuple_queue;
+    Execution_Mode_t                               execution_mode;
+    size_t                                         window_length;
+    unsigned long previous_timestamp = 0; // XXX: is this needed?
+    Shipper<AnomalyResultTuple> *shipper;
+};
+
+struct AlertTriggererData {
+    inline static const double dupper = sqrt(2);
+
+    unsigned long                              previous_ordering_timestamp = 0;
+    unsigned long                              parent_execution_timestamp  = 0;
+    vector<AnomalyResultTuple>                 stream_list;
+    TimestampPriorityQueue<AnomalyResultTuple> tuple_queue;
+    double           min_data_instance_score = numeric_limits<double>::max();
+    double           max_data_instance_score = 0.0;
+    Execution_Mode_t execution_mode;
+    Shipper<AlertTriggererResultTuple> *shipper;
+};
+
+struct TopKAlertTriggererData {
+    vector<AnomalyResultTuple>                 stream_list;
+    TimestampPriorityQueue<AnomalyResultTuple> tuple_queue;
+    size_t                                     k;
+    unsigned long                              previous_ordering_timestamp = 0;
+    unsigned long                              parent_execution_timestamp  = 0;
+    Execution_Mode_t                           execution_mode;
+    Shipper<AlertTriggererResultTuple> *       shipper;
+};
+
 static const struct option long_opts[] = {{"help", 0, 0, 'h'},
                                           {"rate", 1, 0, 'r'},
                                           {"sampling", 1, 0, 's'},
@@ -580,17 +634,6 @@ public:
 };
 
 template<typename Scorer>
-struct ObservationScorerData {
-    Scorer                              scorer;
-    TimestampPriorityQueue<SourceTuple> tuple_queue;
-    vector<MachineMetadata>             observation_list;
-    unsigned long                       previous_ordering_timestamp = 0;
-    unsigned long                       parent_execution_timestamp;
-    Execution_Mode_t                    execution_mode;
-    Shipper<ObservationResultTuple> *   shipper;
-};
-
-template<typename Scorer>
 void process_observations(const SourceTuple &tuple, RuntimeContext &context) {
 #ifndef NDEBUG
     {
@@ -710,17 +753,6 @@ public:
             break;
         }
     }
-};
-
-template<typename T>
-struct DataStreamAnomalyScorerData {
-    unordered_map<string, StreamProfile<T>>        stream_profile_map;
-    TimestampPriorityQueue<ObservationResultTuple> tuple_queue;
-    bool                                           shrink_next_round = false;
-    unsigned long                previous_ordering_timestamp         = 0;
-    unsigned long                parent_execution_timestamp          = 0;
-    Execution_Mode_t             execution_mode;
-    Shipper<AnomalyResultTuple> *shipper;
 };
 
 template<typename T>
@@ -859,15 +891,6 @@ public:
             break;
         }
     }
-};
-
-struct SlidingWindowStreamAnomalyScorerData {
-    unordered_map<string, deque<double>>           sliding_window_map;
-    TimestampPriorityQueue<ObservationResultTuple> tuple_queue;
-    Execution_Mode_t                               execution_mode;
-    size_t                                         window_length;
-    unsigned long previous_timestamp = 0; // XXX: is this needed?
-    Shipper<AnomalyResultTuple> *shipper;
 };
 
 void process_sliding_window_anomalies(const ObservationResultTuple &tuple,
@@ -1081,19 +1104,6 @@ identify_abnormal_streams(vector<AnomalyResultTuple> &stream_list) {
     return stream_list;
 }
 
-struct AlertTriggererData {
-    inline static const double dupper = sqrt(2);
-
-    unsigned long                              previous_ordering_timestamp = 0;
-    unsigned long                              parent_execution_timestamp  = 0;
-    vector<AnomalyResultTuple>                 stream_list;
-    TimestampPriorityQueue<AnomalyResultTuple> tuple_queue;
-    double           min_data_instance_score = numeric_limits<double>::max();
-    double           max_data_instance_score = 0.0;
-    Execution_Mode_t execution_mode;
-    Shipper<AlertTriggererResultTuple> *shipper;
-};
-
 void process_alerts(const AnomalyResultTuple &tuple, RuntimeContext &context) {
     assert(context.getLocalStorage().isContained("data"));
     auto &data = context.getLocalStorage().get<AlertTriggererData>("data");
@@ -1248,16 +1258,6 @@ public:
             break;
         }
     }
-};
-
-struct TopKAlertTriggererData {
-    vector<AnomalyResultTuple>                 stream_list;
-    TimestampPriorityQueue<AnomalyResultTuple> tuple_queue;
-    size_t                                     k;
-    unsigned long                              previous_ordering_timestamp = 0;
-    unsigned long                              parent_execution_timestamp  = 0;
-    Execution_Mode_t                           execution_mode;
-    Shipper<AlertTriggererResultTuple> *       shipper;
 };
 
 void process_top_k_alerts(const AnomalyResultTuple &tuple,
