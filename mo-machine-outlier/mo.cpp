@@ -1585,6 +1585,7 @@ static inline PipeGraph &build_graph(const Parameters &parameters,
     return graph;
 }
 
+#if defined(NDEBUG) && !defined(PROFILE)
 static inline nlohmann::ordered_json
 add_mo_stats(const nlohmann::ordered_json &json_stats,
              const Parameters &            parameters) {
@@ -1594,6 +1595,7 @@ add_mo_stats(const nlohmann::ordered_json &json_stats,
     updated_json_stats["alert triggerer"] = parameters.alert_triggerer_type;
     return updated_json_stats;
 }
+#endif
 
 int main(int argc, char *argv[]) {
     Parameters parameters;
