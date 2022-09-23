@@ -715,7 +715,8 @@ public:
                     Shipper<ObservationResultTuple> &shipper,
                     RuntimeContext &                 context) {
         const unsigned long watermark = context.getLastWatermark();
-        auto &              storage   = context.getLocalStorage();
+        assert(tuple.ordering_timestamp >= watermark);
+        auto &storage = context.getLocalStorage();
         if (!storage.isContained("data")) {
             auto &data = storage.get<ObservationScorerData<Scorer>>("data");
             data.execution_mode = execution_mode;
@@ -852,7 +853,8 @@ public:
                     Shipper<AnomalyResultTuple> & shipper,
                     RuntimeContext &              context) {
         const unsigned long watermark = context.getLastWatermark();
-        auto &              storage   = context.getLocalStorage();
+        assert(tuple.ordering_timestamp >= watermark);
+        auto &storage = context.getLocalStorage();
         if (!storage.isContained("data")) {
             auto &data = storage.get<DataStreamAnomalyScorerData<T>>("data");
             data.execution_mode = execution_mode;
@@ -950,7 +952,8 @@ public:
                     Shipper<AnomalyResultTuple> & shipper,
                     RuntimeContext &              context) {
         const unsigned long watermark = context.getLastWatermark();
-        auto &              storage   = context.getLocalStorage();
+        assert(tuple.ordering_timestamp >= watermark);
+        auto &storage = context.getLocalStorage();
         if (!storage.isContained("data")) {
             auto &data =
                 storage.get<SlidingWindowStreamAnomalyScorerData>("data");
@@ -1221,7 +1224,8 @@ public:
                     Shipper<AlertTriggererResultTuple> &shipper,
                     RuntimeContext &                    context) {
         const unsigned long watermark = context.getLastWatermark();
-        auto &              storage   = context.getLocalStorage();
+        assert(tuple.ordering_timestamp >= watermark);
+        auto &storage = context.getLocalStorage();
         if (!storage.isContained("data")) {
             auto &data          = storage.get<AlertTriggererData>("data");
             data.execution_mode = execution_mode;
@@ -1321,7 +1325,8 @@ public:
                     Shipper<AlertTriggererResultTuple> &shipper,
                     RuntimeContext &                    context) {
         const unsigned long watermark = context.getLastWatermark();
-        auto &              storage   = context.getLocalStorage();
+        assert(tuple.ordering_timestamp >= watermark);
+        auto &storage = context.getLocalStorage();
         if (!storage.isContained("data")) {
             auto &data          = storage.get<TopKAlertTriggererData>("data");
             data.execution_mode = execution_mode;
