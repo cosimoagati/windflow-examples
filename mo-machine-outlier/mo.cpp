@@ -867,6 +867,7 @@ public:
                  << "] Received tuple with ordering timestamp: "
                  << tuple.ordering_timestamp
                  << ", WindFlow timestamp: " << context.getCurrentTimestamp()
+                 << ", containing observation: " << tuple.observation
                  << ", current amount of tuples cached: " << tuple_queue.size()
                  << ", current watermark: " << watermark << '\n';
         }
@@ -964,6 +965,7 @@ public:
                  << "] Received tuple with ordering timestamp: "
                  << tuple.ordering_timestamp
                  << ", WindFlow timestamp: " << context.getCurrentTimestamp()
+                 << ", containing observation: " << tuple.observation
                  << ", current amount of tuples cached: " << tuple_queue.size()
                  << ", current watermark: " << watermark << '\n';
         }
