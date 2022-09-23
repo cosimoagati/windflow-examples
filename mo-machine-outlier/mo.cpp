@@ -656,7 +656,7 @@ void process_observations(const SourceTuple &tuple, RuntimeContext &context) {
                 data.scorer.get_scores(data.observation_list);
             const unsigned long next_ordering_timestamp =
                 data.execution_mode == Execution_Mode_t::DEFAULT
-                    ? tuple.ordering_timestamp
+                    ? context.getLastWatermark()
                     : data.previous_ordering_timestamp;
 
             for (const auto &package : score_package_list) {
@@ -781,7 +781,7 @@ void process_data_stream_anomalies(const ObservationResultTuple &tuple,
     if (tuple.ordering_timestamp > data.previous_ordering_timestamp) {
         const unsigned long next_ordering_timestamp =
             data.execution_mode == Execution_Mode_t::DEFAULT
-                ? tuple.ordering_timestamp
+                ? context.getLastWatermark()
                 : data.previous_ordering_timestamp;
 
         for (auto &entry : data.stream_profile_map) {
@@ -927,7 +927,10 @@ void process_sliding_window_anomalies(const ObservationResultTuple &tuple,
              << ", individual score: " << tuple.score << '\n';
     }
 #endif
-    const unsigned long next_ordering_timestamp = tuple.ordering_timestamp;
+    const unsigned long next_ordering_timestamp =
+        data.execution_mode == Execution_Mode_t::DEFAULT
+            ? context.getLastWatermark()
+            : tuple.ordering_timestamp;
 
     data.shipper->push({tuple.id, score_sum, next_ordering_timestamp,
                         tuple.parent_execution_timestamp, tuple.observation,
