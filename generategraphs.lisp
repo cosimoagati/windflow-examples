@@ -58,7 +58,7 @@
  (plotmetrics:make-raw-plot-data
   :title "SA average throughput"
   :x-label *parallelism-x-label*
-  :y-label *throughput-y-label*
+  :y-label *throughput-x-label*
   :triples (nreverse
             (list ";b = 0;with linespoints pt 7 ps 1 lc 'black'"
                   #(914581.25 1810770.7 2748242.0 3623771.5 4578529.5 5511013.0 6421764.0 7299102.0 7522324.0 7840571.0 8089628.0 8153471.0 8577864.0 8826029.0 9185283.0)
