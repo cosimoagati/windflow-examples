@@ -490,13 +490,13 @@ print_statistics(unsigned long elapsed_time, unsigned long duration,
          << timeunit_string << "s (" << latency_in_seconds << " seconds)\n"
          << "Average volume latency: " << average_volume_latency << ' '
          << timeunit_string << "s (" << volume_latency_in_seconds
-         << " seoncds)\n"
+         << " seconds)\n"
          << "Average status latency: " << average_status_latency << ' '
          << timeunit_string << "s (" << status_latency_in_seconds
-         << " seoncds)\n"
+         << " seconds)\n"
          << "Average geo latency: " << average_geo_latency << ' '
          << timeunit_string << "s (" << geo_latency_in_seconds
-         << " seoncds)\n";
+         << " seconds)\n";
 }
 
 /*
