@@ -535,7 +535,9 @@ public:
         }
     }
 
-    void operator()(Source_Shipper<SourceTuple> &shipper) {
+    void operator()(Source_Shipper<SourceTuple> &shipper,
+                    RuntimeContext &             context) {
+        DO_NOT_WARN_IF_UNUSED(context);
         const unsigned long end_time    = current_time() + duration;
         unsigned long       sent_tuples = 0;
         size_t              index       = 0;
@@ -547,7 +549,8 @@ public:
 #ifndef NDEBUG
             {
                 lock_guard lock {print_mutex};
-                clog << "[SOURCE] Sending log with minute timestamp: "
+                clog << "[SOURCE " << context.getReplicaIndex()
+                     << "] Sending log with minute timestamp: "
                      << logs[index].minute_timestamp << '\n';
             }
 #endif
@@ -629,14 +632,15 @@ public:
     VolumeCounterFunctor(size_t window_size = 60)
         : buffer {window_size}, counts {window_size} {}
 
-    OutputTuple operator()(const SourceTuple &input) {
+    OutputTuple operator()(const SourceTuple &input, RuntimeContext &context) {
+        DO_NOT_WARN_IF_UNUSED(context);
         const unsigned long minute       = input.minute_timestamp;
         const auto          counts_entry = counts.find(minute);
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
-            clog << "[VOLUME COUNTER] Received log with minute timestamp: "
-                 << minute << '\n';
+            clog << "[VOLUME COUNTER " << context.getReplicaIndex()
+                 << "] Received log with minute timestamp: " << minute << '\n';
         }
 #endif
         if (counts_entry == counts.end()) {
@@ -662,13 +666,15 @@ class StatusCounterFunctor {
     unordered_map<unsigned, unsigned long> counts;
 
 public:
-    OutputTuple operator()(const SourceTuple &input) {
+    OutputTuple operator()(const SourceTuple &input, RuntimeContext &context) {
+        DO_NOT_WARN_IF_UNUSED(context);
         const unsigned status_code = input.response;
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
-            clog << "[STATUS COUNTER] Received log with response status code: "
-                 << status_code << '\n';
+            clog << "[STATUS COUNTER " << context.getReplicaIndex()
+                 << "] Received log with response status code: " << status_code
+                 << '\n';
         }
 #endif
         const auto counts_entry = counts.find(status_code);
@@ -734,13 +740,15 @@ class GeoFinderFunctor {
 
 public:
     void operator()(const SourceTuple &            input,
-                    Shipper<GeoFinderOutputTuple> &shipper) {
+                    Shipper<GeoFinderOutputTuple> &shipper,
+                    RuntimeContext &               context) {
+        DO_NOT_WARN_IF_UNUSED(context);
         const auto ip = input.ip.c_str();
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
-            clog << "[GEO FINDER] Received log with ip address: " << ip
-                 << '\n';
+            clog << "[GEO FINDER " << context.getReplicaIndex()
+                 << "] Received log with ip address: " << ip << '\n';
         }
 #endif
         if (is_valid_ip_address(ip)) {
@@ -759,11 +767,14 @@ class GeoStatsFunctor {
     unordered_map<string, CountryStats> stats;
 
 public:
-    OutputTuple operator()(const GeoFinderOutputTuple &input) {
+    OutputTuple operator()(const GeoFinderOutputTuple &input,
+                           RuntimeContext &            context) {
+        DO_NOT_WARN_IF_UNUSED(context);
 #ifndef NDEBUG
         {
             lock_guard lock {print_mutex};
-            clog << "[GEO STATS] Received log with country " << input.country
+            clog << "[GEO STATS " << context.getReplicaIndex()
+                 << "] Received log with country " << input.country
                  << " and city " << input.city << '\n';
         }
 #endif
@@ -812,7 +823,8 @@ class SinkFunctor {
 public:
     SinkFunctor(unsigned rate) : sampling_rate {rate} {}
 
-    void operator()(optional<OutputTuple> &input) {
+    void operator()(optional<OutputTuple> &input, RuntimeContext &context) {
+        DO_NOT_WARN_IF_UNUSED(context);
         if (input) {
             assert(input->tag == TupleTag::Volume
                    || input->tag == TupleTag::Status
@@ -838,7 +850,8 @@ public:
                         : input->tag == TupleTag::Status ? "STATUS"
                         : input->tag == TupleTag::Geo    ? "GEO"
                                                          : "UNKNOWN";
-                    clog << "[SINK] Sampled tuple of kind " << tuple_tag_string
+                    clog << "[SINK " << context.getReplicaIndex()
+                         << "] Sampled tuple of kind " << tuple_tag_string
                          << '\n';
                 }
 #endif
