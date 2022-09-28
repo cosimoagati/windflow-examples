@@ -680,7 +680,7 @@ void process_observations(const SourceTuple &tuple, RuntimeContext &context) {
             }
             data.observation_list.clear();
         }
-        data.previous_ordering_timestamp = tuple.observation.timestamp;
+        data.previous_ordering_timestamp = tuple.ordering_timestamp;
     }
 
     if (data.observation_list.empty()) {
