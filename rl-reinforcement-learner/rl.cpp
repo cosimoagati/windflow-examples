@@ -742,7 +742,7 @@ public:
                     lock_guard lock {print_mutex};
                     clog << "[INTERVAL ESTIMATOR] Obtained full sample\n";
                 }
-                last_round_num = round_num; // Move outside the #ifndef?
+                last_round_num = round_num;
 #endif
             }
         }
