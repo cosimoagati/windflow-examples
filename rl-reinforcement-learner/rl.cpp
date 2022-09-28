@@ -794,7 +794,7 @@ public:
             ++intv_est_select_count;
         }
 
-        assert(selected_action != "");
+        assert(!selected_action.empty());
         action_batch.push_new_selected_action(selected_action);
         return action_batch.get_selected_actions();
     }
