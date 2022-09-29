@@ -10,9 +10,9 @@
 
 (declaim (optimize (speed 0) (debug 3) (safety 3)))
 
-(eval-when (:compile-toplevel :load-toplevel)
-  (ql:quickload '(:vgplot :yason :alexandria :cl-ppcre :py4cl :cl-csv))
-  (py4cl:import-module "matplotlib.pyplot" :as "plt"))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (ql:quickload '(:vgplot :yason :alexandria :cl-ppcre :py4cl :cl-csv)))
+(py4cl:import-module "matplotlib.pyplot" :as "plt") 
 
 (defpackage plotmetrics
   (:use :common-lisp)
