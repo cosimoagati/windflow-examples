@@ -16,12 +16,20 @@
 
 (defpackage plotmetrics
   (:use :common-lisp)
-  (:export :plot :make-parameters :generate-images :plot-subplots
-           :boxplot-subplots :write-triples-to-csv :get-triples :*debug*))
+  (:export :plot :make-parameters :make-raw-plot-data :generate-images
+           :plot-subplots-from-parameters :plot-subplots-from-raw-data
+           :boxplot-subplots :write-triples-to-csv :get-triples :*debug*
+           :*y-axis-time-unit-scale* :*time-unit-y-label*))
 
 (in-package plotmetrics)
 
-(defvar *debug* t)
+(defvar *debug* t
+  "If non-nil, debug log messages will be printed.")
+(defvar *y-axis-time-unit-scale* 1/1000000
+  "Whenever the Y axis is a time unit, multiply that value by this amount.")
+(defvar *time-unit-y-label* "ms"
+  "Time unit to print on the Y axis when showing a time measurement.
+If NIL, try to guess the time label automatically.")
 
 (deftype field-to-plot-by () '(member :parallelism :batch-size :chaining))
 
@@ -31,7 +39,7 @@
 (deftype plot-kind () '(member :normal :scalability :efficiency))
 
 (defclass plot-parameters ()
-  ((batch-sizes :type list :accessor batch-sizes  :initarg :batch-sizes
+  ((batch-sizes :type list :accessor batch-sizes :initarg :batch-sizes
                 :initform (list 0 1 2 4 8 16 32 64 128))
    (single-batch-size :type fixnum :accessor single-batch-size
                       :initarg :single-batch-size :initform 0)
@@ -71,6 +79,15 @@
                   :initarg :print-title-p :initform t)
    (extra-triples :type sequence :accessor extra-triples
                   :initarg :extra-triples :initform nil)))
+
+(defclass raw-plot-data ()
+  ((triples :type list :accessor triples :initarg :triples)
+   (title :type string :accessor title :initarg :title)
+   (x-label :type string :accessor x-label :initarg :x-label)
+   (y-label :type string :accessor y-label :initarg :y-label)))
+
+(defun make-raw-plot-data (&rest args)
+  (apply #'make-instance 'raw-plot-data args))
 
 (defun make-parameters (&rest args)
   (apply #'make-instance 'plot-parameters args))
@@ -362,8 +379,9 @@ Return a brand new sequence, the original sequence is left untouched."
       (:scalability "Scalability")
       (:efficiency "Efficiency")
       (:normal
-       (let* ((time-unit-string (let ((abbrev (unit-to-abbrev time-unit)))
-                                  (if abbrev abbrev "unknown unit")))
+       (let* ((time-unit-string (or *time-unit-y-label*
+                                    (let ((abbrev (unit-to-abbrev time-unit)))
+                                      (if abbrev abbrev "unknown unit"))))
               (unit-string (if (not (search "throughput"
                                             (string-downcase name)))
                                time-unit-string
@@ -401,7 +419,7 @@ Return a brand new sequence, the original sequence is left untouched."
        (let* ((time-unit (gethash "time unit" (elt jsons 0)))
               (map-func
                 (if (not (search name "throughput"))
-                    (lambda (j) (get-y-value j))
+                    (lambda (j) (* *y-axis-time-unit-scale* (get-y-value j)))
                     (lambda (j)
                       (* (time-unit-scale-factor (unit-to-abbrev time-unit))
                          (get-y-value j))))))
@@ -566,8 +584,13 @@ Return a brand new sequence, the original sequence is left untouched."
     (ecase compare-by
       (:batch-size (if (equalp "deterministic" (execmode parameters))
                        "DETERMINISTIC"
-                       (concat "Batch size: " (write-to-string batch-size))))
-      (:chaining  (concat "Chaining: " (if chaining-p "enabled" "disabled")
+                       (concat "LP total latency, b = " (write-to-string batch-size)
+                               ;; ", chaining: " (if chaining-p "enabled"
+                               ;;                    "disabled")
+                               )))
+      (:chaining  (concat "MO latency, DEFAULT, b = 0, Chaining: " (if chaining-p
+                                                                       "enabled"
+                                                                       "disabled")
                           ;; ", Timers: " (if timer-nodes-p "nodes" "threads")
                           ))
       (:timer-nodes-p
@@ -665,10 +688,12 @@ Return a brand new sequence, the original sequence is left untouched."
                image-path)
   (declare (plot-parameters parameters) (sequence jsons)
            ((or null pathname string) image-path))
-  (unless jsons
+  (when (and (emptyp jsons)
+             (not (equal "" (plotdir parameters))))
     (setf jsons (get-json-objs-from-directory (plotdir parameters))))
   (setf jsons (filter-jsons parameters jsons))
-  (when (emptyp jsons)
+  (when (and (emptyp jsons)
+             (null (extra-triples parameters)))
     (format t "No data found with the specified parameters, not plotting...")
     (return-from plot))
   (let ((plot-triples (nconc (get-triples parameters jsons)
@@ -731,10 +756,16 @@ Return a brand new sequence, the original sequence is left untouched."
   ;; (py4cl:import-module "matplotlib.pyplot" :as "plt")
   (plt:boxplot y-axis :positions x-axis)
   ;; (plt:figure)
-  (plt:xlabel x-label)
-  (plt:ylabel y-label)
+  (plt:xlabel x-label
+              ;; :fontsize 12
+              )
+  (plt:ylabel y-label
+              ;; :fontsize 16
+              )
   (when title
-    (plt:title title :loc "center"))
+    (plt:title title :loc "center"
+                     ;; :fontsize 16
+                     ))
   (plt:grid t)
   ;; (plt:show)
   ;; (plt:close "all")
@@ -767,6 +798,11 @@ Return a brand new sequence, the original sequence is left untouched."
                        (lambda (j)
                          (get-percentile-values j (percentiles parameters)))
                        jsons)))
+      (map-into y-axis (lambda (percentiles)
+                         (map-into percentiles
+                                   (lambda (y) (* y *y-axis-time-unit-scale*))
+                                   percentiles))
+                y-axis)
       (when *debug*
         (format t "x-axis: ~a~%y-axis: ~a~%" x-axis y-axis))
       (draw-boxplot :title title :x-label xlabel :y-label ylabel
@@ -864,35 +900,62 @@ Return a brand new sequence, the original sequence is left untouched."
   (let ((size-string (write-to-string size)))
     (concatenate 'string size-string "," size-string)))
 
-(defun plot-subplots (&rest parameters)
+(defun plot-subplots (plot-func parameters)
   (vgplot:close-all-plots)
-  (ecase (length parameters)
-    (1
-     (vgplot:format-plot t (concat "set terminal qt size "
-                                   (write-to-string 480)
-                                   ","
-                                   (write-to-string 360)))
-     (vgplot:legend :outside :boxon :southeast)
-     (plot (first parameters) nil))
-    ((2 4)
-     (loop with subplot-rows = 2
-           and subplot-columns = (/ (length parameters) 2)
-           with width = (if (= 4 (length parameters)) 900 600)
-           and height = (if (= 4 (length parameters)) 600 550)
-           and title-size = (if (= 4 (length parameters)) 11 11)
-           for parameter in parameters
-           and i from 0
-                 initially
-                    (vgplot:format-plot t (concat "set terminal qt size "
-                                                  (write-to-string width)
-                                                  ","
-                                                  (write-to-string height)))
-                    (vgplot:format-plot t (concat "set title font \","
-                                                  (write-to-string title-size)
-                                                  "\""))
-           do (vgplot:subplot subplot-rows subplot-columns i)
-              (vgplot:legend :outside :boxon :southeast)
-              (plot parameter nil nil)))))
+  (vgplot:format-plot t "set format y '%.0f'")
+  (let* ((subplot-rows 2)
+         (subplot-columns (/ (length parameters) 2))
+         (width (if (= 4 (length parameters)) 900 600))
+         (height (case (length parameters)
+                   (1 400)
+                   (2 600)
+                   (4 700)))
+         (title-size (if (= 4 (length parameters)) 13 11))
+         (xlabel-size (if (= 4 (length parameters)) 11 9))
+         (ylabel-size (if (= 4 (length parameters)) 12 11))
+         (ytics-size (if (= 4 (length parameters)) 10 10))
+         (legend-size (if (= 4 (length parameters)) 12 10)))
+    (vgplot:format-plot t (concat "set terminal qt size "
+                                  (write-to-string width)
+                                  ","
+                                  (write-to-string height)))
+    (vgplot:format-plot t (concat "set title offset 0.0,-0.5 font \","
+                                  (write-to-string title-size)
+                                  "\""))
+    (vgplot:format-plot t "set ylabel offset -0.5,0.0 font \","
+                        (write-to-string ylabel-size)
+                        "\"")
+    (vgplot:format-plot t (concat "set xlabel offset 0.0,0.2 font \","
+                                  (write-to-string xlabel-size)
+                                  "\""))
+    (vgplot:format-plot t (concat "set key font \","
+                                  (write-to-string legend-size)
+                                  "\""))
+    (vgplot:format-plot t (concat "set ytics font \","
+                                  (write-to-string ytics-size)
+                                  "\""))
+    (ecase (length parameters)
+      (1
+       (vgplot:legend :outside :boxon :southeast)
+       (funcall plot-func (first parameters)))
+      ((2 4)
+       (loop for parameter in parameters
+             and i from 0
+             do (vgplot:subplot subplot-rows subplot-columns i)
+                (vgplot:legend :outside :boxon :southeast)
+                (funcall plot-func parameter))))))
+
+(defun plot-subplots-from-parameters (&rest parameters)
+  (plot-subplots (lambda (parameter) (plot parameter nil nil))
+                 parameters))
+
+(defun plot-subplots-from-raw-data (&rest raw-data-list)
+  (plot-subplots (lambda (raw-data)
+                   (apply #'vgplot:plot (triples raw-data))
+                   (vgplot:title (title raw-data))
+                   (vgplot:xlabel (x-label raw-data))
+                   (vgplot:ylabel (y-label raw-data)))
+                 raw-data-list))
 
 (defun boxplot-subplots (&rest parameters)
   (plt:close "all")
@@ -900,16 +963,21 @@ Return a brand new sequence, the original sequence is left untouched."
     (1
      (boxplot (first parameters) nil nil t)
      (plt:show))
-    ((2 4) (loop with subplot-dimension = 2
-                 and figsize = (if (= 2 (length parameters))
-                                   (list 12.5 7)
-                                   (list 9 7))
-                 for parameter in parameters
-                 and i from 1
-                       initially (plt:subplots subplot-dimension
-                                               subplot-dimension
-                                               :figsize figsize)
-                                 (plt:subplots_adjust :wspace 0.3 :hspace 0.4)
-                 do (plt:subplot subplot-dimension (/ (length parameters) 2) i)
-                    (boxplot parameter nil nil t)
-                 finally (plt:show)))))
+    ((2 4)
+     (let ((subplot-dimension 2)
+           (figsize (if (= 2 (length parameters))
+                        (list 12.5 7)
+                        (list 9 7))))
+       (plt:subplots subplot-dimension
+                     subplot-dimension
+                     :figsize figsize)
+       (plt:subplots_adjust :wspace 0.3 :hspace 0.4)
+       (loop for parameter in parameters
+             and i from 1
+             do (plt:subplot subplot-dimension (/ (length parameters) 2) i)
+                (plt:ticklabel_format :style "plain")
+                (boxplot parameter nil nil t)
+                (when (= 2 (length parameters))
+                  (plt:xticks :fontsize 11)
+                  (plt:yticks :fontsize 12))
+             finally (plt:show))))))
