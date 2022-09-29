@@ -12,7 +12,7 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (ql:quickload '(:vgplot :yason :alexandria :cl-ppcre :py4cl :cl-csv)))
-(py4cl:import-module "matplotlib.pyplot" :as "plt") 
+(py4cl:import-module "matplotlib.pyplot" :as "plt")
 
 (defpackage plotmetrics
   (:use :common-lisp)
