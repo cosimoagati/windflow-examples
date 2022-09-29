@@ -1234,7 +1234,10 @@ build_graph_with_timer_nodes(const Parameters &parameters, PipeGraph &graph) {
             .withParallelism(parameters.parallelism[rolling_counter_id])
             .withName("rolling counter")
             .withOutputBatchSize(parameters.batch_size[rolling_counter_id])
-            .withKeyBy([](const Topic &topic) -> string { return topic.word; })
+            .withKeyBy([](const Topic &topic) -> size_t {
+                return topic.is_tick_tuple ? stoul(topic.word)
+                                           : hash<string> {}(topic.word);
+            })
             .build();
 
     IntermediateRankerTimerFunctor intermediate_ranker_timer_functor {
@@ -1253,8 +1256,10 @@ build_graph_with_timer_nodes(const Parameters &parameters, PipeGraph &graph) {
             .withParallelism(parameters.parallelism[intermediate_ranker_id])
             .withName("intermediate ranker")
             .withOutputBatchSize(parameters.batch_size[intermediate_ranker_id])
-            .withKeyBy(
-                [](const Counts &count) -> string { return count.word; })
+            .withKeyBy([](const Counts &count) -> size_t {
+                return count.is_tick_tuple ? stoul(count.word)
+                                           : hash<string> {}(count.word);
+            })
             .build();
 
     TotalRankerTimerFunctor total_ranker_timer_functor {
