@@ -330,6 +330,9 @@ class CTRGeneratorFunctor {
     unsigned long event_count = 0;
     unsigned long max_rounds; // is this needed?
 
+    unsigned reinforcement_learner_replicas;
+    unsigned current_reinforcement_learner_target_replica = 0;
+
     InputTuple get_new_tuple() {
         const auto session_id = uuid_gen();
         ++round_num;
@@ -347,14 +350,17 @@ class CTRGeneratorFunctor {
         }
 #endif
         const unsigned long timestamp = current_time();
-        return {InputTuple::Event, session_id, round_num, timestamp, 0};
+        return {InputTuple::Event, session_id, round_num, timestamp,
+                current_reinforcement_learner_target_replica};
     }
 
 public:
     CTRGeneratorFunctor(unsigned long d, unsigned rate,
+                        unsigned      reinforcement_learner_replicas,
                         unsigned long max_rounds = 10000)
         : duration {d * timeunit_scale_factor}, tuple_rate_per_second {rate},
-          max_rounds {max_rounds} {}
+          max_rounds {max_rounds}, reinforcement_learner_replicas {
+                                       reinforcement_learner_replicas} {}
 
     void operator()(Source_Shipper<InputTuple> &shipper) {
         const unsigned long end_time    = current_time() + duration;
@@ -362,6 +368,9 @@ public:
 
         while (current_time() < end_time) {
             shipper.push(get_new_tuple());
+            current_reinforcement_learner_target_replica =
+                (current_reinforcement_learner_target_replica + 1)
+                % reinforcement_learner_replicas;
             ++sent_tuples;
             if (tuple_rate_per_second > 0) {
                 const unsigned long delay =
@@ -1194,10 +1203,13 @@ static MultiPipe &get_reinforcement_learner_pipe(const Parameters &parameters,
 
 static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
-    CTRGeneratorFunctor ctr_generator_functor {parameters.duration,
-                                               parameters.tuple_rate};
-    const auto          ctr_generator_node =
-        Source_Builder {ctr_generator_functor}
+    CTRGeneratorFunctor ctr_generator_functor {
+        parameters.duration, parameters.tuple_rate,
+        parameters.parallelism[reinforcement_learner_id]};
+    const auto ctr_generator_node =
+        Source_Builder {
+            ctr_generator_functor,
+        }
             .withParallelism(parameters.parallelism[ctr_generator_id])
             .withName("ctr generator")
             .withOutputBatchSize(parameters.batch_size[ctr_generator_id])
