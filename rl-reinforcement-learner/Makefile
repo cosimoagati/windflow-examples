@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -Wpedantic -pedantic -O3 \
 -fno-exceptions -flto -fno-permissive -DNDEBUG -DFF_BOUNDED_BUFFER \
--DDEFAULT_BUFFER_CAPACITY=32786
+-DDEFAULT_BUFFER_CAPACITY=32768
 
 INCLUDE_FLAGS = -I$(HOME)/.local/include -I$(HOME)/.local/include/gsl \
 -I$(HOME)/fastflow -I$(HOME)/.local/include/wf
