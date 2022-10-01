@@ -584,9 +584,11 @@ Return a brand new sequence, the original sequence is left untouched."
     (ecase compare-by
       (:batch-size (if (equalp "deterministic" (execmode parameters))
                        "DETERMINISTIC"
-                       (concat "LP total latency, b = " (write-to-string batch-size)
-                               ;; ", chaining: " (if chaining-p "enabled"
-                               ;;                    "disabled")
+                       (concat "RL latency, b = " (write-to-string batch-size)
+                               ", chaining: " (if chaining-p
+                                                  "enabled"
+                                                  "disabled")
+                               ;; ", Timers: " (if timer-nodes-p "nodes" "threads")
                                )))
       (:chaining  (concat "MO latency, DEFAULT, b = 0, Chaining: " (if chaining-p
                                                                        "enabled"
@@ -914,9 +916,13 @@ Return a brand new sequence, the original sequence is left untouched."
          (xlabel-size (if (= 4 (length parameters)) 11 9))
          (ylabel-size (if (= 4 (length parameters)) 12 11))
          (ytics-size (if (= 4 (length parameters)) 10 10))
-         (legend-size (if (= 4 (length parameters)) 12 10)))
+         (legend-size (if (= 4 (length parameters)) 12 10))
+         (legend-styles '((:boxon :southeast)
+                          (:boxon :southeast)
+                          (:boxon :southeast)
+                          (:boxon :southeast))))
     (vgplot:format-plot t (concat "set terminal qt size "
-                                  (write-to-string width)
+                                  (write-to-string width)G
                                   ","
                                   (write-to-string height)))
     (vgplot:format-plot t (concat "set title offset 0.0,-0.5 font \","
@@ -936,13 +942,18 @@ Return a brand new sequence, the original sequence is left untouched."
                                   "\""))
     (ecase (length parameters)
       (1
-       (vgplot:legend :outside :boxon :southeast)
+       (apply #'vgplot:legend (elt legend-styles 0))
        (funcall plot-func (first parameters)))
       ((2 4)
        (loop for parameter in parameters
              and i from 0
-             do (vgplot:subplot subplot-rows subplot-columns i)
-                (vgplot:legend :outside :boxon :southeast)
+             do (vgplot:format-plot t (concat "set ytics "
+                                              (write-to-string
+                                               (if (member i '(0 1))
+                                                   200000
+                                                   500000))))
+                (vgplot:subplot subplot-rows subplot-columns i)
+                (apply #'vgplot:legend (elt legend-styles i))
                 (funcall plot-func parameter))))))
 
 (defun plot-subplots-from-parameters (&rest parameters)
