@@ -290,6 +290,7 @@ class SlotBasedCounter {
         const auto counts_entry = counts_map.find(obj);
 
         assert(counts_entry != counts_map.end());
+        assert(slot < counts_entry->second.size());
         counts_entry->second[slot] = 0;
     }
 
