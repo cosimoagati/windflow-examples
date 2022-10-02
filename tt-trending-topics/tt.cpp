@@ -274,7 +274,7 @@ class SlotBasedCounter {
     unordered_map<T, vector<unsigned long>> counts_map;
     size_t                                  num_slots;
 
-    unsigned long compute_total_count(T obj) {
+    unsigned long compute_total_count(T obj) const {
         const auto counts_entry = counts_map.find(obj);
 
         assert(counts_entry != counts_map.end());
@@ -294,7 +294,7 @@ class SlotBasedCounter {
         counts_entry->second[slot] = 0;
     }
 
-    bool should_be_removed_from_counter(T obj) {
+    bool should_be_removed_from_counter(T obj) const {
         return compute_total_count(obj) == 0;
     }
 
@@ -320,7 +320,7 @@ public:
         increment_count(obj, slot, 1);
     }
 
-    unsigned long get_count(const T &obj, size_t slot) {
+    unsigned long get_count(const T &obj, size_t slot) const {
         assert(slot < num_slots);
 
         const auto counts_entry = counts_map.find(obj);
@@ -331,7 +331,7 @@ public:
         }
     }
 
-    unordered_map<T, unsigned long> get_counts() {
+    unordered_map<T, unsigned long> get_counts() const {
         unordered_map<T, unsigned long> result;
         for (const auto &kv : counts_map) {
             result.insert_or_assign(kv.first, compute_total_count(kv.first));
@@ -367,7 +367,7 @@ class SlidingWindowCounter {
     size_t              head_slot = 0;
     size_t              tail_slot;
 
-    size_t slot_after(size_t slot) {
+    size_t slot_after(size_t slot) const {
         assert(slot < window_length_in_slots);
         return (slot + 1) % window_length_in_slots;
     }
@@ -718,7 +718,7 @@ public:
         }
     }
 
-    unsigned seconds_since_oldest_modification() {
+    unsigned seconds_since_oldest_modification() const {
         const unsigned long modified_time_millis =
             last_modified_times_millis.get();
         return static_cast<unsigned>(

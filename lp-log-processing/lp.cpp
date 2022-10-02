@@ -723,11 +723,11 @@ public:
         stats[percentage_intex] = static_cast<unsigned>(percent);
     }
 
-    unsigned get_country_total() {
+    unsigned get_country_total() const {
         return country_total;
     }
 
-    unsigned get_city_total(const string &city_name) {
+    unsigned get_city_total(const string &city_name) const {
         const auto entry = city_stats.find(city_name);
         assert(entry != city_stats.end());
         assert(count_index < entry->second.size());
@@ -741,7 +741,7 @@ class GeoFinderFunctor {
 public:
     void operator()(const SourceTuple &            input,
                     Shipper<GeoFinderOutputTuple> &shipper,
-                    RuntimeContext &               context) {
+                    RuntimeContext &               context) const {
         DO_NOT_WARN_IF_UNUSED(context);
         const auto ip = input.ip.c_str();
 #ifndef NDEBUG

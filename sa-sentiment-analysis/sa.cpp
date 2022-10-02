@@ -395,7 +395,7 @@ public:
     BasicClassifier(const char *path = default_path)
         : sentiment_map {get_sentiment_map<decltype(sentiment_map)>(path)} {}
 
-    SentimentResult classify(string &tweet) {
+    SentimentResult classify(string &tweet) const {
         const auto words                   = split_in_words_in_place(tweet);
         int        current_tweet_sentiment = 0;
 
@@ -428,7 +428,7 @@ public:
     MapFunctor() = default;
     MapFunctor(const char *path) : classifier {path} {}
 
-    void operator()(Tuple &tuple) {
+    void operator()(Tuple &tuple) const {
         tuple.result = classifier.classify(tuple.tweet);
     }
 };
