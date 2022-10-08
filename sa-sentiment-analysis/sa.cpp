@@ -61,6 +61,9 @@
 using namespace std;
 using namespace wf;
 
+/*
+ * Indices identifying the operators in the data flow graph.
+ */
 enum NodeId : unsigned {
     source_id     = 0,
     classifier_id = 1,
@@ -68,6 +71,9 @@ enum NodeId : unsigned {
     num_nodes     = 3
 };
 
+/*
+ * This struct holds every command line parameter.
+ */
 struct Parameters {
     const char *     metric_output_directory   = ".";
     Execution_Mode_t execution_mode            = Execution_Mode_t::DEFAULT;
@@ -136,7 +142,7 @@ static inline const char *sentiment_to_string(Sentiment sentiment) {
 #endif
 
 /*
- * Replaces non-alphanumeric characters with a space. The input string s
+ * Replace non-alphanumeric characters with a space. The input string s
  * itself is modified. Return a reference to s.
  */
 static inline string &replace_non_alnum_with_spaces_in_place(string &s) {

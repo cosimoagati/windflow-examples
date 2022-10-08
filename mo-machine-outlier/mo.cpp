@@ -67,6 +67,9 @@
 using namespace std;
 using namespace wf;
 
+/*
+ * Indices identifying the operators in the data flow graph.
+ */
 enum NodeId : unsigned {
     source_id          = 0,
     observer_id        = 1,
@@ -76,6 +79,9 @@ enum NodeId : unsigned {
     num_nodes          = 5
 };
 
+/*
+ * This struct holds every command line parameter.
+ */
 struct Parameters {
     const char *     metric_output_directory = ".";
     const char *     anomaly_scorer_type     = "data-stream";

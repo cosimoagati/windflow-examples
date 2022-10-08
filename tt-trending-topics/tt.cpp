@@ -59,6 +59,9 @@
 using namespace std;
 using namespace wf;
 
+/*
+ * Indices identifying the operators in the data flow graph.
+ */
 enum NodeId : unsigned {
     source_id              = 0,
     topic_extractor_id     = 1,
@@ -69,6 +72,9 @@ enum NodeId : unsigned {
     num_nodes              = 6
 };
 
+/*
+ * This struct holds every command line parameter.
+ */
 struct Parameters {
     const char *     metric_output_directory   = ".";
     Execution_Mode_t execution_mode            = Execution_Mode_t::DEFAULT;

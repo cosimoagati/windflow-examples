@@ -61,6 +61,9 @@
 using namespace std;
 using namespace wf;
 
+/*
+ * Indices identifying the operators in the data flow graph.
+ */
 enum NodeID : unsigned {
     ctr_generator_id         = 0,
     reward_source_id         = 1,
@@ -69,6 +72,9 @@ enum NodeID : unsigned {
     num_nodes                = 4
 };
 
+/*
+ * This struct holds every command line parameter.
+ */
 struct Parameters {
     const char *     metric_output_directory    = ".";
     const char *     reinforcement_learner_type = "interval-estimator";
