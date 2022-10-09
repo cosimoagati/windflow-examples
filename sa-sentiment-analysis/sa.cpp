@@ -172,6 +172,9 @@ static inline vector<string_view> split_in_words_in_place(string &text) {
     return string_split(text, ' ');
 }
 
+/*
+ * Return a vector of tweets from a file named filename.
+ */
 static inline vector<string> get_tweets_from_file(const string &filename) {
     ifstream       twitterstream {filename};
     vector<string> tweets;
@@ -186,6 +189,9 @@ static inline vector<string> get_tweets_from_file(const string &filename) {
     return tweets;
 }
 
+/*
+ * Return a hashmap mapping words to sentiment scores.
+ */
 template<typename Map>
 static inline Map get_sentiment_map(const string &path) {
     const hash<string_view> gethash;
@@ -204,6 +210,10 @@ static inline Map get_sentiment_map(const string &path) {
     return sentiment_map;
 }
 
+/*
+ * Store command line parameters into the Parameters structure passed as
+ * argument.
+ */
 static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     int option;
     int index;
@@ -275,6 +285,9 @@ static inline void parse_args(int argc, char **argv, Parameters &parameters) {
     }
 }
 
+/*
+ * Check whether the specified command line arguments are correct.
+ */
 static inline void validate_args(const Parameters &parameters) {
     if (parameters.duration == 0) {
         cerr << "Error: duration must be positive\n";
@@ -290,6 +303,9 @@ static inline void validate_args(const Parameters &parameters) {
     }
 }
 
+/*
+ * Print a message showing application configuration parameters
+ */
 static inline void print_initial_parameters(const Parameters &parameters) {
     cout << "Running graph with the following parameters:\n"
          << "Source parallelism:\t" << parameters.parallelism[source_id]
@@ -345,6 +361,9 @@ static Metric<unsigned long> global_latency_metric {"sa-latency"};
 static mutex print_mutex;
 #endif
 
+/*
+ * Source operator internal logic.
+ */
 class SourceFunctor {
     static constexpr auto default_path = "tweetstream.jsonl";
     vector<string>        tweets;
@@ -392,6 +411,9 @@ public:
     }
 };
 
+/*
+ * This classifier class associates a score to each word.
+ */
 class BasicClassifier {
     static constexpr auto             default_path = "AFINN-111.txt";
     hash<string_view>                 gethash;
@@ -426,6 +448,9 @@ public:
     }
 };
 
+/*
+ * Classifier operator internal logic.
+ */
 template<typename Classifier>
 class MapFunctor {
     Classifier classifier;
@@ -439,6 +464,9 @@ public:
     }
 };
 
+/*
+ * Sink operator internal logic.
+ */
 class SinkFunctor {
     vector<unsigned long> latency_samples;
     vector<unsigned long> service_time_samples;
@@ -492,6 +520,10 @@ public:
     }
 };
 
+/*
+ * Build the application PipeGraph according to the specified parameters.
+ * Return a reference to that same PipeGraph.
+ */
 static inline PipeGraph &build_graph(const Parameters &parameters,
                                      PipeGraph &       graph) {
     SourceFunctor source_functor {parameters.duration, parameters.tuple_rate};
