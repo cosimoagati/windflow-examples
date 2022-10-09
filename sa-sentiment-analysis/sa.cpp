@@ -172,7 +172,7 @@ static inline vector<string_view> split_in_words_in_place(string &text) {
     return string_split(text, ' ');
 }
 
-static inline vector<string> get_tweets_from_file(const char *filename) {
+static inline vector<string> get_tweets_from_file(const string &filename) {
     ifstream       twitterstream {filename};
     vector<string> tweets;
 
@@ -187,7 +187,7 @@ static inline vector<string> get_tweets_from_file(const char *filename) {
 }
 
 template<typename Map>
-static inline Map get_sentiment_map(const char *path) {
+static inline Map get_sentiment_map(const string &path) {
     const hash<string_view> gethash;
     ifstream                input_file {path};
     Map                     sentiment_map;
