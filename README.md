@@ -1,3 +1,3 @@
 # windflow-examples.
 
-A bunch of small examples using the WindFlow framework.
+Implementation of some DSPBench applications using the WindFlow framework. 
