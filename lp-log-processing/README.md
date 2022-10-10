@@ -1,5 +1,8 @@
 # Log Processing (LP)
 
+In order to query the MaxMind geolocation database, the
+[libmaxminddb](https://github.com/maxmind/libmaxminddb) library is used.
+
 Command line arguments:
 
 * --help (-h): show help message and quit

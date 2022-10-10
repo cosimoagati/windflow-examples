@@ -1,5 +1,8 @@
 # Reinforcement Learner (RL)
 
+UUID generation is performed using the
+[stduuid](https://github.com/mariusbancila/stduuid) library.
+
 Command line arguments:
 
 * --help (-h): show help message and quit
