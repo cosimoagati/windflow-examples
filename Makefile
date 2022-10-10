@@ -1,31 +1,10 @@
-GPU_EXAMPLES:= example3 example4 example5
-
-GPULIBS = -ltbb
-NVXX = /usr/local/cuda/bin/nvcc
-NVXXFLAGS = -std=c++17 -x cu --compiler-options \
-"-Wall -Wextra -Wpedantic -pedantic"
-
-NVOPTFLAGS = -w --expt-extended-lambda -O3 -Wno-deprecated-gpu-targets \
---expt-relaxed-constexpr
-
-ARCH = $(shell arch)
-ifeq ($(ARCH), x86_64)
-	NVOPTFLAGS := $(NVOPTFLAGS) -gencode arch=compute_35,code=sm_35
-endif
-ifeq ($(ARCH), aarch64)
-	NVOPTFLAGS := $(NVOPTFLAGS) -gencode arch=compute_53,code=sm_53
-endif
-
-GPU_SRCS:=$(GPU_EXAMPLES:=.cu)
 CPU_OBJS:=$(CPU_SRCS:.cpp=.o)
-GPU_OBJS:=$(GPU_SRCS:.cu=.o)
 
-all: cpu gpu
-
-debug-gpu: NVOPTFLAGS := $(NVOPTFLAGS) -g -G -O0
-debug-gpu: gpu
-
-debug: debug-cpu debug-gpu
+all: cpu
+debug: debug-cpu
+debug-optimized: debug-cpu-optimized
+profile: profile-cpu
+tracing: tracing-cpu
 
 sa:
 	$(MAKE) -C sa-sentiment-analysis
@@ -100,14 +79,4 @@ rl-debug-optimized lp-debug-optimized
 profile-cpu: sa-profile mo-profile tt-profile rl-profile lp-profile
 tracing-cpu: sa-tracing mo-tracing tt-tracing rl-tracing lp-tracing
 
-gpu: $(GPU_EXAMPLES)
-
 clean: sa-clean mo-clean tt-clean rl-clean lp-clean
-	rm -f $(GPU_EXAMPLES) $(CPU_OBJS) $(GPU_OBJS)
-
-$(GPU_OBJS): %.o: %.cu
-	$(NVXX) $(NVXXFLAGS) $(INCLUDE_FLAGS) $(MACRO) $(NVOPTFLAGS) \
-	$(USER_DEFINES) -c $< -o $@
-
-$(GPU_EXAMPLES): %: %.o
-	$(NVXX) $(GPULIBS) $< -o $@
