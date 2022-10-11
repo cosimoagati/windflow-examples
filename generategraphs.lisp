@@ -1,4 +1,4 @@
-a(load (compile-file "plotmetrics.lisp"))
+(load (compile-file "plotmetrics.lisp"))
 
 (defparameter *sa-directory*
   (pathname "sa-sentiment-analysis/testresults-2022-08-28-17-03/"))
